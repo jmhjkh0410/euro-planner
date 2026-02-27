@@ -54,9 +54,13 @@ input,textarea,select{font-family:inherit}
 ul{list-style:none}
 
 /* NAV */
-.nav{position:fixed;top:0;left:0;right:0;z-index:50;height:60px;background:rgba(255,255,253,.92);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.04)}
-.nav-inner{max-width:1280px;margin:0 auto;padding:0 20px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.nav-logo{font-size:15px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;flex-shrink:0}
+/* ── NAV 개선 ─────────────────────────────────────────────── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;height:56px;background:rgba(255,255,253,.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.nav-inner{max-width:1280px;margin:0 auto;padding:0 16px;height:100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.nav-left{display:flex;align-items:center;gap:8px;min-width:0}
+.nav-center{display:flex;justify-content:center}
+.nav-right{display:flex;align-items:center;gap:8px;justify-content:flex-end;min-width:0}
+.nav-logo{font-size:14px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;flex-shrink:0}
 .nav-version{font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;background:var(--surface-raised);border:1px solid var(--border);padding:3px 8px;border-radius:6px;flex-shrink:0;display:none}
 @media(min-width:1024px){.nav-version{display:block}}
 /* 동기화 상태 배지 */
@@ -65,13 +69,24 @@ ul{list-style:none}
 .sync-loading{background:#eff6ff;color:#2563eb;border-color:#bfdbfe;animation:syncPulse 1.2s ease-in-out infinite}
 .sync-error{background:#fef2f2;color:#dc2626;border-color:#fecaca}
 @keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.55}}
-.tab-bar{display:flex;flex:1;max-width:340px;background:var(--surface-raised);padding:3px;border-radius:12px;gap:2px;border:1px solid var(--border);box-shadow:inset 0 1px 3px rgba(0,0,0,.05)}
-.tab-btn{flex:1;padding:6px 4px;font-size:11px;font-weight:700;border-radius:9px;transition:all .22s;color:var(--text-muted);white-space:nowrap}
+.tab-bar{display:flex;background:var(--surface-raised);padding:3px;border-radius:12px;gap:2px;border:1px solid var(--border);box-shadow:inset 0 1px 3px rgba(0,0,0,.05)}
+.tab-btn{padding:6px 14px;font-size:11px;font-weight:700;border-radius:9px;transition:all .22s;color:var(--text-muted);white-space:nowrap}
+@media(max-width:480px){.tab-btn{padding:6px 10px;font-size:10px}}
 .tab-btn:hover:not(.tab-active){color:var(--text-secondary)}
 .tab-btn.tab-active{background:var(--surface);color:var(--text-primary);box-shadow:var(--shadow-sm)}
+/* 유저 배지 */
+.user-badge{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;padding:4px 10px 4px 7px;cursor:pointer;transition:background .15s;flex-shrink:0;max-width:120px}
+.user-badge:hover{background:var(--border-light)}
+.user-badge-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.user-badge-name{font-size:11px;font-weight:700;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:480px){
+  .user-badge{max-width:80px;padding:4px 8px 4px 6px}
+  .user-badge-name{font-size:10px}
+  .sync-status{display:none}  /* 모바일에서 sync 배지 숨김 */
+}
 
 /* LAYOUT */
-.page-wrap{max-width:1280px;margin:0 auto;padding:76px 20px 100px}
+.page-wrap{max-width:1280px;margin:0 auto;padding:72px 20px 100px}
 .layout{display:flex;gap:32px}
 .sidebar{display:none;width:220px;flex-shrink:0}
 @media(min-width:1024px){.sidebar{display:block}}
@@ -365,18 +380,24 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
 <nav class="nav">
   <div class="nav-inner">
-    <span class="nav-logo">🇪🇺 EURO 40D</span>
-    <div class="tab-bar">
-      <button id="tab-btn-reservations" class="tab-btn" onclick="switchTab('reservations')">📅 예약</button>
-      <button id="tab-btn-packing"      class="tab-btn" onclick="switchTab('packing')">🎒 짐싸기</button>
-      <button id="tab-btn-itinerary"    class="tab-btn" onclick="switchTab('itinerary')">🗺️ 일정</button>
+    <div class="nav-left">
+      <span class="nav-logo">🇪🇺 EURO 40D</span>
     </div>
-    <span id="sync-status" class="sync-status sync-loading">☁️ 연결 중…</span>
-    <div class="user-badge" id="user-badge" onclick="showPinOverlay()" title="유저 전환">
-      <div class="user-badge-dot" id="user-badge-dot"></div>
-      <span class="user-badge-name" id="user-badge-name">-</span>
+    <div class="nav-center">
+      <div class="tab-bar">
+        <button id="tab-btn-reservations" class="tab-btn" onclick="switchTab('reservations')">📅 예약</button>
+        <button id="tab-btn-packing"      class="tab-btn" onclick="switchTab('packing')">🎒 짐싸기</button>
+        <button id="tab-btn-itinerary"    class="tab-btn" onclick="switchTab('itinerary')">🗺️ 일정</button>
+      </div>
     </div>
-    <span class="nav-version">v31 🔥</span>
+    <div class="nav-right">
+      <span id="sync-status" class="sync-status sync-loading">☁️ 연결 중…</span>
+      <div class="user-badge" id="user-badge" onclick="showPinOverlay()" title="유저 전환">
+        <div class="user-badge-dot" id="user-badge-dot"></div>
+        <span class="user-badge-name" id="user-badge-name">-</span>
+      </div>
+      <span class="nav-version">v34 🔥</span>
+    </div>
   </div>
 </nav>
 
@@ -672,8 +693,8 @@ const USER_CONFIG = {
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
     seo: {
-        name:  '서동주 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-        icon:  '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        name:  '서동주 🇬🇧',
+        icon:  '🇬🇧',
         color: '#f59e0b',
         isMaster: false,
         checksPath: 'euroPlanner/v33/checks/paris',
@@ -738,15 +759,15 @@ function showPinOverlay() {
 function applyUserMode(code) {
     const uc = USER_CONFIG[code];
 
-    // 1) 네비 배지 업데이트 — SOLO는 숨김
+    // 1) 네비 배지 업데이트 — 모든 유저 표시, 처음으로 버튼도 항상
     const badge = document.getElementById('user-badge');
     const backBtn = document.getElementById('btn-back-home');
+    if (backBtn) backBtn.style.display = 'block';
+    badge.style.display = '';
     if (code === 'solo') {
-        badge.style.display = 'none';
-        if (backBtn) backBtn.style.display = 'block';
+        document.getElementById('user-badge-dot').style.background = '#10b981';
+        document.getElementById('user-badge-name').textContent = '🧳 나';
     } else {
-        badge.style.display = '';
-        if (backBtn) backBtn.style.display = 'none';
         document.getElementById('user-badge-dot').style.background = uc.color;
         document.getElementById('user-badge-name').textContent = uc.icon + ' ' + uc.name;
     }
