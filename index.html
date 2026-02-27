@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>유럽 여행 통합 마스터 플래너 v30 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v31 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -300,9 +300,68 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-dlg-ok:hover{opacity:.88}
 .dialog-form-row{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
 .dialog-label{font-size:11px;font-weight:700;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px}
+/* ── PIN / 유저 선택 화면 ─────────────────────────────────── */
+/* ── PIN 화면 CSS 교체 ───────────────────────────────────── */
+.pin-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:#f5f5f0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  font-family:'Noto Sans KR',-apple-system,sans-serif}
+.pin-overlay.hidden{display:none}
+.pin-box{width:100%;max-width:320px;padding:48px 28px 40px;text-align:center;animation:pinFadeIn .4s ease}
+@keyframes pinFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.pin-flag{font-size:40px;margin-bottom:16px}
+.pin-title{font-size:20px;font-weight:900;color:#1a1a18;letter-spacing:-.5px;margin-bottom:6px}
+.pin-sub{font-size:12px;color:#a3a39a;margin-bottom:36px;font-weight:500}
+.pin-start-btn{width:100%;background:#1a1a18;color:#fff;font-size:15px;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;margin-bottom:16px;letter-spacing:-.2px}
+.pin-start-btn:hover{background:#2d2d2a;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.pin-input-row{display:flex;gap:8px}
+.pin-input{flex:1;min-width:0;background:#fff;border:1.5px solid #e5e5e0;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:700;color:#1a1a18;text-align:center;letter-spacing:.2em;text-transform:uppercase;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.pin-input::placeholder{color:#d1d5db;letter-spacing:.05em;font-size:11px;font-weight:500}
+.pin-input:focus{border-color:#1a1a18;box-shadow:0 0 0 3px rgba(26,26,24,.08)}
+.pin-input.shake{animation:pinShake .35s ease}
+@keyframes pinShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pin-code-btn{flex-shrink:0;width:48px;background:#f0f0eb;color:#1a1a18;font-size:16px;font-weight:800;padding:13px;border-radius:12px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.pin-code-btn:hover{background:#e5e5e0}
+.pin-error{font-size:11px;color:#ef4444;font-weight:700;min-height:18px;margin-top:10px}
+.btn-back-home{position:fixed;bottom:20px;left:20px;z-index:100;
+  background:rgba(26,26,24,.06);border:1px solid rgba(26,26,24,.1);color:#9ca3af;
+  font-size:11px;font-weight:700;padding:7px 16px;border-radius:999px;cursor:pointer;
+  font-family:inherit;transition:all .2s;white-space:nowrap;display:none}
+.btn-back-home:hover{background:rgba(26,26,24,.1);color:#6b7280}
+/* 유저 배지 (앱 우상단) */
+.user-badge{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.06);border:1px solid var(--border);border-radius:999px;padding:4px 12px 4px 8px;cursor:pointer;transition:background .15s;flex-shrink:0}
+.user-badge:hover{background:rgba(0,0,0,.1)}
+.user-badge-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.user-badge-name{font-size:11px;font-weight:700;color:var(--text-secondary)}
 </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════════════
+  🔐 PIN 선택 화면 — 유저별 뷰 분기
+══════════════════════════════════════════════════════════ -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-box">
+    <div class="pin-flag">🗺️</div>
+    <div class="pin-title">🇪🇺 EURO 40D</div>
+    <div class="pin-sub">나만의 여행 플래너</div>
+
+    <!-- 시작하기 버튼 → SOLO 모드 진입 -->
+    <button class="pin-start-btn" onclick="enterWithCode('solo')">시작하기</button>
+
+    <!-- 숨겨진 코드 입력 — 한 줄 꽉 채운 입력창 + 작은 버튼 -->
+    <div class="pin-input-row">
+      <input class="pin-input" id="pin-input" type="text" maxlength="12"
+        placeholder="코드 입력" autocomplete="off" autocorrect="off" autocapitalize="off"
+        onkeydown="if(event.key==='Enter')doPinEnter()">
+      <button class="pin-code-btn" onclick="doPinEnter()">→</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- 솔로 모드 — 시작 화면 복귀 버튼 -->
+<button class="btn-back-home" id="btn-back-home" onclick="showPinOverlay()">⟵ 처음으로</button>
 
 <nav class="nav">
   <div class="nav-inner">
@@ -313,7 +372,11 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
       <button id="tab-btn-itinerary"    class="tab-btn" onclick="switchTab('itinerary')">🗺️ 일정</button>
     </div>
     <span id="sync-status" class="sync-status sync-loading">☁️ 연결 중…</span>
-    <span class="nav-version">v30 🔥</span>
+    <div class="user-badge" id="user-badge" onclick="showPinOverlay()" title="유저 전환">
+      <div class="user-badge-dot" id="user-badge-dot"></div>
+      <span class="user-badge-name" id="user-badge-name">-</span>
+    </div>
+    <span class="nav-version">v31 🔥</span>
   </div>
 </nav>
 
@@ -447,7 +510,317 @@ const DATES_KEY  = 'EURO_TRIP_DATES_V30';  // 날짜는 localStorage 유지 (기
 // Firebase 오프라인 폴백용 로컬 키
 const FB_LOCAL_FALLBACK = 'EURO_PLANNER_V30_LOCAL';
 
-let fbReady = false;  // Firebase 초기화 완료 여부
+// ================================================================
+// 🔥 Firebase 경로 구조
+//   euroPlanner/v33/content   ← FULL이 쓰는 일정 내용 (마스터)
+//   euroPlanner/v33/checks/full   ← FULL/SOLO 체크
+//   euroPlanner/v33/checks/swiss  ← 이다은 체크
+//   euroPlanner/v33/checks/paris  ← 친구B 체크
+// ================================================================
+const FB_CONTENT_PATH = 'euroPlanner/v33/content';
+const FB_LOCAL_CONTENT = 'EURO_PLANNER_V33_CONTENT';
+const FB_LOCAL_CHECKS  = 'EURO_PLANNER_V33_CHECKS';
+
+let fbReady = false;
+let _unsubContent = null;  // content 리스너 해제용
+let _unsubChecks  = null;  // checks 리스너 해제용
+
+// ── content: 일정 구조 데이터 (tabs structure + trash) ─────
+// ── checks:  해당 유저의 체크/티켓/cityOpen/dayOpen ─────────
+
+function _getChecksState() {
+    return {
+        reservations: { checks: appState.reservations.checks, tickets: appState.reservations.tickets },
+        itinerary:    { checks: appState.itinerary.checks,    tickets: appState.itinerary.tickets, cityOpen: appState.itinerary.cityOpen, dayOpen: appState.itinerary.dayOpen },
+        packing:      { checks: appState.packing.checks,      tickets: appState.packing.tickets }
+    };
+}
+
+function _applyChecksState(d) {
+    if (!d) return;
+    ['reservations','itinerary','packing'].forEach(t => {
+        if (d[t]) {
+            if (d[t].checks)  appState[t].checks  = d[t].checks;
+            if (d[t].tickets) appState[t].tickets  = d[t].tickets;
+        }
+    });
+    if (d.itinerary) {
+        if (d.itinerary.cityOpen) appState.itinerary.cityOpen = d.itinerary.cityOpen;
+        if (d.itinerary.dayOpen)  appState.itinerary.dayOpen  = d.itinerary.dayOpen;
+    }
+}
+
+function _getContentState() {
+    return {
+        reservations: { structure: appState.reservations.structure },
+        itinerary:    { structure: appState.itinerary.structure },
+        packing:      { structure: appState.packing.structure },
+        trash: appState.trash
+    };
+}
+
+function _applyContentState(d) {
+    if (!d) return;
+    ['reservations','itinerary','packing'].forEach(t => {
+        if (d[t] && d[t].structure) appState[t].structure = d[t].structure;
+    });
+    if (d.trash) appState.trash = d.trash;
+}
+
+function _startFirebaseSync() {
+    fbReady = true;
+    const { db, ref, onValue } = window._fb;
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+
+    // 1) content 리스너 (모든 유저 공통 — 읽기)
+    if (_unsubContent) _unsubContent();
+    _unsubContent = onValue(ref(db, FB_CONTENT_PATH), (snap) => {
+        const d = snap.val();
+        if (d) {
+            try {
+                _applyContentState(JSON.parse(d));
+                localStorage.setItem(FB_LOCAL_CONTENT, d);
+                renderContent(); updateProgress(); updateTrashFab();
+                setSyncStatus('ok', '✅ 동기화 완료');
+            } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
+        } else if (uc && uc.isMaster) {
+            // 마스터만 초기 데이터 업로드
+            _saveContentToFirebase();
+        }
+    }, (err) => setSyncStatus('error', '❌ ' + err.message));
+
+    // 2) checks 리스너 (유저별)
+    if (uc) {
+        if (_unsubChecks) _unsubChecks();
+        _unsubChecks = onValue(ref(db, uc.checksPath), (snap) => {
+            const d = snap.val();
+            if (d) {
+                try { _applyChecksState(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {}
+            }
+        });
+    }
+}
+
+function _saveContentToFirebase() {
+    if (!window._fb) return;
+    const { db, ref, set } = window._fb;
+    const s = JSON.stringify(_getContentState());
+    localStorage.setItem(FB_LOCAL_CONTENT, s);
+    set(ref(db, FB_CONTENT_PATH), s)
+        .then(() => setSyncStatus('ok', '✅ 저장 완료'))
+        .catch(e => setSyncStatus('error', '❌ 저장 실패'));
+}
+
+function _saveChecksToFirebase() {
+    if (!window._fb || !currentUser) return;
+    const { db, ref, set } = window._fb;
+    const uc = USER_CONFIG[currentUser];
+    const s = JSON.stringify(_getChecksState());
+    localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, s);
+    set(ref(db, uc.checksPath), s).catch(e => console.error('[checks save]', e));
+}
+
+function save() {
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+    setSyncStatus('loading', '☁️ 저장 중…');
+    if (uc && uc.isMaster) {
+        // 마스터: content + checks 둘 다 저장
+        _saveContentToFirebase();
+        _saveChecksToFirebase();
+    } else {
+        // 일반 유저: checks만 저장 (content는 읽기 전용)
+        _saveChecksToFirebase();
+        setSyncStatus('ok', '✅ 저장 완료');
+    }
+}
+
+// ================================================================
+// 👤 유저 설정 — PIN 코드 & 접근 권한
+// ================================================================
+const USER_CONFIG = {
+    jkhjmh0410: {
+        name:  '정경호',
+        icon:  '👑',
+        color: '#8b5cf6',
+        isMaster: true,       // ← 마스터 유저 (일정 내용 쓰기 권한)
+        checksPath: 'euroPlanner/v33/checks/full',
+        tabs:  ['reservations','itinerary','packing'],
+        itineraryCats: null,
+        soloMode: false,
+        reservationFilter: null
+    },
+    solo: {
+        name:  '솔로 모드',
+        icon:  '🧳',
+        color: '#10b981',
+        isMaster: false,
+        checksPath: 'euroPlanner/v33/checks/full',  // FULL과 같은 체크 데이터
+        tabs:  ['reservations','itinerary','packing'],
+        itineraryCats: null,
+        soloMode: true,
+        reservationFilter: null
+    },
+    cat: {
+        name:  '이다은',
+        icon:  '🐱',
+        color: '#ef4444',
+        isMaster: false,
+        checksPath: 'euroPlanner/v33/checks/swiss',
+        tabs:  ['reservations','itinerary','packing'],
+        itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
+        soloMode: false,
+        reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
+    },
+    seo: {
+        name:  '서동주 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        icon:  '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        color: '#f59e0b',
+        isMaster: false,
+        checksPath: 'euroPlanner/v33/checks/paris',
+        tabs:  ['reservations','itinerary','packing'],
+        itineraryCats: ['paris1','london','london_b','paris2'],
+        soloMode: false,
+        reservationFilter: ['r27e','r4','r20','r21','r26','r28']
+    }
+};
+
+// 현재 로그인된 유저
+let currentUser = null;
+
+// ── PIN 화면 로직 ─────────────────────────────────────────
+let selectedCard = null;
+
+function selectUserCard(code) {
+    selectedCard = code;
+    document.querySelectorAll('.pin-card').forEach(el => el.classList.remove('active'));
+    document.getElementById(`card-${code}`)?.classList.add('active');
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-error').textContent = '';
+    // 카드 클릭 시 바로 입장
+    enterWithCode(code);
+}
+
+function doPinEnter() {
+    const val = document.getElementById('pin-input').value.trim().toLowerCase();
+    if (!val) { shakeInput(); return; }
+    enterWithCode(val);
+}
+
+function enterWithCode(code) {
+    const normalizedCode = code.toLowerCase();
+    if (!USER_CONFIG[normalizedCode]) {
+        document.getElementById('pin-error').textContent = '올바르지 않은 코드예요.';
+        shakeInput();
+        return;
+    }
+    sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
+    currentUser = normalizedCode;
+    applyUserMode(normalizedCode);
+    document.getElementById('pin-overlay').classList.add('hidden');
+}
+
+function shakeInput() {
+    const el = document.getElementById('pin-input');
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+}
+
+function showPinOverlay() {
+    document.getElementById('pin-overlay').classList.remove('hidden');
+    selectedCard = null;
+    document.querySelectorAll('.pin-card').forEach(el => el.classList.remove('active'));
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-error').textContent = '';
+}
+
+// ── 유저 모드 적용 ────────────────────────────────────────
+function applyUserMode(code) {
+    const uc = USER_CONFIG[code];
+
+    // 1) 네비 배지 업데이트 — SOLO는 숨김
+    const badge = document.getElementById('user-badge');
+    const backBtn = document.getElementById('btn-back-home');
+    if (code === 'solo') {
+        badge.style.display = 'none';
+        if (backBtn) backBtn.style.display = 'block';
+    } else {
+        badge.style.display = '';
+        if (backBtn) backBtn.style.display = 'none';
+        document.getElementById('user-badge-dot').style.background = uc.color;
+        document.getElementById('user-badge-name').textContent = uc.icon + ' ' + uc.name;
+    }
+
+    // 2) Firebase 경로 변경
+    window._currentFbPath = uc.checksPath;
+
+    // 4) 탭 표시/숨김
+    ['reservations','itinerary','packing'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.style.display = uc.tabs.includes(t) ? '' : 'none';
+    });
+
+    // 5) 마스터가 아니면 편집 FAB 숨김
+    const fabEdit = document.getElementById('fab-edit');
+    if (fabEdit) fabEdit.style.display = uc.isMaster ? '' : 'none';
+
+    // 4) 현재 탭이 숨겨지면 첫 번째 허용 탭으로 전환
+    if (!uc.tabs.includes(appState.activeTab)) {
+        appState.activeTab = uc.tabs[0];
+    }
+
+    // 5) Firebase 재연결 (유저별 경로로)
+    if (window._fb) _startFirebaseSync();
+    else window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
+
+    renderContent();
+    updateProgress();
+}
+
+// ── 유저 필터 적용된 카테고리 반환 ───────────────────────
+function getFilteredCategories(tab) {
+    if (!currentUser) return config[tab].categories;
+    const uc = USER_CONFIG[currentUser];
+    const cats = config[tab].categories;
+
+    if (tab === 'itinerary' && uc.itineraryCats) {
+        const filtered = {};
+        uc.itineraryCats.forEach(k => { if (cats[k]) filtered[k] = cats[k]; });
+        return filtered;
+    }
+    return cats;
+}
+
+// ── SOLO 모드 텍스트 치환 ────────────────────────────────
+function applySoloText(text) {
+    if (!currentUser || !USER_CONFIG[currentUser].soloMode) return text;
+    return text
+        .replace(/👥\s*/g, '')
+        .replace(/\[2인\]/g, '[혼자]')
+        .replace(/친구와 함께 이동/g, '이동')
+        .replace(/인원 2명 선택/g, '인원 1명 선택')
+        .replace(/수량 2장/g, '수량 1장')
+        .replace(/2자리 연석/g, '창가석')
+        .replace(/2인분 결제/g, '결제')
+        .replace(/나와 친구 몫/g, '')
+        .replace(/친구 패스 번호도 필요할 수 있음/g, '')
+        .replace(/동행인과 나 모두/g, '')
+        .replace(/친구 합류 🎉/g, '취리히 도착')
+        .replace(/친구와 취리히 공항 내 미팅 포인트 사전 확정[^\n]*/g, '')
+        .replace(/친구는 공항에서 대기/g, '');
+}
+
+// ── 예약 탭 필터 ─────────────────────────────────────────
+function getFilteredTasks(tab, catKey, tasks) {
+    if (!currentUser) return tasks;
+    const uc = USER_CONFIG[currentUser];
+
+    // 예약 탭 친구 필터
+    if (tab === 'reservations' && uc.reservationFilter) {
+        return tasks.filter(t => uc.reservationFilter.includes(t.id));
+    }
+    return tasks;
+}
 
 const config = {
     reservations: {
@@ -966,64 +1339,35 @@ function bulkDelete() {
     updateTrashFab();
 }
 
-// ── INIT / SAVE (Firebase 버전) ───────────────────────────
+// ── INIT ──────────────────────────────────────────────────
 function init() {
+    // 0) 세션 복원
+    const savedCode = sessionStorage.getItem('EURO_USER_CODE');
+    if (savedCode && USER_CONFIG[savedCode]) {
+        currentUser = savedCode;
+        document.getElementById('pin-overlay').classList.add('hidden');
+        applyUserMode(savedCode);
+    }
+
     // 1) 로컬 캐시로 빠른 초기 렌더링
-    const local = localStorage.getItem(FB_LOCAL_FALLBACK);
-    if (local) {
-        try {
-            const d = JSON.parse(local);
-            appState = d;
-        } catch(e) {}
+    const localContent = localStorage.getItem(FB_LOCAL_CONTENT);
+    if (localContent) { try { _applyContentState(JSON.parse(localContent)); } catch(e) {} }
+    if (currentUser) {
+        const localChecks = localStorage.getItem(FB_LOCAL_CHECKS + '_' + currentUser);
+        if (localChecks) { try { _applyChecksState(JSON.parse(localChecks)); } catch(e) {} }
     }
     _ensureAppState();
     switchTab(appState.activeTab || 'reservations');
-    setSyncStatus('loading', '☁️ 클라우드 동기화 중…');
+    setSyncStatus('loading', '☁️ 동기화 중…');
 
-    // 2) Firebase 준비되면 실시간 리스닝 시작
-    if (window._fb) {
-        _startFirebaseSync();
-    } else {
+    // 2) Firebase 연결
+    if (window._fb) _startFirebaseSync();
+    else {
         window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
-        // 5초 후에도 Firebase 미연결이면 로컬만으로 진행
         setTimeout(() => {
-            if (!fbReady) {
-                setSyncStatus('error', '⚠️ 클라우드 미연결 (로컬 모드)');
-                console.warn('[Planner] Firebase 미연결 — firebaseConfig를 확인하세요.');
-            }
+            if (!fbReady) setSyncStatus('error', '⚠️ 클라우드 미연결 (로컬 모드)');
         }, 5000);
     }
-}
-
-function _startFirebaseSync() {
-    fbReady = true;
-    const { db, ref, onValue } = window._fb;
-    const dataRef = ref(db, FB_PATH);
-
-    // 실시간 변경 감지 (다른 기기에서 수정해도 즉시 반영)
-    onValue(dataRef, (snapshot) => {
-        const cloudData = snapshot.val();
-        if (cloudData) {
-            try {
-                appState = JSON.parse(cloudData);
-                _ensureAppState();
-                localStorage.setItem(FB_LOCAL_FALLBACK, cloudData);
-                renderContent();
-                updateProgress();
-                updateTrashFab();
-                setSyncStatus('ok', '✅ 동기화 완료');
-            } catch(e) {
-                setSyncStatus('error', '❌ 데이터 파싱 오류');
-            }
-        } else {
-            // Firebase에 데이터 없음 → 현재 appState 업로드
-            _saveToFirebase();
-            setSyncStatus('ok', '✅ 초기 데이터 업로드 완료');
-        }
-    }, (error) => {
-        setSyncStatus('error', '❌ Firebase 오류: ' + error.message);
-        console.error('[Firebase]', error);
-    });
 }
 
 function _ensureAppState() {
@@ -1034,26 +1378,6 @@ function _ensureAppState() {
         if (!appState[tab].tickets) appState[tab].tickets = {};
         if (!appState[tab].checks)  appState[tab].checks  = {};
     });
-}
-
-function _saveToFirebase() {
-    if (!window._fb) return;
-    const { db, ref, set } = window._fb;
-    const serialized = JSON.stringify(appState);
-    localStorage.setItem(FB_LOCAL_FALLBACK, serialized);
-    setSyncStatus('loading', '☁️ 저장 중…');
-    set(ref(db, FB_PATH), serialized)
-        .then(() => setSyncStatus('ok', '✅ 저장 완료'))
-        .catch(e => {
-            setSyncStatus('error', '❌ 저장 실패');
-            console.error('[Firebase save]', e);
-        });
-}
-
-function save() {
-    // 로컬 즉시 + Firebase 비동기
-    localStorage.setItem(FB_LOCAL_FALLBACK, JSON.stringify(appState));
-    _saveToFirebase();
 }
 
 // 동기화 상태 표시
@@ -1129,7 +1453,7 @@ function updateTabUI() {
 function renderSidebar() {
     const sb = document.getElementById('sidebar-nav');
     sb.innerHTML = '';
-    Object.entries(config[appState.activeTab].categories).forEach(([key,cat]) => {
+    Object.entries(getFilteredCategories(appState.activeTab)).forEach(([key,cat]) => {
         const btn = document.createElement('button');
         btn.className = 'sidebar-item'; btn.id = `nav-${key}`;
         btn.innerHTML = `<span class="sidebar-dot" style="background:${cat.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cat.title}</span>`;
@@ -1277,7 +1601,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
     li.draggable = editMode;  // 편집모드 상태에 따라
 
     const tipsHtml = task.tips
-        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${task.tips.split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
+        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${applySoloText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
         : '';
     const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
 
@@ -1286,10 +1610,10 @@ function renderItem(task, catKey, catInfo, td, dk) {
         <div class="check-circle">${chkSvg}</div>
         <div class="task-body">
             <div class="task-top">
-                <span class="task-title">${task.title}</span>
+                <span class="task-title">${applySoloText(task.title)}</span>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
-            ${task.desc ? `<p class="task-desc">${task.desc}</p>` : ''}
+            ${task.desc ? `<p class="task-desc">${applySoloText(task.desc)}</p>` : ''}
             ${tipsHtml}
             <div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
@@ -1316,8 +1640,10 @@ function renderContent() {
     const cfg = config[appState.activeTab];
     const isIt = appState.activeTab === 'itinerary';
 
-    Object.entries(cfg.categories).forEach(([catKey, catInfo]) => {
-        const tasks   = td.structure[catKey] || [];
+    Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
+        let tasks = td.structure[catKey] || [];
+        // 유저 필터 적용
+        tasks = getFilteredTasks(appState.activeTab, catKey, tasks);
         const section = document.createElement('section');
         section.id = `section-${catKey}`;
         section.className = 'cat-section';
@@ -1546,7 +1872,10 @@ function addTask(catKey, dk) {
 // ── PROGRESS ──────────────────────────────────────────────
 function updateProgress() {
     const td  = appState[appState.activeTab];
-    const all = Object.values(td.structure).flat();
+    const filteredCats = getFilteredCategories(appState.activeTab);
+    const all = Object.entries(td.structure)
+        .filter(([k]) => filteredCats[k])
+        .flatMap(([k, tasks]) => getFilteredTasks(appState.activeTab, k, tasks));
     const n   = all.filter(t => td.checks[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
     document.getElementById('progress-bar').style.width  = pct + '%';
@@ -1555,9 +1884,9 @@ function updateProgress() {
 
 // ── SCROLL SPY ────────────────────────────────────────────
 function handleScroll() {
-    const cfg = config[appState.activeTab];
+    const filteredCats = getFilteredCategories(appState.activeTab);
     let ak = '';
-    for (const k in cfg.categories) {
+    for (const k in filteredCats) {
         const el = document.getElementById(`section-${k}`);
         if (el && el.getBoundingClientRect().top <= 180) ak = k;
     }
@@ -1565,10 +1894,10 @@ function handleScroll() {
         const m = it.id === `nav-${ak}`;
         it.classList.toggle('active', m);
         if (m && ak) {
-            const c = cfg.categories[ak].color;
+            const c = filteredCats[ak].color;
             it.style.borderLeftColor = c; it.style.color = c;
             document.getElementById('indicator-dot').style.backgroundColor = c;
-            document.getElementById('indicator-text').textContent = cfg.categories[ak].title;
+            document.getElementById('indicator-text').textContent = filteredCats[ak].title;
         } else { it.style.borderLeftColor='transparent'; it.style.color=''; }
     });
 }
