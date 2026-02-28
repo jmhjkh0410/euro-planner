@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>유럽 여행 통합 마스터 플래너 v31 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -78,6 +78,7 @@ ul{list-style:none}
 .user-badge{display:flex;align-items:center;gap:5px;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;padding:4px 10px 4px 7px;cursor:pointer;transition:background .15s;flex-shrink:0;max-width:120px}
 .user-badge:hover{background:var(--border-light)}
 .user-badge-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.user-badge-icon{display:none}  /* 데스크탑: 아이콘 숨김 */
 .user-badge-name{font-size:11px;font-weight:700;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:480px){
   .user-badge{max-width:80px;padding:4px 8px 4px 6px}
@@ -235,6 +236,50 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .day-chevron.open{transform:rotate(180deg)}
 .day-body-inner{padding:10px 12px;display:flex;flex-direction:column}
 
+/* ── 시간 뱃지 ── */
+.task-time-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:800;color:#fff;background:var(--text-secondary);border-radius:6px;padding:2px 7px;letter-spacing:.02em;flex-shrink:0}
+.task-time-badge.now{background:#ef4444;animation:timePulse 2s ease-in-out infinite}
+@keyframes timePulse{0%,100%{opacity:1}50%{opacity:.65}}
+.task-top-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ── 도시 메모 블록 ── */
+.city-memo-block{margin:0 0 10px 0;border-radius:var(--r-md);border:1px solid var(--border);overflow:hidden}
+.city-memo-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface-raised);cursor:pointer;user-select:none}
+.city-memo-title{font-size:11px;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;gap:6px}
+.city-memo-actions{display:flex;align-items:center;gap:6px}
+.btn-memo-edit{font-size:10px;padding:3px 9px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-weight:700}
+.btn-memo-edit:hover{background:var(--border-light)}
+.city-memo-chevron{font-size:10px;color:var(--text-muted);transition:transform .22s}
+.city-memo-chevron.open{transform:rotate(180deg)}
+.city-memo-body{display:none;padding:14px 16px;background:var(--surface);border-top:1px solid var(--border)}
+.city-memo-body.open{display:block}
+.city-memo-text{font-size:11px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap;word-break:break-word;font-weight:500}
+.city-memo-textarea{width:100%;min-height:180px;font-size:11px;line-height:1.65;color:var(--text-primary);background:var(--surface-raised);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;resize:vertical;font-family:inherit;box-sizing:border-box;font-weight:500}
+.city-memo-textarea:focus{outline:none;border-color:#6b7280}
+/* 메모 task — 참고용 카드 스타일 */
+.task-item.memo-task{cursor:default;background:var(--surface-raised);border-left-style:dashed !important;opacity:0.92}
+.task-item.memo-task:hover{box-shadow:var(--shadow-sm)}
+.task-item.memo-task .task-title{font-weight:600;color:var(--text-secondary)}
+.task-item.memo-task .task-tips{background:rgba(0,0,0,.03)}
+/* + 시간 버튼 */
+.btn-add-time{display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--text-muted);background:none;border:1px dashed var(--border);border-radius:5px;padding:2px 7px;cursor:pointer;letter-spacing:.02em;transition:all .15s}
+.btn-add-time:hover{color:var(--text-secondary);border-color:var(--text-muted);background:var(--surface-raised)}
+/* 시간 인라인 편집 */
+.time-inline-input{font-size:10px;border:1px solid var(--border);border-radius:5px;padding:2px 6px;background:var(--surface-raised);color:var(--text-primary);outline:none;width:80px}
+.time-inline-input:focus{border-color:#6b7280}
+.city-memo-save-row{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.btn-memo-cancel{font-size:11px;padding:6px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-weight:600;color:var(--text-secondary)}
+.btn-memo-save{font-size:11px;padding:6px 14px;background:#1a1a18;color:#fff;border-radius:var(--r-sm);cursor:pointer;font-weight:700}
+.city-memo-empty{font-size:11px;color:var(--text-muted);font-style:italic}
+
+/* ── 타임라인 뷰 (오늘 일정 강조) ── */
+.timeline-today-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;background:linear-gradient(135deg,#fef9c3,#fef3c7);border:1px solid #fde68a;border-radius:var(--r-md);margin-bottom:10px;font-size:12px;font-weight:700;color:#92400e}
+.task-item.is-now{background:linear-gradient(135deg,#fefce8,#fff);border-left-width:5px;box-shadow:0 2px 12px rgba(234,179,8,.18)}
+@media(max-width:768px){
+  .task-time-badge{font-size:11px;padding:3px 8px}
+  .city-memo-text{font-size:13px}
+}
+
 /* TRASH DRAWER */
 .trash-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:8000;backdrop-filter:blur(2px)}
 .trash-overlay.open{display:block}
@@ -317,18 +362,27 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .dialog-label{font-size:11px;font-weight:700;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px}
 /* ── PIN / 유저 선택 화면 ─────────────────────────────────── */
 /* ── PIN 화면 CSS 교체 ───────────────────────────────────── */
-.pin-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+.pin-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:flex-start;justify-content:center;
   background:#f5f5f0;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  font-family:'Noto Sans KR',-apple-system,sans-serif}
+  font-family:'Noto Sans KR',-apple-system,sans-serif;
+  overflow:hidden;
+  touch-action:none;
+  /* iOS Safari: 완전히 가리기 위해 opacity와 isolation 강제 */
+  -webkit-transform:translateZ(0);
+  transform:translateZ(0);
+  isolation:isolate;
+  padding-top:max(80px, 15vh)}
 .pin-overlay.hidden{display:none}
-.pin-box{width:100%;max-width:320px;padding:48px 28px 40px;text-align:center;animation:pinFadeIn .4s ease}
+.pin-box{width:100%;max-width:320px;padding:0 28px 40px;text-align:center;animation:pinFadeIn .4s ease}
 @keyframes pinFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .pin-flag{font-size:40px;margin-bottom:16px}
 .pin-title{font-size:20px;font-weight:900;color:#1a1a18;letter-spacing:-.5px;margin-bottom:6px}
 .pin-sub{font-size:12px;color:#a3a39a;margin-bottom:36px;font-weight:500}
 .pin-start-btn{width:100%;background:#1a1a18;color:#fff;font-size:15px;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;margin-bottom:16px;letter-spacing:-.2px}
 .pin-start-btn:hover{background:#2d2d2a;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.pin-back-btn{display:block;margin-bottom:24px;padding:0;background:none;border:none;font-size:13px;font-weight:700;color:#9ca3af;cursor:pointer;font-family:inherit;text-align:left;transition:color .15s}
+.pin-back-btn:hover{color:#6b7280}
 .pin-input-row{display:flex;gap:8px}
 .pin-input{flex:1;min-width:0;background:#fff;border:1.5px solid #e5e5e0;border-radius:12px;padding:13px 16px;font-size:15px;font-weight:700;color:#1a1a18;text-align:center;letter-spacing:.2em;text-transform:uppercase;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .pin-input::placeholder{color:#d1d5db;letter-spacing:.05em;font-size:11px;font-weight:500}
@@ -338,16 +392,151 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .pin-code-btn{flex-shrink:0;width:48px;background:#f0f0eb;color:#1a1a18;font-size:16px;font-weight:800;padding:13px;border-radius:12px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center}
 .pin-code-btn:hover{background:#e5e5e0}
 .pin-error{font-size:11px;color:#ef4444;font-weight:700;min-height:18px;margin-top:10px}
-.btn-back-home{position:fixed;bottom:20px;left:20px;z-index:100;
-  background:rgba(26,26,24,.06);border:1px solid rgba(26,26,24,.1);color:#9ca3af;
-  font-size:11px;font-weight:700;padding:7px 16px;border-radius:999px;cursor:pointer;
-  font-family:inherit;transition:all .2s;white-space:nowrap;display:none}
-.btn-back-home:hover{background:rgba(26,26,24,.1);color:#6b7280}
-/* 유저 배지 (앱 우상단) */
-.user-badge{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.06);border:1px solid var(--border);border-radius:999px;padding:4px 12px 4px 8px;cursor:pointer;transition:background .15s;flex-shrink:0}
-.user-badge:hover{background:rgba(0,0,0,.1)}
-.user-badge-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.user-badge-name{font-size:11px;font-weight:700;color:var(--text-secondary)}
+
+
+/* ═══════════════════════════════════════════════════════════
+   📱 모바일 전용 UI (max-width: 768px)
+═══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* ── 기본 여백/패딩 ── */
+  .page-wrap{padding:64px 12px 140px}
+
+  /* ── 네비바 ── */
+  .nav{height:52px}
+  .nav-inner{padding:0 12px;gap:4px}
+  .nav-logo{font-size:13px}
+  .tab-bar{gap:1px;padding:2px}
+  .tab-btn{padding:5px 10px;font-size:10px;border-radius:8px}
+  .sync-status{display:none}
+  .user-badge{max-width:none;padding:5px 10px 5px 7px}
+  .user-badge-dot{width:6px;height:6px}
+  .user-badge-name{display:none}  /* 모바일: 이름 숨김 */
+  .user-badge-icon{font-size:16px;line-height:1;display:inline!important}  /* 아이콘만 표시 */
+  .nav-version{display:none}
+
+  /* ── 진행 카드 — 훨씬 컴팩트 ── */
+  .progress-sticky{margin-bottom:16px;top:52px}
+  .progress-card{padding:12px 14px}
+  .progress-accent{height:2px}
+  .progress-header{margin-bottom:10px;gap:8px}
+  .progress-title{font-size:13px}
+  .progress-date-row{gap:3px}
+  .today-badge,.trip-badge{font-size:9px;padding:2px 7px}
+  .indicator-badge{display:none}  /* 모바일 하단 네비가 대신함 */
+  .progress-track{height:7px}
+  .progress-pct{font-size:17px;min-width:38px}
+
+  /* ── 카테고리 제목 ── */
+  .cat-title{font-size:16px!important;font-weight:800}
+  .cat-section{margin-bottom:28px}
+
+  /* ── 태스크 카드 — 더 크게, 터치 편하게 ── */
+  .task-item{
+    padding:16px 14px;
+    margin-bottom:10px;
+    border-radius:14px;
+    gap:14px;
+  }
+  .task-title{font-size:15px!important;line-height:1.4}
+  .task-desc{font-size:13px!important;line-height:1.55;margin-top:6px}
+
+  /* ── 체크 원 — 터치 타겟 44px ── */
+  .check-circle{
+    width:28px;height:28px;
+    border-width:2.5px;
+    margin-top:0;
+  }
+  .check-circle svg{width:14px;height:14px;stroke-width:3}
+
+  /* ── Tips — 기본 접힘, 탭하면 펼침 ── */
+  .task-tips{
+    font-size:13px!important;
+    line-height:1.6;
+    padding:12px 14px;
+    margin-top:12px;
+    border-radius:0 10px 10px 0;
+  }
+  .task-tips>div{margin-bottom:4px}
+
+  /* tips 토글 버튼 (모바일 전용) */
+  .tips-toggle{
+    display:flex;align-items:center;gap:5px;
+    margin-top:10px;font-size:12px;font-weight:700;
+    color:#6b7280;padding:4px 0;cursor:pointer;
+    border:none;background:none;font-family:inherit;
+    pointer-events:auto;
+  }
+  .tips-toggle-icon{transition:transform .2s;font-size:10px;color:#9ca3af}
+  .tips-toggle.open .tips-toggle-icon{transform:rotate(180deg)}
+  .task-tips.tips-collapsed{display:none}
+
+  /* ── 편집 버튼 ── */
+  .btn-edit-item{padding:8px 10px;font-size:18px}
+
+  /* ── 항목 추가 버튼 ── */
+  .btn-add-task{
+    padding:14px;font-size:13px;
+    border-radius:12px;margin-top:6px;
+    border-width:2px;
+  }
+
+  /* ── 도시/날짜 아코디언 ── */
+  .city-card{padding:16px 16px;border-radius:14px;margin-bottom:8px}
+  .city-card-title{font-size:15px!important}
+  .city-card-sub{font-size:12px}
+  .day-header{padding:12px 14px;border-radius:10px}
+  .day-header-title{font-size:13px!important}
+
+  /* ── 하단 섹션 네비게이터 ── */
+  .mobile-section-nav{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;z-index:200;
+    background:rgba(255,255,253,.97);
+    backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);
+    padding:8px 12px max(12px, env(safe-area-inset-bottom));
+    overflow-x:auto;gap:6px;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .mobile-section-nav::-webkit-scrollbar{display:none}
+  .mobile-sec-btn{
+    flex-shrink:0;display:flex;align-items:center;gap:5px;
+    padding:8px 14px;border-radius:999px;
+    font-size:12px;font-weight:700;
+    background:var(--surface-raised);border:1px solid var(--border);
+    color:var(--text-muted);white-space:nowrap;
+    transition:all .18s;cursor:pointer;font-family:inherit;
+  }
+  .mobile-sec-btn.active{
+    background:#1a1a18;color:#fff;border-color:#1a1a18;
+  }
+  .mobile-sec-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0}
+  .mobile-sec-btn.active .mobile-sec-dot{opacity:1}
+
+  /* 처음으로 버튼 — 하단 nav 위로 이동 */
+  .btn-back-home{bottom:80px;left:12px;font-size:11px;padding:6px 12px}
+
+  /* FAB 스택 위치 조정 */
+  .fab-stack{bottom:80px;right:14px}
+
+  /* ── 도시 카드 그리드 → 단일 컬럼 ── */
+  .city-grid{grid-template-columns:1fr!important;gap:8px!important}
+
+  /* 편집 폼 ── */
+  .edit-input{font-size:14px;padding:10px 12px}
+  .edit-textarea{font-size:14px;height:90px}
+  .btn-save-edit,.btn-cancel-edit{padding:10px 18px;font-size:13px}
+  .btn-del-item{font-size:13px;padding:8px 12px}
+}
+
+/* 아주 작은 폰 (375px 이하) */
+@media(max-width:375px){
+  .tab-btn{padding:5px 7px;font-size:9px}
+  .nav-logo{font-size:12px}
+  .task-title{font-size:14px!important}
+}
 </style>
 </head>
 <body>
@@ -357,6 +546,8 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 ══════════════════════════════════════════════════════════ -->
 <div class="pin-overlay" id="pin-overlay">
   <div class="pin-box">
+    <!-- 로그인 상태일 때만 뒤로가기 버튼 표시 -->
+    <button class="pin-back-btn" id="pin-back-btn" onclick="hidePinOverlay()" style="display:none">← 돌아가기</button>
     <div class="pin-flag">🗺️</div>
     <div class="pin-title">🇪🇺 EURO 40D</div>
     <div class="pin-sub">나만의 여행 플래너</div>
@@ -376,7 +567,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </div>
 
 <!-- 솔로 모드 — 시작 화면 복귀 버튼 -->
-<button class="btn-back-home" id="btn-back-home" onclick="showPinOverlay()">⟵ 처음으로</button>
+
+
+<!-- 📱 모바일 하단 섹션 네비게이터 -->
+<nav class="mobile-section-nav" id="mobile-section-nav" style="display:none"></nav>
 
 <nav class="nav">
   <div class="nav-inner">
@@ -394,9 +588,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
       <span id="sync-status" class="sync-status sync-loading">☁️ 연결 중…</span>
       <div class="user-badge" id="user-badge" onclick="showPinOverlay()" title="유저 전환">
         <div class="user-badge-dot" id="user-badge-dot"></div>
+        <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v34 🔥</span>
+      <span class="nav-version">v36 🔥</span>
     </div>
   </div>
 </nav>
@@ -522,32 +717,25 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
 <script>
 // ================================================================
-// 🔥 Firebase 연동 설정
-// DB 경로: /euroPlanner/v30 — 필요시 여러 기기/유저가 같은 경로 공유
-// ================================================================
-const FB_PATH    = 'euroPlanner/v30';   // Firebase Realtime DB 저장 경로 (변경 가능)
-const DATES_KEY  = 'EURO_TRIP_DATES_V30';  // 날짜는 localStorage 유지 (기기마다 달라도 무방)
-
-// Firebase 오프라인 폴백용 로컬 키
-const FB_LOCAL_FALLBACK = 'EURO_PLANNER_V30_LOCAL';
-
-// ================================================================
-// 🔥 Firebase 경로 구조
-//   euroPlanner/v33/content   ← FULL이 쓰는 일정 내용 (마스터)
-//   euroPlanner/v33/checks/full   ← FULL/SOLO 체크
-//   euroPlanner/v33/checks/swiss  ← 이다은 체크
-//   euroPlanner/v33/checks/paris  ← 친구B 체크
+// 🔥 Firebase 경로 구조 (v36)
+//   euroPlanner/v33/content            ← 마스터 일정 (jkhjmh0410)
+//   euroPlanner/v33/checks/full        ← jkhjmh0410/solo 체크
+//   euroPlanner/v33/checks/swiss       ← cat 체크
+//   euroPlanner/v33/checks/paris       ← seo 체크
+//   euroPlanner/v33/structure/swiss    ← cat 개인 추가 항목
+//   euroPlanner/v33/structure/paris    ← seo 개인 추가 항목
 // ================================================================
 const FB_CONTENT_PATH = 'euroPlanner/v33/content';
 const FB_LOCAL_CONTENT = 'EURO_PLANNER_V33_CONTENT';
 const FB_LOCAL_CHECKS  = 'EURO_PLANNER_V33_CHECKS';
 
-let fbReady = false;
-let _unsubContent = null;  // content 리스너 해제용
-let _unsubChecks  = null;  // checks 리스너 해제용
+// solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
+let soloSessionStructure = null;
 
-// ── content: 일정 구조 데이터 (tabs structure + trash) ─────
-// ── checks:  해당 유저의 체크/티켓/cityOpen/dayOpen ─────────
+let fbReady = false;
+let _unsubContent = null;
+let _unsubChecks  = null;
+let _unsubStructure = null;
 
 function _getChecksState() {
     return {
@@ -576,6 +764,7 @@ function _getContentState() {
         reservations: { structure: appState.reservations.structure },
         itinerary:    { structure: appState.itinerary.structure },
         packing:      { structure: appState.packing.structure },
+        cityMemos: appState.cityMemos || {},
         trash: appState.trash
     };
 }
@@ -585,7 +774,28 @@ function _applyContentState(d) {
     ['reservations','itinerary','packing'].forEach(t => {
         if (d[t] && d[t].structure) appState[t].structure = d[t].structure;
     });
-    if (d.trash) appState.trash = d.trash;
+    migrateTimeFromStructure(appState);
+    if (d.cityMemos) {
+        // Firebase 데이터 우선, 없는 키는 초기값으로 채움
+        appState.cityMemos = Object.assign({}, appState.cityMemos, d.cityMemos);
+    }
+    if (d.trash !== undefined) appState.trash = d.trash;
+}
+
+// private 유저 개인 추가 항목 (마스터 content 위에 덮어쓰지 않고 별도 저장)
+function _getPrivateStructure() {
+    return {
+        reservations: appState.reservations._private || {},
+        itinerary:    appState.itinerary._private    || {},
+        packing:      appState.packing._private      || {}
+    };
+}
+
+function _applyPrivateStructure(d) {
+    if (!d) return;
+    ['reservations','itinerary','packing'].forEach(t => {
+        appState[t]._private = d[t] || {};
+    });
 }
 
 function _startFirebaseSync() {
@@ -593,7 +803,7 @@ function _startFirebaseSync() {
     const { db, ref, onValue } = window._fb;
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
 
-    // 1) content 리스너 (모든 유저 공통 — 읽기)
+    // 1) 마스터 content 리스너 (모든 유저 공통)
     if (_unsubContent) _unsubContent();
     _unsubContent = onValue(ref(db, FB_CONTENT_PATH), (snap) => {
         const d = snap.val();
@@ -602,22 +812,30 @@ function _startFirebaseSync() {
                 _applyContentState(JSON.parse(d));
                 localStorage.setItem(FB_LOCAL_CONTENT, d);
                 renderContent(); updateProgress(); updateTrashFab();
+                renderMobileNav();
+                setTimeout(initMobileTips, 100);
                 setSyncStatus('ok', '✅ 동기화 완료');
             } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
         } else if (uc && uc.isMaster) {
-            // 마스터만 초기 데이터 업로드
             _saveContentToFirebase();
         }
     }, (err) => setSyncStatus('error', '❌ ' + err.message));
 
-    // 2) checks 리스너 (유저별)
-    if (uc) {
+    // 2) 체크 리스너
+    if (uc && uc.checksPath) {
         if (_unsubChecks) _unsubChecks();
         _unsubChecks = onValue(ref(db, uc.checksPath), (snap) => {
             const d = snap.val();
-            if (d) {
-                try { _applyChecksState(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {}
-            }
+            if (d) { try { _applyChecksState(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {} }
+        });
+    }
+
+    // 3) private 구조 리스너 (cat/seo 전용)
+    if (uc && uc.structurePath) {
+        if (_unsubStructure) _unsubStructure();
+        _unsubStructure = onValue(ref(db, uc.structurePath), (snap) => {
+            const d = snap.val();
+            if (d) { try { _applyPrivateStructure(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {} }
         });
     }
 }
@@ -629,28 +847,47 @@ function _saveContentToFirebase() {
     localStorage.setItem(FB_LOCAL_CONTENT, s);
     set(ref(db, FB_CONTENT_PATH), s)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
-        .catch(e => setSyncStatus('error', '❌ 저장 실패'));
+        .catch(() => setSyncStatus('error', '❌ 저장 실패'));
 }
 
 function _saveChecksToFirebase() {
     if (!window._fb || !currentUser) return;
     const { db, ref, set } = window._fb;
     const uc = USER_CONFIG[currentUser];
+    if (!uc.checksPath) return;
     const s = JSON.stringify(_getChecksState());
     localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, s);
     set(ref(db, uc.checksPath), s).catch(e => console.error('[checks save]', e));
 }
 
+function _savePrivateStructure() {
+    if (!window._fb || !currentUser) return;
+    const { db, ref, set } = window._fb;
+    const uc = USER_CONFIG[currentUser];
+    if (!uc.structurePath) return;
+    set(ref(db, uc.structurePath), JSON.stringify(_getPrivateStructure()))
+        .catch(e => console.error('[structure save]', e));
+}
+
 function save() {
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
+    if (!uc) return;
     setSyncStatus('loading', '☁️ 저장 중…');
-    if (uc && uc.isMaster) {
-        // 마스터: content + checks 둘 다 저장
+
+    if (uc.saveMode === 'master') {
+        // 마스터: content + checks 둘 다
         _saveContentToFirebase();
         _saveChecksToFirebase();
-    } else {
-        // 일반 유저: checks만 저장 (content는 읽기 전용)
+
+    } else if (uc.saveMode === 'session') {
+        // 솔로: 체크는 full과 공유, structure는 세션 메모리만 (저장 안 함)
         _saveChecksToFirebase();
+        setSyncStatus('ok', '✅ 저장 완료 (세션 전용)');
+
+    } else if (uc.saveMode === 'private') {
+        // 친구: checks + 개인 structure 저장
+        _saveChecksToFirebase();
+        _savePrivateStructure();
         setSyncStatus('ok', '✅ 저장 완료');
     }
 }
@@ -663,8 +900,10 @@ const USER_CONFIG = {
         name:  '정경호',
         icon:  '👑',
         color: '#8b5cf6',
-        isMaster: true,       // ← 마스터 유저 (일정 내용 쓰기 권한)
+        isMaster: true,
+        saveMode: 'master',     // content + checks 저장 → 전체 반영
         checksPath: 'euroPlanner/v33/checks/full',
+        structurePath: null,    // content 경로 사용 (마스터)
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
         soloMode: false,
@@ -675,7 +914,9 @@ const USER_CONFIG = {
         icon:  '🧳',
         color: '#10b981',
         isMaster: false,
-        checksPath: 'euroPlanner/v33/checks/full',  // FULL과 같은 체크 데이터
+        saveMode: 'session',    // 세션 메모리만 — 앱 끄면 삭제
+        checksPath: 'euroPlanner/v33/checks/full',
+        structurePath: null,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
         soloMode: true,
@@ -686,7 +927,9 @@ const USER_CONFIG = {
         icon:  '🐱',
         color: '#ef4444',
         isMaster: false,
+        saveMode: 'private',    // checks + 개인 structure → 본인만 보임
         checksPath: 'euroPlanner/v33/checks/swiss',
+        structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
         soloMode: false,
@@ -697,7 +940,9 @@ const USER_CONFIG = {
         icon:  '🇬🇧',
         color: '#f59e0b',
         isMaster: false,
+        saveMode: 'private',    // checks + 개인 structure → 본인만 보임
         checksPath: 'euroPlanner/v33/checks/paris',
+        structurePath: 'euroPlanner/v33/structure/paris',
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['paris1','london','london_b','paris2'],
         soloMode: false,
@@ -736,8 +981,9 @@ function enterWithCode(code) {
     }
     sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
     currentUser = normalizedCode;
+    if (normalizedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
     applyUserMode(normalizedCode);
-    document.getElementById('pin-overlay').classList.add('hidden');
+    hidePinOverlay();
 }
 
 function shakeInput() {
@@ -747,8 +993,32 @@ function shakeInput() {
     el.classList.add('shake');
 }
 
+function hidePinOverlay() {
+    document.getElementById('pin-overlay').classList.add('hidden');
+    // iOS Safari 스크롤 잠금 해제
+    const scrollY = document.body.style.top;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    if (scrollY) window.scrollTo(0, -parseInt(scrollY || '0'));
+}
+
+function _lockBodyScroll() {
+    // iOS Safari에서 body overflow:hidden이 안 먹히므로 position:fixed 사용
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+}
+
 function showPinOverlay() {
     document.getElementById('pin-overlay').classList.remove('hidden');
+    _lockBodyScroll();
+    // 이미 로그인 상태면 뒤로가기 버튼 표시
+    const backBtn = document.getElementById('pin-back-btn');
+    if (backBtn) backBtn.style.display = currentUser ? 'block' : 'none';
     selectedCard = null;
     document.querySelectorAll('.pin-card').forEach(el => el.classList.remove('active'));
     document.getElementById('pin-input').value = '';
@@ -759,43 +1029,46 @@ function showPinOverlay() {
 function applyUserMode(code) {
     const uc = USER_CONFIG[code];
 
-    // 1) 네비 배지 업데이트 — 모든 유저 표시, 처음으로 버튼도 항상
+    // 1) 네비 배지 업데이트 — 모든 유저 표시
     const badge = document.getElementById('user-badge');
-    const backBtn = document.getElementById('btn-back-home');
-    if (backBtn) backBtn.style.display = 'block';
     badge.style.display = '';
-    if (code === 'solo') {
-        document.getElementById('user-badge-dot').style.background = '#10b981';
-        document.getElementById('user-badge-name').textContent = '🧳 나';
-    } else {
-        document.getElementById('user-badge-dot').style.background = uc.color;
-        document.getElementById('user-badge-name').textContent = uc.icon + ' ' + uc.name;
-    }
+    const icon = code === 'solo' ? '🧳' : uc.icon;
+    const name = code === 'solo' ? '나 (솔로)' : uc.name;
+    document.getElementById('user-badge-dot').style.background = code === 'solo' ? '#10b981' : uc.color;
+    document.getElementById('user-badge-icon').textContent = icon;
+    document.getElementById('user-badge-name').textContent = code === 'solo' ? '🧳' : `${icon} ${name}`;
+    document.getElementById('user-badge-name').style.display = '';
+    document.getElementById('user-badge').title = icon + ' ' + name;
 
     // 2) Firebase 경로 변경
     window._currentFbPath = uc.checksPath;
 
-    // 4) 탭 표시/숨김
+    // 3) 탭 표시/숨김
     ['reservations','itinerary','packing'].forEach(t => {
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.style.display = uc.tabs.includes(t) ? '' : 'none';
     });
 
-    // 5) 마스터가 아니면 편집 FAB 숨김
+    // 4) 편집 FAB — 모든 유저 표시 (saveMode별로 동작 다름)
     const fabEdit = document.getElementById('fab-edit');
-    if (fabEdit) fabEdit.style.display = uc.isMaster ? '' : 'none';
+    if (fabEdit) fabEdit.style.display = '';
 
-    // 4) 현재 탭이 숨겨지면 첫 번째 허용 탭으로 전환
+    // 5) 현재 탭이 숨겨지면 첫 번째 허용 탭으로 전환
     if (!uc.tabs.includes(appState.activeTab)) {
         appState.activeTab = uc.tabs[0];
     }
 
-    // 5) Firebase 재연결 (유저별 경로로)
+    // 6) Firebase 재연결 (유저별 경로로)
     if (window._fb) _startFirebaseSync();
     else window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
 
     renderContent();
     updateProgress();
+
+    // 7) 여행 중이고 일정 탭이 활성화되어 있으면 당일 자동 오픈
+    if (appState.activeTab === 'itinerary') {
+        setTimeout(openTodayItinerary, 150);
+    }
 }
 
 // ── 유저 필터 적용된 카테고리 반환 ───────────────────────
@@ -816,19 +1089,62 @@ function getFilteredCategories(tab) {
 function applySoloText(text) {
     if (!currentUser || !USER_CONFIG[currentUser].soloMode) return text;
     return text
+        // ── 태그 제거 ──────────────────────────────────────
         .replace(/👥\s*/g, '')
-        .replace(/\[2인\]/g, '[혼자]')
-        .replace(/친구와 함께 이동/g, '이동')
-        .replace(/인원 2명 선택/g, '인원 1명 선택')
+        .replace(/\[2인\]\s*/g, '')
+        .replace(/\[혼자\]\s*/g, '')
+
+        // ── 친구 합류/작별 이벤트 ──────────────────────────
+        .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
+        .replace(/& 친구 합류\s*🎉?/g, '')
+        .replace(/친구 합류\s*🎉?/g, '')
+        .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
+        .replace(/친구 작별[^\n]*/g, '공항 배웅')
+
+        // ── 친구/동행 언급 ─────────────────────────────────
+        .replace(/,?\s*친구와 함께 이동/g, '')
+        .replace(/친구와 함께\s*/g, '')
+        .replace(/친구는 공항에서 대기/g, '')
+        .replace(/친구와 취리히 공항 내 미팅 포인트 사전 확정[^\n]*/g, '')
+        .replace(/📍 친구와[^\n]*/g, '')
+        .replace(/공항 내 명확한 미팅 포인트 사전 확정/g, '')
+        .replace(/7\/11~20 판햄\(Farnham\) 친구 집/g, '7/11~20 판햄(Farnham) 숙소')
+        .replace(/친구 집/g, '숙소')
+
+        // ── 현지인 친구 블록 ───────────────────────────────
+        .replace(/🍻 \[블록 E\] 현지인 친구 찬스 - 런던 로컬 투어/g, '🍻 [블록 E] 런던 로컬 투어')
+        .replace(/런던 친구가 이끄는 비밀 명소 투어!/g, '런던 로컬 비밀 명소 투어!')
+        .replace(/London Free Day \(친구가 이끄는 비밀 명소\)/g, 'London Free Day')
+        .replace(/런던 친구 찬스! 최고의 하루/g, '최고의 하루')
+        .replace(/런던 친구[^\n]*/g, '')
+
+        // ── tips 한 줄 전체 제거 ───────────────────────────
+        .replace(/💡 동행 친구의[^\n]*/g, '')
+        .replace(/💳 친구에게도[^\n]*/g, '')
+        .replace(/🇨🇭 결제 전 친구[^\n]*/g, '')
+        .replace(/🇨🇭 SBB 앱으로[^\n]*/g, '🇨🇭 SBB 앱으로 코인라커 예약 가능')
+        .replace(/친구에게도 SBB 가입 안내![^\n]*/g, '')
+        .replace(/예약 시 친구 패스 번호도[^\n]*/g, '')
+        .replace(/SBB 앱 확인 & 합류/g, 'SBB 앱 확인')
+        .replace(/동행과 함께 태그/g, '태그')
+
+        // ── 인원 관련 ──────────────────────────────────────
+        .replace(/나와 친구 몫\s*/g, '')
+        .replace(/친구 몫\s*/g, '')
+        .replace(/동행인과 나 모두\s*/g, '')
         .replace(/수량 2장/g, '수량 1장')
+        .replace(/인원 2명 선택/g, '인원 1명 선택')
+        .replace(/2인 예약/g, '예약')
+        .replace(/2인으로 예약/g, '예약')
         .replace(/2자리 연석/g, '창가석')
         .replace(/2인분 결제/g, '결제')
-        .replace(/나와 친구 몫/g, '')
-        .replace(/친구 패스 번호도 필요할 수 있음/g, '')
-        .replace(/동행인과 나 모두/g, '')
-        .replace(/친구 합류 🎉/g, '취리히 도착')
-        .replace(/친구와 취리히 공항 내 미팅 포인트 사전 확정[^\n]*/g, '')
-        .replace(/친구는 공항에서 대기/g, '');
+        .replace(/반드시 수량 2장 선택!/g, '사전 예약 필수!')
+        .replace(/7\/9 대영박물관은 2인 예약,?\s*/g, '')
+
+        // ── 빈 줄 정리 ─────────────────────────────────────
+        .replace(/\n{2,}/g, '\n')
+        .replace(/^\n|\n$/g, '')
+        .trim();
 }
 
 // ── 예약 탭 필터 ─────────────────────────────────────────
@@ -1262,7 +1578,7 @@ const initialData = {
 
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
-    const s = localStorage.getItem(DATES_KEY);
+    const s = localStorage.getItem('EURO_TRIP_DATES_V33');
     if (s) { try { const d=JSON.parse(s); return { start:new Date(d.start), end:new Date(d.end) }; } catch(e){} }
     return { start:new Date('2026-06-13'), end:new Date('2026-07-23') };
 }
@@ -1277,10 +1593,36 @@ function saveTripDates() {
     const s = document.getElementById('input-trip-start').value;
     const e = document.getElementById('input-trip-end').value;
     if (!s||!e) return;
-    localStorage.setItem(DATES_KEY, JSON.stringify({start:s,end:e}));
+    localStorage.setItem('EURO_TRIP_DATES_V33', JSON.stringify({start:s,end:e}));
     closeDlg('dlg-dates');
     updateTabUI();
 }
+
+// ── 타이틀에서 시간 파싱 마이그레이션 ────────────────────────
+function migrateTimeFromStructure(data) {
+    if (!data) return;
+    const TIME_RE = /^\[(\d{1,2}:\d{2})\]\s*/;
+    function processArr(arr) {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(task => {
+            if (!task || !task.title) return;
+            const m = task.title.match(TIME_RE);
+            if (m && !task._time) {
+                task._time = m[1];
+                task.title = task.title.replace(TIME_RE, '');
+            }
+        });
+    }
+    function processTab(tabData) {
+        // tabData는 { catKey: [tasks] } 또는 { structure: { catKey: [tasks] } } 형태
+        const src = tabData && tabData.structure ? tabData.structure : tabData;
+        Object.values(src || {}).forEach(val => processArr(val));
+    }
+    ['reservations','itinerary','packing'].forEach(tab => {
+        processTab(data[tab]);
+    });
+}
+migrateTimeFromStructure(initialData);
 
 // ── APP STATE ─────────────────────────────────────────────
 let appState = {
@@ -1288,6 +1630,421 @@ let appState = {
     reservations: { structure: JSON.parse(JSON.stringify(initialData.reservations)), checks:{}, tickets:{} },
     itinerary:    { structure: JSON.parse(JSON.stringify(initialData.itinerary)),    checks:{}, tickets:{}, cityOpen:{}, dayOpen:{} },
     packing:      { structure: JSON.parse(JSON.stringify(initialData.packing)),      checks:{}, tickets:{} },
+    cityMemos: {
+        budapest: `📝 부다페스트 여행 메모 (업데이트 완료)
+숙소 정보 및 체크인:
+
+이름/주소: Balázs Béla utca 15, 1094 Budapest (9구역).
+
+위치: M3 지하철 Semmelweis Klinikák 역 도보 5분. 공항버스 100E 환승점(Kálvin tér)과 인접해 입국 시 유리합니다.
+
+주변 환경: 인근에 Lidl, SPAR 등 대형 마트가 있어 식재료 구매가 용이하며, 대학가 근처라 저렴하고 힙한 카페가 많습니다.
+
+교통 및 티켓:
+
+공항 이동: 100E 공항버스는 전용 티켓(2,200 HUF)이 필요하며 트래블월렛 카드로 바로 태그 가능합니다.
+
+시내 교통: 72시간 교통권(72-hour travel card) 필수. (1일 차 18:30경 구매 시 4일 차 08:20 동역 이동까지 완벽하게 커버됨). 
+지하철, 트램, 버스 모두 이용 가능하며 검표가 엄격하니 종이 티켓일 경우 항상 소지하세요.
+
+기차 이동: 6/16(화) 빈(Wien)행 기차 탑승을 위해 M3(Semmelweis Klinikák) ➡ Kálvin tér 역에서 M4로 환승 ➡ Keleti(동역) 하차 동선을 이용하세요.
+
+예약 및 관람 팁 (시간 엄수 & 광클 필수):
+
+어부의 요새 일몰: 6월 부다페스트의 일몰은 밤 8시 40분경입니다. 저녁을 먼저 드시고 8시쯤 뷰포인트에 자리를 잡아 낮과 밤의 풍경을 모두 영상으로 담아보세요.
+
+세체니 온천 (오픈런 필수): 쾌적한 환경과 예쁜 구도의 사진을 위해 아침 7시 30분경 일찍 도착하는 일정으로 수정했습니다. 개인 수건과 슬리퍼는 숙소에서 꼭 챙겨가세요.
+
+다뉴브강 유람선: 완벽하게 어두워진 상태에서 빛나는 국회의사당을 보기 위해 20:30 이후 타임으로 예약하세요. ('Legenda' 등 유명 업체 사전 예약 권장)
+
+성 이슈트반 오르간 콘서트: 매주 월요일 17시 공연. 파이프 오르간 음향 기획을 연구하기 좋습니다.
+
+국회의사당 내부: 공식 예매 사이트에서 최소 한 달 전 학생 할인을 적용해 예약하세요.
+
+전공 및 취향 저격 인사이트:
+
+공간/이벤트 기획: 루인 바(Szimpla Kert 등)는 폐건물을 예술적 공간으로 리브랜딩한 최고의 사례입니다. 
+마케터의 시각으로 어떻게 죽은 공간을 힙한 브랜드로 탈바꿈시켰는지 살펴보시면 훌륭한 비즈니스 기획 영감이 될 것입니다.
+
+음악/기타: 헝가리 국립 오페라 하우스 근처 소규모 악기점들을 디깅해 보세요. 
+
+Apple 활용: 모든 일정 티켓은 Apple Wallet에 담아두고, Apple Watch로 교통권 태그 및 지도를 확인하세요.`,
+        wien: `📝 빈(Wien) 여행 메모 (숙소 맞춤형 업데이트 완료)
+숙소 정보 및 동선 전략:
+
+이름/주소: Hegergasse 3, 1030 Wien (3구 란트슈트라세).
+
+위치 및 접근성: 빈 중앙역(Wien Hbf)과 인접해 있으며 벨베데레 상궁까지 도보 접근이 가능할 정도로 가까운 환상적인 위치입니다. 
+1일 차 중앙역 도착 후 짐 보관부터 벨베데레 관람까지의 동선이 매끄러우며, 5일 차 크라쿠프행 아침 기차(08:10) 탑승을 위해 꼭두새벽부터 서두르지 않아도 됩니다.
+
+낮잠 및 휴식 동선: 시내 중심이나 쉔브룬 궁전(U4 라인)에서 트램이나 U-Bahn을 통해 숙소로 복귀하기 수월합니다. 
+4일 차 쉔브룬 궁전을 오전/오후로 쪼갠 최고의 전략을 실행할 때, 한여름의 열기를 피해 숙소로 돌아와 에너지를 충전하기에 최적의 베이스캠프입니다.
+
+주변 인프라: 빈 중앙역 내부의 대형 마트(Interspar)와 다양한 빵집이 늦게까지 영업합니다. 숙소와 가까우니 일정 전후로 물, 가벼운 조식, 
+쉔브룬 여름밤 콘서트 때 챙겨갈 간식 등을 조달하기 완벽합니다.
+
+교통 및 티켓:
+
+대중교통 패스: 숙소 근처에서 트램(D선, O선, 18번 등)과 U-Bahn(지하철) 이용이 잦을 예정입니다. 
+체류 일정을 고려해 72시간권 혹은 8일권(환승 가능) 등 일정에 맞는 패스를 구매하세요. 펀칭(개찰) 기계에 티켓을 넣어 시작 시간을 꼭 각인해야 벌금을 피할 수 있습니다.
+
+ÖBB 앱 및 Apple 생태계 연동: 5일 차 크라쿠프행(Railjet/EC) 기차표를 포함해 각종 모바일 티켓은 Apple Wallet에 미리 담아두세요. 
+캐리어를 끌고 이동할 때 Apple Watch로 플랫폼과 출발 시간을 확인하면 양손이 훨씬 자유로워집니다.
+
+예약 및 관람 팁 (시간 엄수 & 전략 필수):
+
+벨베데레 & 쉔브룬 (타임 슬롯): 클림트의 '키스'가 있는 벨베데레 상궁과 쉔브룬 궁전 내부는 입장 시간이 엄격하게 지정되어 있습니다. 
+늦으면 입장이 거절될 수 있으니 반드시 예약 시간 15분 전까지 도착해 대기하세요.
+
+오페라 극장 입석 (Stehplatz): 현장 예매로 입석 티켓을 구했다면, 입장하자마자 1층 뒤편이나 발코니 쪽 난간으로 가서 챙겨간 얇은 스카프나 겉옷을 난간에 묶어두세요. 
+이것이 현지에서 '내 자리'를 표시하는 암묵적인 룰입니다.
+
+쉔브룬 여름밤 콘서트: 수만 명이 몰리는 무료 야외 공연입니다. 좋은 소리를 듣고 싶다면 무대 쪽보다는 스피커(PA) 타워가 설치된 근처의 잔디밭에 돗자리를 펴는 것이 음향적으로 유리합니다.
+
+전공 및 취향 저격 인사이트:
+
+공간 재생과 브랜딩 (MQ 지구): 2일 차 레오폴트 미술관이 있는 무제움스크바르티어(MQ)는 과거 황실의 마구간을 현대 미술 단지로 재탄생시킨 곳입니다. 
+중앙 뜰에 놓인 기하학적인 벤치(Enzi)들이 사람들을 어떻게 머물게 하고 소통하게 만드는지, 공간 기획의 시각으로 관찰해 보세요.
+
+음악 산업의 스케일 체험: 쉔브룬 여름밤 콘서트는 클래식 음악이 대중과 만나는 가장 거대하고 성공적인 이벤트입니다. 
+대규모 무대의 음향 세팅, 전 세계로 송출되는 방송 중계 카메라의 동선, 그리고 수만 명의 인파를 통제하는 안전 관리 시스템은 음악 및 이벤트 기획 실무의 끝판왕을 볼 수 있는 기회입니다.
+
+비엔나 커피와 기록: 제체시온 관람 후 인근의 '카페 스페를(Café Sperl)' 같은 전통 카페에 들러 멜랑쥬를 주문해 보세요. 
+클래식한 분위기 속에서 아이패드를 꺼내 여행기를 쓰거나, 기획안 아이디어를 텍스트로 정리하기에 더없이 좋은 환경입니다.
+
+치안 및 주의사항:
+
+소매치기 주의 구역: 슈테판 대성당 앞 광장과 오페라 극장 주변, 그리고 사람이 밀집하는 여름밤 콘서트 현장에서는 소매치기를 주의해야 합니다.
+
+환전 및 팁: 오스트리아는 유로(€)를 사용합니다. 대부분 트래블월렛 결제가 가능하지만, 식당에서 팁을 주거나(보통 5~10% 반올림), 
+공중화장실을 이용할 때를 대비해 약간의 유로 동전과 소액 지폐를 챙겨두는 것이 좋습니다.`,
+        krakow: `📝 크라쿠프 여행 필수 메모 (<존 오브 인터레스트> 버전 업데이트)
+숙소 정보 및 전략:
+
+이름: Airbnb (역세권 전략 요충지)
+
+주소: Aleksandra Lubomirskiego 13, 31-509 Kraków, Poland
+
+전략적 가치: 기차역과 MDA 버스 터미널 사이에 위치해 있어 도착 후 짐을 던져두고 
+45분 만에 버스를 타야 하는 이 미친 일정을 가능하게 만드는 유일한 위치입니다. 
+이 정도의 압도적인 입지 조건을 10만 원이라는 합리적인 비용에 확보해 두신 것은 이동 효율을 극대화한 최고의 예약입니다.
+
+꿀팁: 6/20 도착 전 호스트에게 "기차 도착 직후 짐만 맡기고 아우슈비츠로 바로 가야 한다"고 미리 메시지를 보내어 얼리 체크인이나 짐 보관 확답을 반드시 받아두세요.
+
+<존 오브 인터레스트> 관람 전략 (매우 중요):
+
+입장권: 공식 홈에서 16:00~16:30 사이 'Individual visitors(가이드 없는 개인 관람)' 티켓을 무조건 확보하세요. 
+그룹 투어를 따라다니면 원하는 장소에 오래 머물며 영화적 시선을 곱씹기 어렵습니다.
+
+현장 동선 (제1수용소): 입장 후 우측 끝 구역의 루돌프 회스 거주지와 수용소 담장이 맞닿은 지점을 먼저 찾아가세요. 
+잿빛 수용소 건물과 대비되는 '평범하고 아름다운 정원'의 물리적 거리감을 직접 눈과 귀로 체감하는 것이 핵심입니다.
+
+현장 동선 (제2수용소-비르케나우): 무료 셔틀버스를 타고 이동 후, 영화 엔딩의 청소 장면 배경이 되는 수용소 내부와 끝없이 뻗은 중앙 선로, 
+가스실 터 주변을 걸어보며 공간의 스케일이 주는 압도감을 느껴보세요.
+
+현실적 주의사항:
+
+식사: 6/20은 점심을 제대로 먹을 시간이 없습니다. 오스트리아 빈에서 기차를 타기 전 중앙역 마트에서 샌드위치나 빵을 사서 기차 안에서 든든하게 해결하세요.
+
+가방 제한 (매우 엄격): 아우슈비츠는 A4 사이즈(30x20x10cm) 이상의 가방 반입이 아예 금지되어 있습니다. 
+짐 보관소(Luggage storage) 줄이 길면 입장이 지연될 수 있으므로, 큰 짐은 당연하고 백팩도 숙소에 모두 두고 
+주머니에 여권(원본 필수), 폰, 보조배터리, 유선 이어폰만 챙겨서 가볍게 가세요.
+
+베를린 이동 (식량 비축): 6/21 베를린행 기차는 7시간을 달려야 합니다. 기차 안의 식당칸이 부실하거나 붐빌 수 있으니, 
+탑승 전 크라쿠프 역과 연결된 'Galeria Krakowska(갈레리아 크라코프스카)' 쇼핑몰 지하 마트(Carrefour 등)에서 
+베를린 숙소(Winsstraße 9, 10405 Berlin)에 도착할 때까지 버틸 물과 간식, 빵 등을 넉넉히 쓸어 담아 탑승하세요.`,
+        berlin: `📝 베를린 여행 필수 메모 (업데이트 완료)
+숙소 정보 및 동선 전략:
+
+이름/주소: Airbnb (Winsstraße 9, 10405 Berlin)
+
+위치적 이점 (프렌츨라우어 베르크): 베를린에서 가장 트렌디하고 예쁜 카페가 밀집한 지역입니다. 
+특히 마우어 파크(Mauerpark)로 한 번에 가는 M10 트램과, 알렉산더플라츠 및 박물관 섬으로 내려가는 M2 트램 접근성이 뛰어나 교통의 요지 역할을 톡톡히 합니다.
+
+수요일 동선 최적화: 9일 차 체크아웃 후 무거운 짐을 베를린 중앙역(Hbf) 코인 락커에 넣고 홀가분하게 S-Bahn을 타세요. 
+보데 미술관 관람 후 중앙역 방향으로 걸어오며 함부르거 반호프를 보고 바로 짐을 찾아 뮌헨행 기차에 탑승하는 낭비 제로의 동선입니다.
+
+건축과 공간 기획 포인트 (필독):
+
+보데 미술관 (Bode-Museum): 슈프레강 한가운데 배의 선수처럼 떠 있는 외관도 멋지지만, 진가는 내부입니다. 
+입장하자마자 마주하는 거대한 돔(Great Dome) 아래의 기마상과 계단실은 베를린 박물관 중 단연 최고의 공간감을 자랑합니다.
+
+유대인 박물관 (Jüdisches Museum): 다니엘 리베스킨트가 설계한 선과 각도에 집중하세요. '공백의 기억(Void)' 공간을 지날 때 
+바닥의 미세한 기울기와 울려 퍼지는 철제 마스크 밟는 소리(Fallen Leaves)가 관람객에게 어떤 심리적 압박감을 설계했는지 온몸으로 느낄 수 있습니다.
+
+구 박물관 (Altes Museum) & 쿨투어브라우어라이: 구 박물관의 중앙 원형 홀(로툰다)이 고전적인 비례와 개방감을 보여준다면, 
+숙소 근처의 쿨투어브라우어라이(Kulturbrauerei)는 옛 맥주 공장을 문화 복합 시설로 탈바꿈시킨 도시 재생 브랜딩의 훌륭한 실무 레퍼런스입니다. 
+두 공간의 성격 차이를 비교해 보는 것도 흥미롭습니다.
+
+베를린 필하모니: 텐트 모양의 노란색 외관은 내부의 음향적 필요와 무대 배치(빈야드 스타일)가 바깥으로 표출된 '유기적 건축'의 대표작입니다.
+
+관람 및 현실적인 팁:
+
+뮤지엄 패스 & 학생 할인: 유대인 박물관, 함부르거 반호프, 박물관 섬 3곳(보데, 신, 구 박물관)이 모두 커버되는 3일권 뮤지엄 패스를 구매하세요. 
+반드시 **국제학생증(ISIC)**을 제시하여 50% 할인된 학생 요금(약 16유로)으로 발급받으셔야 합니다.
+
+국회의사당 돔 예약: 일몰과 야경을 모두 즐길 수 있는 저녁 8시 30분 ~ 9시 타임으로 예약하세요. 여권 원본이 없으면 입장이 절대 불가하니 숙소에서 나설 때 꼭 챙기셔야 합니다.
+
+현금과 카드: 베를린은 독일 내에서도 카드 결제가 잘 되는 편이지만, 마우어 파크 플리마켓의 빈티지 숍이나 길거리 음식, 
+그리고 중앙역 코인 락커(동전만 먹는 구형 기계 대비)를 위해 20~50유로 정도의 소액 현금을 반드시 지참하세요.`,
+        munich: `📝 뮌헨 여행 필수 메모 (업데이트 완료)
+1. 숙소 정보 및 아웃바운드 전략
+
+주소: Tulbeckstraße 26, 80339 München, Germany (슈반탈러회에 지역)
+
+체크아웃: 10:00 AM (마지노선)
+
+특징: 뮌헨 중앙역(Hbf) 접근성이 뛰어나 6/27 스위스행 기차 탑승의 최적지입니다. 
+아침에 숙소를 나서기 전, 스위스 숙소(Frutigen, Niesenweg 7)로 향하는 SBB(스위스 철도) 기차 시간표와 플랫폼 번호를 미리 캡처해 두어 공항 합류 후 이동 지연을 막으세요.
+
+2. 테르메 에르딩 (6/25)
+
+이동 꿀팁: S2 탑승 후 종점이 아닌 Altenerding 역에서 하차해 570/580 버스를 타야 걷는 시간을 최소화할 수 있습니다.
+
+준비물: 유럽의 온천은 수영복 대여가 거의 불가합니다. 수건(큰 것 1장, 작은 것 1장)과 슬리퍼(조리)를 챙겨가면 불필요한 렌탈 비용을 크게 아낄 수 있습니다. 워
+터파크 슬라이드로 텐션을 높인 뒤, 온천 구역에서 여행 중반의 근육통을 완전히 풀어내세요.
+
+3. 바이에른 티켓 & 퓌센 당일치기 (6/26)
+
+규정 활용: 금요일(평일)이므로 오전 9시 이후부터 기차 탑승이 가능합니다. 중앙역에서 9시 30분 전후로 출발하는 퓌센행 직행 열차(BRB)를 타는 것이 가장 효율적입니다.
+
+식사: 퓌센 성 주변 식당은 가격 대비 만족도가 떨어질 수 있으니, 뮌헨 중앙역의 Yormas 등에서 샌드위치를 사서 기차 안이나 성 구경 중 벤치에서 드시는 것을 추천합니다.
+
+4. 로컬 맥주 문화 & 브랜딩 인사이트
+
+호프브로이하우스: 시끌벅적하고 관광객이 많지만, 그 거대한 공간을 가득 채우는 브라스 밴드의 관악기 어쿠스틱 사운드는 그 자체로 압도적인 경험입니다.
+
+아우구스티너 켈러: 마케팅 없이 코어 퀄리티만으로 뮌헨 1위를 굳건히 지키는 브랜드의 실제 공간입니다. 
+현지인들이 어떻게 이 공간과 브랜드를 소비하는지 비즈니스적 시각으로 관찰하며 뮌헨에서의 마지막 밤을 차분히 정리해 보세요.
+
+5. 📍 스위스 이동 시 유의사항 (6/27)
+
+기차 예약 필수: 뮌헨 발 취리히 직행(EC)은 취리히 중앙역까지만 갑니다. 공항에서 친구를 만나려면 중앙역에서 공항(Flughafen)행 기차로 환승해야 함을 잊지 마세요.
+
+통신사 변경: 국경을 넘는 순간 데이터가 끊겼다가 스위스 통신사로 잡히는 딜레이가 발생할 수 있습니다. 
+친구분과 공항 내 명확한 미팅 포인트(예: 도착층 스타벅스 앞 등)를 미리 정해두세요.`,
+        swiss: `📝 [필독] 스위스 여행 필수 메모 (디테일 추가 완료)
+1. 숙소 정보 및 거점 전략 (프루티겐 베이스캠프):
+
+주소: Niesenweg 7, 3714 Frutigen, Switzerland
+
+체크인: 15:00 이후 (기차 이동 중 호스트에게 도착 예정 시간 메시지 전송)
+
+프루티겐의 압도적 장점: 알프스를 관통하는 뢰치베르크 베이스 터널(Lötschberg Base Tunnel) 노선상에 있어 
+체르마트(Plan B)까지 1시간 남짓이면 도착합니다. 또한 칸더슈테크/외쉬넨제(Plan C)도 15분 컷입니다.
+
+꿀팁: 체크인 시 호스트에게 'PanoramaCard Thunersee (게스트 카드)'를 요청하세요. 프루티겐 지역 버스를 무료로 이용할 수 있습니다.
+
+2. 장보기 전략 (스위스 물가 방어의 핵심):
+
+운영 시간 주의: 프루티겐 마트(Coop/Migros)는 평일 18:30~19:00에 칼같이 닫으며, 일요일(6/29)은 아예 문을 닫습니다.
+
+토요일(6/27): 취리히에서 루체른으로 넘어온 직후, 루체른 기차역 지하에 있는 거대한 Coop(22:00 마감)에서 
+3일 치 고기, 맥주, 물 등을 캐리어에 쓸어 담아 프루티겐으로 가셔야 합니다.
+
+일요일(6/29) 보충: 일요일에 식량이 부족하다면 인터라켄 서역(Interlaken West)이나 동역(Ost) 근처의 Coop(일요일도 영업)을 동선상에 활용하세요.
+
+3. 날씨 앱 & 웹캠 (매일 아침 07:00 의식):
+
+앱: MeteoSwiss (스위스 기상청 공식 앱, 레이더 맵이 가장 정확함)
+
+웹캠: Jungfrau Webcam, Zermatt Webcam. 알프스는 산 아래 마을에 비가 와도 구름을 뚫고 올라가면 산 정상은 맑은 경우가 허다합니다. 
+무조건 정상에 설치된 라이브 웹캠 뷰를 보고 일정을 결정하세요.
+
+4. 동선 및 관전 포인트 꿀팁:
+
+하산 열차 명당 (Plan A): 클라이네 샤이덱에서 라우터브루넨으로 내려가는 노란색/초록색 산악 열차를 탈 때는 진행 방향 오른쪽에 앉으세요. 
+그래야 깎아지른 절벽 아래로 라우터브루넨 빙하 계곡과 폭포, 마을 전경이 영화처럼 펼쳐집니다.
+
+트뤼멜바흐 폭포 옵션 (Plan A): 라우터브루넨 슈타우바흐 폭포 구경 후 체력이 남는다면 빙하 폭포인 트뤼멜바흐를 추가할 수 있습니다. 
+단, 바닥이 미끄러우니 접지력 좋은 운동화가 필수이며, 복귀 시간이 1~2시간 지연될 수 있으니 당일 컨디션에 따라 유연하게 판단하세요.
+
+체르마트 숨은 스팟 (Plan B): 라이호수 트래킹 후 시간이 남는다면, 사람이 붐비는 고르너그라트 산악열차 대신 체르마트 마을 내
+ '키르히 다리(Kirchbrücke)'를 찾아가 보세요. 마테호른을 정면으로 바라보며 조용히 강물 소리를 들을 수 있는 숨은 명당입니다.
+
+5. 필수 준비물 점검:
+
+동신항운 할인쿠폰 (사전 프린트 필수)
+
+220V 플러그가 여러 개 달린 멀티탭 (스위스 3구 어댑터와 연결)
+
+수영복, 돗자리, 선글라스, 자외선 차단제
+
+컵라면, 고추장, 그리고 나무젓가락 (스위스 융프라우 정상에서는 젓가락을 유료로 팔거나 포크만 줍니다)`,
+        milano: `📝 [필독] 밀라노 여행 필수 메모
+1. 숙소 정보 및 치안:
+
+이름: Hotel Berna (호텔 베르나)
+
+주소: Via Napo Torriani 18, 20124 Milano, Italy
+
+위치 및 장점: 밀라노 중앙역 도보 3분 거리의 최고의 트랜지션 숙소입니다. 스위스에서 넘어오거나 니스로 넘어가는 기차를 탈 때, 
+그리고 시내 관광(지하철 M2/M3)을 나갈 때 압도적인 기동력을 자랑합니다. 한국인 여행객 사이에서 조식 맛집으로 유명하니 아침을 든든히 챙겨 드세요.
+
+치안 주의: 중앙역 앞 광장과 두오모 광장은 소매치기와 강매(실 팔찌, 비둘기 모이)가 심한 곳입니다. 누군가 친근하게 다가오면 무조건 단호하게 무시하고 걷던 길을 계속 가야 합니다. 
+야간에는 인적이 드문 골목을 피하세요.
+
+2. 교통 및 기차 탑승 전략 (매우 중요):
+
+지하철(ATM): Apple Pay나 트래블월렛 같은 컨택트리스 카드로 개찰구에 바로 태그하고 탈 수 있습니다. (1회권 종이 티켓을 살 필요가 없습니다.)
+
+니스행 기차(왼쪽 명당): 벤티밀리아(Ventimiglia)에서 환승 후 프랑스 니스(Nice)로 넘어가는 기차를 탈 때는 무조건 진행 방향 왼쪽 창가에 앉으세요. 
+코트다쥐르(Côte d'Azur)의 눈부신 지중해 바다와 에즈(Eze), 모나코 해변이 그림처럼 펼쳐집니다.
+
+3. 공간 기획 및 브랜딩 인사이트:
+
+스타벅스 리저브 로스터리: 과거 우체국이었던 고풍스러운 건물을 개조한 곳입니다. 매장 한가운데서 원두가 로스팅되고 투명 관을 타고 천장으로 이동하는 모습은 
+단순한 카페를 넘어선 거대한 '키네틱 아트(Kinetic Art)'입니다. 글로벌 브랜드가 로컬의 역사적 공간을 어떻게 존중하며 자사의 아이덴티티를 심었는지, 공간 브랜딩의 교과서로 삼을 만합니다.
+
+비토리오 에마누엘레 2세 갤러리아: 19세기에 지어진 현대식 쇼핑몰의 원조입니다. 유리 돔으로 들어오는 자연광 아래에 프라다(Prada) 본점을 비롯한 럭
+셔리 브랜드들의 매장 쇼윈도가 어떻게 디스플레이되어 있는지 시각적인 영감을 얻어보세요.
+
+4. 아페리티보 (Aperitivo) 식문화:
+
+1일 차 저녁 나빌리오 운하에서는 이탈리아 특유의 식전주 문화인 '아페리티보'를 즐기세요. 10~15유로 정도의 칵테일(Aperol Spritz 추천) 한 잔을 시키면, 
+바에 준비된 다양한 핑거푸드, 파스타, 피자 등을 뷔페처럼 무제한으로 가져다 먹을 수 있습니다. 힙한 분위기 속에서 식비도 크게 방어할 수 있어 최고의 선택입니다.`,
+        nice: `📝 [필독] 니스 여행 필수 메모 (업데이트 완료)
+숙소 정보 및 전략:
+
+이름/주소: Residhome Nice Promenade (3-5 Boulevard François Grosso, 06000 Nice)
+
+장점: 해변까지 도보 3분이라는 압도적인 접근성, 1층 리셉션 짐 보관, 그리고 객실 내 취사 가능. 
+장기 여행의 중후반, 한식이 가장 당길 타이밍에 쾌적하게 요리를 해 먹고 휴식을 취할 수 있는 최고의 오아시스입니다.
+
+체크인/아웃: 15:00 / 11:00 (짐 맡기고 놀기 가능)
+
+교통 & 에즈 빌리지 꿀팁 (매우 중요):
+
+Lignes d'Azur 앱 설치: 니스 시내 대중교통(트램, 버스)은 종이 티켓이 없습니다. 
+앱을 설치하고 Apple Wallet에 'Multi 10(10회권)'을 충전해 동행과 함께 태그하며 사용하세요.
+
+에즈 가는 법: Vauban(바우반) 트램 역에서 하차 후 도보 3분 거리의 버스 정류장에서 82번을 탑승합니다. (구글 맵 정류장 위치 확인 필수).
+
+버스 명당: 82번 버스 탑승 시 무조건 진행 방향 오른쪽 창가에 앉아야 환상적인 해안도로 뷰를 볼 수 있습니다. 
+100번/607번을 타면 산 밑(해변)에 내려 끝없는 등산을 해야 하므로 절대 타지 마세요.
+
+준비물 & 장보기:
+
+해변 생존템: 니스 해변은 부드러운 모래가 아니라 크고 딱딱한 자갈(Galets) 밭입니다. 
+맨발로 바다에 들어가려다간 지압판을 걷는 고통을 맛보게 되니 아쿠아슈즈는 선택이 아닌 필수입니다. 두꺼운 비치타월이나 돗자리도 꼭 챙기세요.
+
+마트/물: 숙소 도보 2분 거리에 Carrefour City가 있습니다. 수돗물은 석회수이므로 식수는 생수(Volvic, Evian 등)를 사서 드시는 것을 추천합니다.
+
+음식 추천:
+
+납작복숭아: 7월이 1년 중 가장 맛있을 때입니다. 보이면 무조건 박스째 사서 숙소 냉장고에 쟁여두세요.
+
+로제 와인(Rosé Wine): 남프랑스는 로제 와인의 본고장입니다. 마트에서 5~10유로대의 저렴한 와인을 사도 훌륭한 퍼포먼스를 보여줍니다. 
+저녁마다 발코니나 해변에서 한 잔씩 즐기며 하루를 마무리하세요.`,
+        paris1: `📝 [필독] 파리 여행 필수 메모 (숙소 맞춤형 업데이트 완료)
+숙소 정보 및 거점 전략 (라데팡스):
+
+이름: Residhome Puteaux La Défense (레지드홈 퓌토 라데팡스)
+
+주소: 99 Avenue du Général de Gaulle, 92800 Puteaux, France
+
+입지의 승리: 라데팡스(La Défense)는 파리의 대표적인 현대식 상업 지구로, 치안이 훌륭하고 지하철 1호선(M1)과 RER A선이 지나가 기동력이 엄청납니다. 
+개선문, 루브르, 튈르리 등 1~2일 차의 핵심 동선이 1호선 하나로 모두 관통되므로 이동 피로를 최소화할 수 있습니다.
+
+추가 요금 확인: 예약 시 결제된 금액 외에 현장 체크인 시 세금 및 봉사료(약 99,000원 상당)가 청구될 예정이니 결제용 카드를 잘 준비해 두세요.
+
+교통권 최적화 (나비고 데쿠베르트):
+
+파리는 일요일에 도착해 목요일에 떠나는 일정이므로, 월요일부터 일요일까지 무제한으로 탈 수 있는 나비고(Navigo Découverte) 주간권의 혜택을 온전히 누릴 수 있습니다.
+
+1일 차(일요일)는 1회권으로 이동하고, 2일 차(월요일) 아침부터 나비고 주간권을 개시하여 5일 차 파리 북역 이동까지 알차게 활용하세요. (증명사진 1장 실물 지참 필수)
+
+미술관 예약 및 뮤지엄 패스 전략:
+
+2일 차(월/루브르, 오랑주리)와 3일 차(화/오르세, 콩시에르주리, 판테옹)에 미술관 일정이 집중되어 있으므로 **뮤지엄 패스 48시간(2일권)**을 
+월요일 아침 루브르에서 개시하면 완벽하게 맞아떨어집니다.
+
+주의사항: 뮤지엄 패스가 있더라도 루브르 박물관과 오랑주리 미술관은 공식 홈페이지에서 방문 시간(Time Slot)을 미리 예약해야만 입장할 수 있습니다. 
+티켓이 오픈되면 오전 오픈런 타임으로 가장 먼저 확보해 두세요.
+
+공간 기획 및 브랜드 인사이트:
+
+오랑주리 미술관의 채광: 모네의 '수련' 연작이 전시된 오랑주리의 타원형 방(Oval Room)은 작품 감상을 위해 자연광을 어떻게 내부로 끌어들였는지 보여주는 공간 기획의 백미입니다. 
+시시각각 변하는 빛이 캔버스에 닿는 느낌을 온전히 감상해 보세요.
+
+튈르리 정원 피크닉: 루브르 관람 후 샌드위치를 들고 튈르리의 초록색 철제 의자에 앉아 쉬는 시간은 파리지앵의 로망 그 자체입니다. 바쁘게 움직이던 동선을 잠시 멈추고, 
+맑은 하늘 아래에서 아이패드를 꺼내 파리에서의 첫인상을 글로 기록해 두기 가장 좋은 타이밍입니다.
+
+치안 주의 구역:
+
+1일 차 리옹역(Gare de Lyon)과 5일 차 파리 북역(Gare du Nord), 그리고 1호선 내에서는 소매치기를 각별히 조심해야 합니다.
+
+바토무슈를 타는 알마 마르소(Alma-Marceau) 역 주변의 강변이나 에펠탑 앞 샹드마르스 공원에서는 야바위꾼이나 서명 운동을 가장한 집시들의 접근을 단호하게 무시하세요.`,
+        london: `📝 [필독] 런던 여행 필수 메모 (보강 완료)
+1. 숙소 정보 (2 거점 체제 및 장단점):
+
+7/09 ~ 7/11 (런던 시내): 찰튼 스트리트(Chalton Street, NW1) - 킹스크로스역/세인트 판크라스역 도보권. 유로스타 도착 직후 짐을 던져두고, 
+다음 날(7/10) 빅토리아 역으로 가서 세븐 시스터즈/브라이튼으로 빠져나가기 완벽한 1차 거점입니다.
+
+7/11 ~ 7/20 (판햄 거점): 판햄(Farnham) 기차역 근처 친구 집. 런던의 살인적인 숙박비를 방어해 주는 최고의 베이스캠프지만, 
+유동 블록(7/13~7/17) 소화 시 워털루(Waterloo) 역까지 매일 왕복 2시간의 기차 출퇴근을 해야 합니다. 체력 안배와 기차 막차 시간 확인이 필수입니다.
+
+2. 동선 및 짐 보관 전략 (매우 중요):
+
+7/11(토) 워털루 역 짐 보관: 첫 번째 친구 배웅 후, 판햄행 기차가 출발하는 '워털루 역' 인근 짐 보관소(Bounce, Stasher 앱 이용)에 
+무조건 장기 여행용 캐리어를 맡겨야 오후의 사우스뱅크 시내 구경이 가능합니다.
+
+테이트 보트 활용 (블록 C): 테이트 모던과 테이트 브리튼은 지하철 이동이 애매합니다. 테이트 모던 구경 후 버로우 마켓에서 점심을 먹고, 
+인근 선착장(Bankside Pier)에서 **리버 버스(RB2 노선)**를 타세요. 템즈강을 따라 런던 아이와 빅벤을 구경하며 테이트 브리튼 앞(Millbank Pier)에 
+정확히 내려주는 최고의 낭만 이동 수단입니다. (트래블월렛으로 태그 탑승 가능)
+
+3. 예술 작품 & 건축 관람 포인트 (전공자 시점):
+
+소머셋 하우스: 건물 전체가 아닌 내부의 **'코톨드 갤러리(Courtauld Gallery)'**를 방문하셔야 빈센트 반 고흐의 <귀가 잘린 자화상>과 
+마네의 <폴리 베르제르의 바>를 만날 수 있습니다. (규모가 크지 않아 밀도 높은 관람 가능)
+
+테이트 브리튼: 라파엘 전파 전시실에서 존 에버렛 밀레이의 <오필리아>가 주는 특유의 서늘하고 정교한 질감을 직접 확인하세요.
+
+테이트 모던 & 바비칸 센터: 발전소를 개조해 만든 테이트 모던 '터바인 홀'의 압도적인 스케일과, 바비칸 센터의 거칠고 육중한 '브루탈리즘(Brutalism)' 건축물이 주는 
+기획적 영감을 공간 브랜딩의 관점에서 비교 분석해 보세요.
+
+4. 준비물 및 로컬 디깅 꿀팁:
+
+베릭 스트리트 (Berwick St): 오아시스의 Morning Glory 앨범 커버를 폰에 띄워두고 레코드 숍 거리에서 정확한 앵글로 사진을 남겨보세요. 
+사용 중이신 아이폰 17 Pro의 다양한 렌즈 화각을 활용하면 앨범 커버와 똑같은 구도를 잡기 수월합니다.
+
+악기점 디깅: 덴마크 스트리트나 소호의 기타 숍에서 존 메이어 톤 메이킹을 위한 JHS, Fulltone 등 미국제 페달 외에도, 유러피안 빈티지 이펙터들을 직접 만져보고 디깅할 시간을 넉넉히 분배하세요.
+
+해리포터 스튜디오 오픈런: 블록 A 일정을 꽂아 넣기 위해 지금 당장 공홈에서 '오전 표'가 남아있는 날짜부터 확인하여 예매 전쟁에서 승리하세요. 
+오전 입장이어야 오후에 프림로즈 힐 일몰 야경까지 동선이 매끄럽게 떨어집니다.
+
+5. 교통 및 현지 결제:
+
+교통비 방어 (16-25 Railcard): 런던 시내와 판햄, 옥스퍼드 등을 오가며 기차를 탈 일이 매우 많습니다. '16-25 Railcard'를 발급받아 
+기차표 예매 앱(Trainline 등)에 연동하면 교통비를 1/3로 크게 방어할 수 있습니다.
+
+현금과 카드: 런던은 카드 사용이 매우 보편화되어 있어 트래블월렛 하나면 충분하지만, 알피스 앤티크 마켓이나 브릭레인 마켓의 일부 빈티지 셀러들은 
+현금(파운드)을 선호하거나 흥정 시 유리할 수 있으니 소액의 현금을 지참하는 것이 좋습니다.`,
+        paris2: `📝 [필독] 파리 2부 여행 필수 메모 (업데이트 완료)
+1. 나시옹(Nation) 숙소의 전략적 가치:
+
+주소: 28 Bis Pl. de la Nation, 75012 Paris
+
+교통의 허브: 나시옹 역은 지하철 1, 2, 6, 9호선과 RER A선이 교차하는 지점입니다.
+
+1호선: 루브르 박물관, 튈르리, 개선문 직결
+
+2/9호선: 몽마르트르 및 쇼핑 지구 이동 용이
+
+6호선: 에펠탑을 가장 예쁘게 볼 수 있는 '트로카데로'행 지상철 (파리 시내 구경 최적)
+
+2. 런던 및 공항 이동 팁:
+
+입국 시: 파리 북역에서 RER D선을 타고 딱 한 정거장 뒤인 Châtelet-Les Halles에서 내리세요. 같은 역 안에서 **RER A선(빨간색)**으로 갈아타면 단 2정거장(약 5분) 만에 숙소(Nation)에 도착합니다.
+
+출국 시: 반대로 RER A선을 타고 Châtelet로 가서 RER B 공항선으로 환승하면 됩니다. 나시옹은 역 규모가 커서 엘리베이터가 잘 되어 있으니 짐 이동 시 활용하세요.
+
+3. 7/21(화) 자유 일정 추천:
+
+나시옹 숙소 근처는 관광객보다 현지인이 많은 활기찬 동네입니다. 아침 일찍 근처 불랑주리(빵집)에서 갓 구운 바게트를 사서 나시옹 광장 벤치에서 즐겨보세요.
+
+1호선을 타고 10분만 가면 **마레 지구(Le Marais)**에 도착합니다. 마지막 영감 수집을 위한 쇼룸 투어에 최적의 위치입니다.`,
+    },
     trash: []
 };
 
@@ -1367,7 +2124,11 @@ function init() {
     if (savedCode && USER_CONFIG[savedCode]) {
         currentUser = savedCode;
         document.getElementById('pin-overlay').classList.add('hidden');
+        // 세션 복원 시 스크롤 잠금 불필요 (pin overlay 안 보임)
+        if (savedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
         applyUserMode(savedCode);
+    } else {
+        _lockBodyScroll();  // 핀 화면 표시 중 iOS Safari 포함 배경 잠금
     }
 
     // 1) 로컬 캐시로 빠른 초기 렌더링
@@ -1379,6 +2140,7 @@ function init() {
     }
     _ensureAppState();
     switchTab(appState.activeTab || 'reservations');
+    renderMobileNav();
     setSyncStatus('loading', '☁️ 동기화 중…');
 
     // 2) Firebase 연결
@@ -1427,6 +2189,7 @@ function saveAndRender() {
     renderContent();
     updateProgress();
     updateTrashFab();
+    setTimeout(initMobileTips, 100);
     // 편집 모드 중이면 draggable 복원
     if (editMode) document.querySelectorAll('.task-item[data-tid]').forEach(el => { el.draggable = true; });
 }
@@ -1439,7 +2202,179 @@ function switchTab(tab) {
     renderSidebar();
     renderContent();
     updateProgress();
+    renderMobileNav();
     window.scrollTo(0, 0);
+    setTimeout(initMobileTips, 100);
+    // 일정 탭으로 전환 시 당일 자동 오픈
+    if (tab === 'itinerary') setTimeout(openTodayItinerary, 120);
+}
+
+// ── 여행 중 당일 일정 자동 오픈 ───────────────────────────
+// ── 도시 메모 블록 ────────────────────────────────────────
+function showTimeInput(taskId, catKey) {
+    // 이미 인라인 입력 중이면 무시
+    if (document.getElementById(`ti-${taskId}`)) return;
+    const li = document.getElementById(`item-${taskId}`);
+    if (!li) return;
+    const td = appState[appState.activeTab];
+    let task = null;
+    for (const k in td.structure) { task = td.structure[k].find(t => t.id === taskId); if (task) break; }
+    if (!task) return;
+
+    // 뱃지/버튼 자리를 인라인 input으로 교체
+    const topRow = li.querySelector('.task-top-row');
+    if (!topRow) return;
+    const existing = topRow.querySelector('.task-time-badge, .btn-add-time');
+    const input = document.createElement('input');
+    input.type = 'time';
+    input.id = `ti-${taskId}`;
+    input.className = 'time-inline-input';
+    input.value = task._time || '';
+    if (existing) topRow.replaceChild(input, existing);
+    else topRow.prepend(input);
+    input.focus();
+
+    const save = () => {
+        const val = input.value;
+        if (val) task._time = val; else delete task._time;
+        saveAndRender();
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') renderContent(); });
+}
+
+function formatMemoText(raw) {
+    return raw
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .split('\n')
+        .map(line => {
+            // 줄 끝이 콜론이거나 숫자. 제목으로 시작하는 줄 → 굵게
+            if (/^(\d+\.|📝|📌|🏠|🚇|🚆|🚌|💡|⚠️|✅)/.test(line.trim()) || /:\s*$/.test(line.trim())) {
+                return `<strong>${line}</strong>`;
+            }
+            return line;
+        })
+        .join('\n');
+}
+function renderCityMemo(container, catKey, catInfo) {
+    const memo = (appState.cityMemos || {})[catKey] || '';
+    const isMaster = currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
+    const memoId = `city-memo-${catKey}`;
+
+    const block = document.createElement('div');
+    block.className = 'city-memo-block';
+    block.id = memoId;
+    block.style.borderLeftColor = catInfo.color;
+    block.style.borderLeftWidth = '3px';
+
+    // 명시적으로 열린 적 있을 때만 open, 없으면 기본 접힘
+    const isOpen = appState.cityMemos?.[`${catKey}__open`] === true;
+
+    block.innerHTML = `
+        <div class="city-memo-header" onclick="toggleCityMemo('${catKey}')">
+            <span class="city-memo-title">📌 도시 메모 & 교통 정보${memo ? '' : ' <span style="color:var(--text-muted);font-weight:400">(비어있음)</span>'}</span>
+            <div class="city-memo-actions" onclick="event.stopPropagation()">
+                ${isMaster ? `<button class="btn-memo-edit" onclick="enterMemoEdit('${catKey}')">✏️ 편집</button>` : ''}
+                <span class="city-memo-chevron${isOpen ? ' open' : ''}">▼</span>
+            </div>
+        </div>
+        <div class="city-memo-body${isOpen ? ' open' : ''}" id="memo-body-${catKey}">
+            ${memo
+                ? `<div class="city-memo-text" id="memo-text-${catKey}">${formatMemoText(memo)}</div>`
+                : `<div class="city-memo-empty" id="memo-text-${catKey}">메모가 없어요. ${isMaster ? '편집 버튼을 눌러 추가하세요.' : '(master 계정으로 추가 가능)'}</div>`
+            }
+        </div>`;
+
+    container.appendChild(block);
+}
+
+function toggleCityMemo(catKey) {
+    if (!appState.cityMemos) appState.cityMemos = {};
+    const key = `${catKey}__open`;
+    appState.cityMemos[key] = !appState.cityMemos[key];
+    const body = document.getElementById(`memo-body-${catKey}`);
+    const chevron = document.querySelector(`#city-memo-${catKey} .city-memo-chevron`);
+    if (body) body.classList.toggle('open', !!appState.cityMemos[key]);
+    if (chevron) chevron.classList.toggle('open', !!appState.cityMemos[key]);
+}
+
+function enterMemoEdit(catKey) {
+    const body = document.getElementById(`memo-body-${catKey}`);
+    if (!body) return;
+    // 열려있지 않으면 먼저 열기
+    if (!body.classList.contains('open')) toggleCityMemo(catKey);
+    const current = (appState.cityMemos || {})[catKey] || '';
+    body.innerHTML = `
+        <textarea class="city-memo-textarea" id="memo-ta-${catKey}">${current.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+        <div class="city-memo-save-row">
+            <button class="btn-memo-cancel" onclick="cancelMemoEdit('${catKey}')">취소</button>
+            <button class="btn-memo-save" onclick="saveCityMemo('${catKey}')">저장</button>
+        </div>`;
+    const ta = document.getElementById(`memo-ta-${catKey}`);
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+}
+
+function cancelMemoEdit(catKey) {
+    // 편집 취소 → 다시 renderContent
+    renderContent();
+    setTimeout(initMobileTips, 100);
+}
+
+function saveCityMemo(catKey) {
+    const ta = document.getElementById(`memo-ta-${catKey}`);
+    if (!ta) return;
+    if (!appState.cityMemos) appState.cityMemos = {};
+    appState.cityMemos[catKey] = ta.value.trim();
+    appState.cityMemos[`${catKey}__open`] = true;
+    saveAndRender();
+}
+
+function openTodayItinerary() {
+    const { start, end } = getTripDates();
+    const today = new Date(); today.setHours(0,0,0,0);
+    start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+
+    // 여행 중이 아니면 아무것도 안 함
+    if (today < start || today > end) return;
+
+    // 오늘의 dk = 여행 시작일부터 몇 번째 날인지
+    const todayDK = String(Math.floor((today - start) / 86400000) + 1);
+
+    // 이터너리 구조에서 todayDK를 가진 도시(catKey) 찾기
+    const td = appState.itinerary;
+    const filteredCats = getFilteredCategories('itinerary');
+    let targetCat = null;
+
+    for (const catKey of Object.keys(filteredCats)) {
+        const tasks = td.structure[catKey] || [];
+        const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
+        if (hasTodayDK) { targetCat = catKey; break; }
+    }
+
+    if (!targetCat) return; // 당일 해당 도시 없음
+
+    // 도시 아코디언 열기
+    let changed = false;
+    if (!td.cityOpen[targetCat]) {
+        td.cityOpen[targetCat] = true;
+        changed = true;
+    }
+    // 날짜 아코디언 열기
+    const dayKey = `${targetCat}__${todayDK}`;
+    if (!td.dayOpen[dayKey]) {
+        td.dayOpen[dayKey] = true;
+        changed = true;
+    }
+
+    if (changed) {
+        save();
+        renderContent();
+        setTimeout(initMobileTips, 100);
+    }
+
+    // 해당 섹션으로 스크롤
+    setTimeout(() => _doScrollToSection(targetCat), 180);
 }
 
 // ── TAB UI + D-DAY ────────────────────────────────────────
@@ -1621,6 +2556,36 @@ function renderItem(task, catKey, catInfo, td, dk) {
     if (dk !== undefined) li.dataset.dk = dk;
     li.draggable = editMode;  // 편집모드 상태에 따라
 
+    // 현재 진행 중인 항목 강조 (여행 중 + 오늘 + 시간 있는 경우)
+    let isNow = false;
+    if (task._time && dk !== undefined) {
+        const { start, end } = getTripDates();
+        const today = new Date(); today.setHours(0,0,0,0);
+        const startC = new Date(start); startC.setHours(0,0,0,0);
+        const endC   = new Date(end);   endC.setHours(0,0,0,0);
+        if (today >= startC && today <= endC) {
+            const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
+            if (String(dk) === todayDK) {
+                const now = new Date();
+                const [h, m] = task._time.split(':').map(Number);
+                const taskMin = h * 60 + m;
+                const nowMin  = now.getHours() * 60 + now.getMinutes();
+                isNow = nowMin >= taskMin && nowMin < taskMin + 90;
+            }
+        }
+    }
+    if (isNow) li.classList.add('is-now');
+
+    const isMemoTask = dk === '__memo__';
+    if (isMemoTask) {
+        li.classList.add('memo-task');
+        li.style.cursor = 'default';
+    }
+
+    const timeBadge = task._time
+        ? `<span class="task-time-badge${isNow ? ' now' : ''}" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">${isNow ? '🔴 지금' : task._time}</span>`
+        : (dk !== undefined && !isMemoTask ? `<button type="button" class="btn-add-time" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">+ 시간</button>` : '');
+
     const tipsHtml = task.tips
         ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${applySoloText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
         : '';
@@ -1628,24 +2593,28 @@ function renderItem(task, catKey, catInfo, td, dk) {
 
     li.innerHTML = `
         <span class="drag-handle">⠿</span>
-        <div class="check-circle">${chkSvg}</div>
+        ${isMemoTask ? '' : `<div class="check-circle">${chkSvg}</div>`}
         <div class="task-body">
             <div class="task-top">
-                <span class="task-title">${applySoloText(task.title)}</span>
+                <div class="task-top-row">
+                    ${timeBadge}
+                    <span class="task-title">${applySoloText(task.title)}</span>
+                </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
             ${task.desc ? `<p class="task-desc">${applySoloText(task.desc)}</p>` : ''}
             ${tipsHtml}
-            <div class="task-meta-row">
+            ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
-            </div>
+            </div>`}
         </div>`;
 
     li.addEventListener('click', e => {
         if (e.target.closest('button,label,input')) return;
         if (editMode) { toggleSelect(task.id); return; }
+        if (isMemoTask) return;
         toggleCheck(task.id);
     });
     li.addEventListener('dragstart', onDragStart);
@@ -1662,21 +2631,33 @@ function renderContent() {
     const isIt = appState.activeTab === 'itinerary';
 
     Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
-        let tasks = td.structure[catKey] || [];
-        // 유저 필터 적용
-        tasks = getFilteredTasks(appState.activeTab, catKey, tasks);
+        const uc = currentUser ? USER_CONFIG[currentUser] : null;
+        let baseTasks = td.structure[catKey] || [];
+
+        if (uc && uc.saveMode === 'private') {
+            // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
+            const privateTasks = (td._private || {})[catKey] || [];
+            baseTasks = [...baseTasks, ...privateTasks];
+        } else if (uc && uc.saveMode === 'session') {
+            // solo: 마스터 항목 + 세션 임시 항목 합치기
+            const sessionTasks = (soloSessionStructure?.[appState.activeTab] || {})[catKey] || [];
+            baseTasks = [...baseTasks, ...sessionTasks];
+        }
+
+        let tasks = getFilteredTasks(appState.activeTab, catKey, baseTasks);
         const section = document.createElement('section');
         section.id = `section-${catKey}`;
         section.className = 'cat-section';
 
         if (isIt) {
             const isOpen = !!(appState.itinerary.cityOpen[catKey]);
-            const done   = tasks.filter(t => td.checks[t.id]).length;
+            const done   = tasks.filter(t => getDK(t) !== '__memo__' && td.checks[t.id]).length;
+            const total  = tasks.filter(t => getDK(t) !== '__memo__').length;
             section.innerHTML = `
                 <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
                     <div class="city-card-left">
                         <span class="city-card-title">${catInfo.title}</span>
-                        <span class="city-count-badge" style="background:${catInfo.color}">${done}/${tasks.length}</span>
+                        <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
                     </div>
                     <span class="city-chevron${isOpen?' open':''}">▼</span>
                 </button>
@@ -1687,10 +2668,25 @@ function renderContent() {
             if (!isOpen) return;
 
             const inner = section.querySelector(`#city-inner-${catKey}`);
-            // tasks → day 그룹핑
+
+            // ── 도시 메모 블록 (일정 위, 기본 접힘) ──
+            renderCityMemo(inner, catKey, catInfo);
+
+            // tasks → day 그룹핑 + 오늘 타임라인 배너
+            const { start, end } = getTripDates();
+            const today = new Date(); today.setHours(0,0,0,0);
+            const startC = new Date(start); startC.setHours(0,0,0,0);
+            const endC   = new Date(end);   endC.setHours(0,0,0,0);
+            const isToday = (dk) => {
+                if (today < startC || today > endC) return false;
+                const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
+                return String(dk) === todayDK;
+            };
+
             const groups = {}, order = [];
             tasks.forEach(t => {
                 const dk = getDK(t);
+                if (dk === '__memo__') return; // 메모 그룹은 도시 메모 블록에서 표시
                 if (!groups[dk]) { groups[dk] = []; order.push(dk); }
                 groups[dk].push(t);
             });
@@ -1699,6 +2695,7 @@ function renderContent() {
                 const gt      = groups[dk];
                 const dayOpen = !!(appState.itinerary.dayOpen[`${catKey}__${dk}`]);
                 const ddone   = gt.filter(t => td.checks[t.id]).length;
+                const todayDay = isToday(dk);
 
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'day-group';
@@ -1707,11 +2704,14 @@ function renderContent() {
                 dayDiv.addEventListener('drop', e => { e.stopPropagation(); if (_dragId) doDropTo(catKey, dk, null); });
 
                 const hdr = document.createElement('button');
-                hdr.type = 'button'; hdr.className = 'day-header';
+                hdr.type = 'button';
+                hdr.className = `day-header${todayDay ? ' today-day' : ''}`;
+                if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
                 hdr.onclick = () => toggleDay(catKey, dk);
                 hdr.innerHTML = `
                     <div class="day-header-left">
                         <span class="day-label">${getDKLabel(dk, tasks)}</span>
+                        ${todayDay ? `<span class="day-count" style="background:#fde68a;color:#92400e">📍 오늘</span>` : ''}
                         ${ddone > 0
                             ? `<span class="day-count done">${ddone}/${gt.length} 완료</span>`
                             : `<span class="day-count pending">${gt.length}개</span>`}
@@ -1724,6 +2724,17 @@ function renderContent() {
 
                 const wrap = document.createElement('div');
                 wrap.className = 'day-body-inner';
+
+                // 오늘이면 타임라인 배너
+                if (todayDay) {
+                    const now = new Date();
+                    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                    const banner = document.createElement('div');
+                    banner.className = 'timeline-today-banner';
+                    banner.innerHTML = `📍 <strong>오늘 일정</strong> &nbsp;현재 시각 ${timeStr} · 빨간 뱃지가 진행 중인 항목이에요`;
+                    wrap.appendChild(banner);
+                }
+
                 wrap.appendChild(makeDropZone(catKey, dk, gt[0]?.id));
                 gt.forEach((task, ti) => {
                     wrap.appendChild(renderItem(task, catKey, catInfo, td, dk));
@@ -1801,6 +2812,7 @@ function enterEdit(taskId, catKey) {
     li.innerHTML = `<div class="edit-form">
         <input type="text" id="et-${taskId}" class="edit-input" value="${(task.title||'').replace(/"/g,'&quot;')}" placeholder="제목">
         <input type="text" id="ed-${taskId}" class="edit-input" value="${(task.desc||'').replace(/"/g,'&quot;')}" placeholder="날짜/교통 등">
+        <input type="time" id="etm-${taskId}" class="edit-input" value="${task._time||''}" placeholder="시간 (예: 14:30)" style="color:var(--text-primary)">
         <textarea id="ep-${taskId}" class="edit-input edit-textarea" placeholder="팁 메모">${task.tips||''}</textarea>
         <select id="ec-${taskId}" class="edit-input edit-select">
             ${Object.entries(cats).map(([k,v]) => `<option value="${k}"${k===catKey?' selected':''}>${v.title}</option>`).join('')}
@@ -1819,6 +2831,7 @@ function saveEdit(taskId, oldCat) {
     const td = appState[appState.activeTab];
     const title = document.getElementById(`et-${taskId}`)?.value || '';
     const desc  = document.getElementById(`ed-${taskId}`)?.value || '';
+    const time  = document.getElementById(`etm-${taskId}`)?.value || '';
     const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
     let task = null;
@@ -1828,6 +2841,7 @@ function saveEdit(taskId, oldCat) {
     }
     if (!task) return;
     task.title = title; task.desc = desc; task.tips = tips;
+    if (time) task._time = time; else delete task._time;
     if (!td.structure[newCat]) td.structure[newCat] = [];
     td.structure[newCat].push(task);
     saveAndRender();
@@ -1862,30 +2876,63 @@ function confirmDeleteNow() {
 
 // ── ADD TASK ──────────────────────────────────────────────
 function addTask(catKey, dk) {
-    const td = appState[appState.activeTab];
+    const tab = appState.activeTab;
+    const td = appState[tab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+
     let newId;
-    if (dk !== undefined && appState.activeTab === 'itinerary') {
+    if (dk !== undefined && tab === 'itinerary') {
         const pre = catKey.slice(0,3);
-        if (dk === '__memo__')           newId = `${pre}-mx-${Date.now()}`;
+        if (dk === '__memo__')            newId = `${pre}-mx-${Date.now()}`;
         else if (dk.startsWith('__plan_')){ const pl = dk.replace('__plan_','').replace('__',''); newId = `${pre}-p${pl}0-${Date.now()}`; }
-        else if (dk === '__etc__')        newId = `${pre}-zx-${Date.now()}`;
-        else                              newId = `${pre}-${dk}x-${Date.now()}`;
+        else if (dk === '__etc__')         newId = `${pre}-zx-${Date.now()}`;
+        else                               newId = `${pre}-${dk}x-${Date.now()}`;
     } else {
         newId = 'tk-' + Date.now();
     }
     const task = { id:newId, title:'새로운 항목', desc:'', tips:'' };
-    if (dk !== undefined && appState.activeTab === 'itinerary') task._dk = dk;
+    if (dk !== undefined && tab === 'itinerary') task._dk = dk;
 
-    if (dk !== undefined && appState.activeTab === 'itinerary') {
-        const arr = td.structure[catKey] || (td.structure[catKey] = []);
-        let lastIdx = -1;
-        arr.forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
-        if (lastIdx !== -1) arr.splice(lastIdx + 1, 0, task); else arr.push(task);
-        appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+    // saveMode에 따라 저장 위치 분기
+    if (uc && uc.saveMode === 'session') {
+        // solo: 세션 메모리에만 추가
+        if (!soloSessionStructure) soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
+        const s = soloSessionStructure[tab];
+        if (!s[catKey]) s[catKey] = [];
+        if (dk !== undefined && tab === 'itinerary') {
+            let lastIdx = -1;
+            s[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+            if (lastIdx !== -1) s[catKey].splice(lastIdx + 1, 0, task); else s[catKey].push(task);
+            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+        } else {
+            s[catKey].push(task);
+        }
+    } else if (uc && uc.saveMode === 'private') {
+        // cat/seo: 개인 _private에 추가
+        if (!td._private) td._private = {};
+        if (!td._private[catKey]) td._private[catKey] = [];
+        if (dk !== undefined && tab === 'itinerary') {
+            let lastIdx = -1;
+            td._private[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+            if (lastIdx !== -1) td._private[catKey].splice(lastIdx + 1, 0, task); else td._private[catKey].push(task);
+            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+        } else {
+            td._private[catKey].push(task);
+        }
     } else {
-        if (!td.structure[catKey]) td.structure[catKey] = [];
-        td.structure[catKey].push(task);
+        // 마스터: 기존 structure에 추가
+        if (dk !== undefined && tab === 'itinerary') {
+            const arr = td.structure[catKey] || (td.structure[catKey] = []);
+            let lastIdx = -1;
+            arr.forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+            if (lastIdx !== -1) arr.splice(lastIdx + 1, 0, task); else arr.push(task);
+            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+        } else {
+            if (!td.structure[catKey]) td.structure[catKey] = [];
+            td.structure[catKey].push(task);
+        }
     }
+
     saveAndRender();
     setTimeout(() => enterEdit(newId, catKey), 60);
 }
@@ -1896,7 +2943,8 @@ function updateProgress() {
     const filteredCats = getFilteredCategories(appState.activeTab);
     const all = Object.entries(td.structure)
         .filter(([k]) => filteredCats[k])
-        .flatMap(([k, tasks]) => getFilteredTasks(appState.activeTab, k, tasks));
+        .flatMap(([k, tasks]) => getFilteredTasks(appState.activeTab, k, tasks))
+        .filter(t => getDK(t) !== '__memo__');
     const n   = all.filter(t => td.checks[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
     document.getElementById('progress-bar').style.width  = pct + '%';
@@ -1911,6 +2959,7 @@ function handleScroll() {
         const el = document.getElementById(`section-${k}`);
         if (el && el.getBoundingClientRect().top <= 180) ak = k;
     }
+    // 데스크탑 사이드바
     document.querySelectorAll('.sidebar-item').forEach(it => {
         const m = it.id === `nav-${ak}`;
         it.classList.toggle('active', m);
@@ -1921,7 +2970,85 @@ function handleScroll() {
             document.getElementById('indicator-text').textContent = filteredCats[ak].title;
         } else { it.style.borderLeftColor='transparent'; it.style.color=''; }
     });
+    // 모바일 하단 네비 active 동기화
+    document.querySelectorAll('.mobile-sec-btn').forEach(btn => {
+        const active = btn.dataset.cat === ak;
+        btn.classList.toggle('active', active);
+        if (active) {
+            btn.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+        }
+    });
 }
+
+// ── 모바일 하단 섹션 네비 렌더 ─────────────────────────────
+function renderMobileNav() {
+    const nav = document.getElementById('mobile-section-nav');
+    if (!nav) return;
+    const isMobile = window.innerWidth <= 768;
+    nav.style.display = isMobile ? 'flex' : 'none';
+    if (!isMobile) return;
+
+    const filteredCats = getFilteredCategories(appState.activeTab);
+    nav.innerHTML = Object.entries(filteredCats).map(([k, cat]) =>
+        `<button class="mobile-sec-btn" data-cat="${k}" onclick="scrollToSection('${k}')">
+           <span class="mobile-sec-dot" style="background:${cat.color}"></span>
+           ${cat.title}
+         </button>`
+    ).join('');
+}
+
+function scrollToSection(catKey) {
+    const tab = appState.activeTab;
+
+    // 이터너리: 해당 도시 아코디언 열기 (닫혀 있으면)
+    if (tab === 'itinerary') {
+        if (!appState.itinerary.cityOpen[catKey]) {
+            appState.itinerary.cityOpen[catKey] = true;
+            save();
+            renderContent();
+            setTimeout(() => _doScrollToSection(catKey), 60);
+            return;
+        }
+    }
+    _doScrollToSection(catKey);
+}
+
+function _doScrollToSection(catKey) {
+    const el = document.getElementById(`section-${catKey}`);
+    if (!el) return;
+    const offset = 64;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+}
+
+// ── 모바일 Tips 토글 ──────────────────────────────────────
+function initMobileTips() {
+    if (window.innerWidth > 768) return;
+    document.querySelectorAll('.task-tips').forEach(tipsEl => {
+        // renderContent가 DOM을 새로 그리므로 guard 불필요
+        tipsEl.classList.add('tips-collapsed');
+        const btn = document.createElement('button');
+        btn.className = 'tips-toggle';
+        btn.innerHTML = `<span class="tips-label">💡 팁 보기</span><span class="tips-toggle-icon">▼</span>`;
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const collapsed = tipsEl.classList.toggle('tips-collapsed');
+            btn.classList.toggle('open', !collapsed);
+            btn.querySelector('.tips-label').textContent = collapsed ? '💡 팁 보기' : '💡 팁 접기';
+        });
+        tipsEl.parentElement.insertBefore(btn, tipsEl);
+    });
+}
+
+window.addEventListener('resize', () => {
+    renderMobileNav();
+    if (window.innerWidth > 768) {
+        // 데스크탑: tips 항상 표시
+        document.querySelectorAll('.task-tips').forEach(el => {
+            el.classList.remove('tips-collapsed');
+        });
+    }
+});
 
 // ── FILE / TICKET (Base64 방식 — Firebase Storage 불필요) ──
 function handleUpload(input, taskId) {
