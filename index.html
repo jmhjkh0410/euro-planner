@@ -211,10 +211,10 @@ html[data-theme="dark"] body { color-scheme:dark; }
 :is(html[data-theme="dark"],html.sys-dark) .task-item.selected { outline-color:#5b8fd4 }
 
 /* 다크모드 토글 버튼 */
-.dark-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0 0}
-.dark-toggle-label{font-size:13px;font-weight:600;color:var(--text-secondary)}
-.dark-toggle-wrap{display:flex;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;padding:2px;gap:2px}
-.dark-toggle-opt{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;cursor:pointer;transition:all .18s;color:var(--text-muted)}
+.dark-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;gap:12px}
+.dark-toggle-label{font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap}
+.dark-toggle-wrap{display:flex;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;padding:2px;gap:1px;flex-shrink:0}
+.dark-toggle-opt{font-size:16px;padding:5px 10px;border-radius:999px;cursor:pointer;transition:all .18s;color:var(--text-muted);touch-action:manipulation}
 .dark-toggle-opt.active{background:var(--surface);color:var(--text-primary);box-shadow:var(--shadow-sm)}
 
 
@@ -465,19 +465,19 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   font-family:'Noto Sans KR',-apple-system,sans-serif;
   overflow:hidden;
-  touch-action:none;
+  touch-action:manipulation;
   /* iOS Safari: 완전히 가리기 위해 opacity와 isolation 강제 */
   -webkit-transform:translateZ(0);
   transform:translateZ(0);
   isolation:isolate;
   padding-top:max(80px, 15vh)}
 .pin-overlay.hidden{display:none}
-.pin-box{width:100%;max-width:320px;padding:0 28px 40px;text-align:center;animation:pinFadeIn .4s ease}
+.pin-box{width:100%;max-width:320px;padding:0 28px 32px;text-align:center;animation:pinFadeIn .4s ease;touch-action:manipulation}
 @keyframes pinFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .pin-flag{font-size:40px;margin-bottom:16px}
 .pin-title{font-size:20px;font-weight:900;color:var(--text-primary);letter-spacing:-.5px;margin-bottom:6px}
 .pin-sub{font-size:12px;color:var(--text-muted);margin-bottom:36px;font-weight:500}
-.pin-start-btn{width:100%;background:var(--text-primary);color:var(--bg);font-size:15px;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;margin-bottom:16px;letter-spacing:-.2px}
+.pin-start-btn{width:100%;background:var(--text-primary);color:var(--bg);font-size:15px;font-weight:800;padding:16px;border-radius:14px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;margin-bottom:16px;letter-spacing:-.2px;touch-action:manipulation}
 .pin-start-btn:hover{background:var(--text-secondary);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.15)}
 .pin-back-btn{display:block;margin-bottom:24px;padding:0;background:none;border:none;font-size:13px;font-weight:700;color:var(--text-secondary);cursor:pointer;font-family:inherit;text-align:left;transition:color .15s}
 .pin-back-btn:hover{color:#6b7280}
@@ -485,9 +485,11 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .pin-input{flex:1;min-width:0;background:var(--surface-raised);border:1.5px solid var(--border);border-radius:12px;padding:13px 16px;font-size:15px;font-weight:700;color:#1a1a18;text-align:center;letter-spacing:.2em;text-transform:uppercase;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .pin-input::placeholder{color:#d1d5db;letter-spacing:.05em;font-size:11px;font-weight:500}
 .pin-input:focus{border-color:var(--text-muted);box-shadow:0 0 0 3px rgba(150,150,24,.08)}
+.pin-input::placeholder{color:var(--text-muted);opacity:1}
+.pin-input::placeholder{color:var(--text-muted);opacity:1}
 .pin-input.shake{animation:pinShake .35s ease}
 @keyframes pinShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.pin-code-btn{flex-shrink:0;width:48px;background:var(--text-primary);color:var(--bg);font-size:16px;font-weight:800;padding:13px;border-radius:12px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.pin-code-btn{flex-shrink:0;width:48px;background:var(--text-primary);color:var(--bg);font-size:16px;font-weight:800;padding:13px;border-radius:12px;border:none;cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 .pin-code-btn:hover{background:#e5e5e0}
 .pin-error{font-size:11px;color:#ef4444;font-weight:700;min-height:18px;margin-top:10px}
 
@@ -747,9 +749,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   <div class="dark-toggle-row">
     <span class="dark-toggle-label">🌙 다크모드</span>
     <div class="dark-toggle-wrap">
-      <span class="dark-toggle-opt" data-mode="light" onclick="applyDarkMode('light')">☀️ 라이트</span>
-      <span class="dark-toggle-opt" data-mode="system" onclick="applyDarkMode('system')">🖥 시스템</span>
-      <span class="dark-toggle-opt" data-mode="dark" onclick="applyDarkMode('dark')">🌙 다크</span>
+      <span class="dark-toggle-opt" data-mode="light" title="라이트" onclick="applyDarkMode('light')">☀️ 라이트</span>
+      <span class="dark-toggle-opt" data-mode="system" title="시스템" onclick="applyDarkMode('system')">🖥 시스템</span>
+      <span class="dark-toggle-opt" data-mode="dark" title="다크" onclick="applyDarkMode('dark')">🌙 다크</span>
     </div>
   </div>
 </div>
@@ -1232,21 +1234,11 @@ function shakeInput() {
 
 function hidePinOverlay() {
     document.getElementById('pin-overlay').classList.add('hidden');
-    // iOS Safari 스크롤 잠금 해제
-    const scrollY = document.body.style.top;
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
     document.body.style.overflow = '';
-    if (scrollY) window.scrollTo(0, -parseInt(scrollY || '0'));
 }
 
 function _lockBodyScroll() {
-    // iOS Safari에서 body overflow:hidden이 안 먹히므로 position:fixed 사용
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    // pin-overlay가 inset:0 fixed라 body 고정 불필요 — overflow:hidden만 적용
     document.body.style.overflow = 'hidden';
 }
 
