@@ -594,6 +594,14 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .search-panel{top:52px}
   .search-panel.open{max-height:420px}
 }
+.search-highlight{animation:searchPulse 2s ease!important}
+@keyframes searchPulse{0%,100%{box-shadow:var(--shadow-sm)}30%{box-shadow:0 0 0 4px #7c3aed66,var(--shadow-md)}60%{box-shadow:0 0 0 2px #7c3aed33}}
+.search-history-header{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0}
+.search-hist-clear-all{font-size:10px;color:#7c3aed;background:none;border:none;cursor:pointer;font-weight:700;padding:2px 4px}
+.search-hist-clear-all:hover{text-decoration:underline}
+.search-hist-item{position:relative}
+.search-hist-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:4px 6px;margin-left:auto;flex-shrink:0}
+.search-hist-del:hover{color:#ef4444}
 </style>
 </head>
 <body>
@@ -822,7 +830,8 @@ let _unsubStructure = null;
 function _getChecksState() {
     return {
         reservations: { checks: appState.reservations.checks, tickets: appState.reservations.tickets },
-        itinerary:    { checks: appState.itinerary.checks,    tickets: appState.itinerary.tickets, cityOpen: appState.itinerary.cityOpen, dayOpen: appState.itinerary.dayOpen },
+        itinerary:    { checks: appState.itinerary.checks,    tickets: appState.itinerary.tickets },
+        // cityOpen/dayOpen은 저장 안 함 (재진입 시 닫힌 상태 유지)
         packing:      { checks: appState.packing.checks,      tickets: appState.packing.tickets }
     };
 }
@@ -836,8 +845,9 @@ function _applyChecksState(d) {
         }
     });
     if (d.itinerary) {
-        if (d.itinerary.cityOpen) appState.itinerary.cityOpen = d.itinerary.cityOpen;
-        if (d.itinerary.dayOpen)  appState.itinerary.dayOpen  = d.itinerary.dayOpen;
+        // cityOpen/dayOpen은 복원 안 함 → 재진입 시 항상 닫힌 상태 (5번 기능: 당일만 자동 오픈)
+        // if (d.itinerary.cityOpen) appState.itinerary.cityOpen = d.itinerary.cityOpen;
+        // if (d.itinerary.dayOpen)  appState.itinerary.dayOpen  = d.itinerary.dayOpen;
     }
 }
 
@@ -1502,7 +1512,7 @@ async function loadWeather() {
         if (w) { w.classList.remove('open'); }
         if (b) b.style.display = 'none';
     };
-    if (appState.activeTab !== 'itinerary') { hideAll(); return; }
+    // 모든 탭에서 날씨 표시
 
     // ── 출발일 이후: GPS 위치 기반 날씨 ──────────────────
     if (isTripStarted()) {
@@ -1625,6 +1635,56 @@ function toggleWeather() {
 // ════════════════════════════════════════════════════════════
 // 🔍 전체 검색
 // ════════════════════════════════════════════════════════════
+
+// ── 검색 기록 ────────────────────────────────────────────
+const SEARCH_HISTORY_KEY = 'euro_search_history';
+const MAX_HISTORY = 10;
+
+function getSearchHistory() {
+    try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || '[]'); }
+    catch { return []; }
+}
+function addSearchHistory(q) {
+    if (!q || q.trim().length < 1) return;
+    let hist = getSearchHistory().filter(h => h !== q.trim());
+    hist.unshift(q.trim());
+    if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(hist));
+}
+function deleteSearchHistory(q) {
+    const hist = getSearchHistory().filter(h => h !== q);
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(hist));
+    showSearchHistory();
+}
+function clearAllSearchHistory() {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+    showSearchHistory();
+}
+function showSearchHistory() {
+    const res = document.getElementById('search-results');
+    const hist = getSearchHistory();
+    if (!hist.length) {
+        res.innerHTML = '<div class="search-empty">검색 기록이 없어요</div>';
+        return;
+    }
+    let html = `<div class="search-history-header"><span class="search-section-label">최근 검색</span><button class="search-hist-clear-all" onclick="clearAllSearchHistory()">전체 삭제</button></div>`;
+    for (const h of hist) {
+        html += `
+        <div class="search-item search-hist-item">
+            <span class="search-item-icon">🕐</span>
+            <div class="search-item-body" onclick="applyHistory('${h.replace(/'/g,"\'")}')">
+                <div class="search-item-title">${h}</div>
+            </div>
+            <button class="search-hist-del" onclick="deleteSearchHistory('${h.replace(/'/g,"\'")}')">✕</button>
+        </div>`;
+    }
+    res.innerHTML = html;
+}
+function applyHistory(q) {
+    const inp = document.getElementById('search-input');
+    if (inp) { inp.value = q; doSearch(q); }
+}
+
 let _searchOpen = false;
 
 function toggleSearch() {
@@ -1634,7 +1694,12 @@ function toggleSearch() {
     panel.classList.toggle('open', _searchOpen);
     if (btn) btn.classList.toggle('active', _searchOpen);
     if (_searchOpen) {
-        setTimeout(() => document.getElementById('search-input')?.focus(), 300);
+        setTimeout(() => {
+            const inp = document.getElementById('search-input');
+            inp?.focus();
+            // 입력값 없을 때 기록 표시
+            if (!inp?.value) showSearchHistory();
+        }, 300);
     } else {
         clearSearch();
     }
@@ -1653,7 +1718,7 @@ function doSearch(q) {
     const clr = document.getElementById('search-clear-btn');
     const res = document.getElementById('search-results');
     if (clr) clr.style.display = q ? '' : 'none';
-    if (!q || q.trim().length < 1) { res.innerHTML = ''; return; }
+    if (!q || q.trim().length < 1) { showSearchHistory(); return; }
 
     const kw = q.trim().toLowerCase();
     const results = [];
@@ -1724,6 +1789,9 @@ function doSearch(q) {
 }
 
 function goToSearchResult(tab, catKey, taskId) {
+    // 검색어 기록 저장
+    const inp = document.getElementById('search-input');
+    if (inp?.value) addSearchHistory(inp.value);
     // 검색창 닫기
     _searchOpen = false;
     document.getElementById('search-panel').classList.remove('open');
@@ -1732,26 +1800,39 @@ function goToSearchResult(tab, catKey, taskId) {
     clearSearch();
 
     // 탭 전환
-    if (appState.activeTab !== tab) switchTab(tab);
-
-    // 해당 도시 열기
-    if (tab === 'itinerary') {
-        appState.itinerary.cityOpen[catKey] = true;
-        renderContent();
+    if (appState.activeTab !== tab) {
+        appState.activeTab = tab;
+        exitEditMode(); save(); updateTabUI(); renderSidebar();
     }
 
-    // 해당 카드로 스크롤
-    setTimeout(() => {
-        const el = document.getElementById(`task-${taskId}`) ||
-                   document.getElementById(`section-${catKey}`);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // 잠깐 하이라이트
-            el.style.transition = 'box-shadow .3s';
-            el.style.boxShadow = '0 0 0 3px #7c3aed55';
-            setTimeout(() => { el.style.boxShadow = ''; }, 1500);
+    // 일정 탭: 도시 + 날짜 아코디언 열기
+    if (tab === 'itinerary') {
+        appState.itinerary.cityOpen[catKey] = true;
+        // 해당 task의 dk 찾아서 dayOpen도 열기
+        const tasks = getStructureArr(appState.itinerary.structure, catKey);
+        const task  = tasks.find(t => t.id === taskId);
+        if (task) {
+            const dk = getDK(task);
+            if (dk && dk !== '__etc__') {
+                appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+            }
         }
-    }, 200);
+    }
+
+    renderContent();
+
+    // 스크롤 + 카드 하이라이트
+    setTimeout(() => {
+        const itemEl = document.getElementById(`item-${taskId}`);
+        if (itemEl) {
+            itemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            itemEl.classList.add('search-highlight');
+            setTimeout(() => itemEl.classList.remove('search-highlight'), 2000);
+        } else {
+            const secEl = document.getElementById(`section-${catKey}`);
+            if (secEl) secEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 250);
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
@@ -2113,45 +2194,47 @@ function openTodayItinerary() {
     // 오늘의 dk = 여행 시작일부터 몇 번째 날인지
     const todayDK = String(Math.floor((today - start) / 86400000) + 1);
 
-    // 이터너리 구조에서 todayDK를 가진 도시(catKey) 찾기
     const td = appState.itinerary;
     const filteredCats = getFilteredCategories('itinerary');
     let targetCat = null;
 
+    // 오늘 DK를 가진 도시 찾기
     for (const catKey of Object.keys(filteredCats)) {
         const tasks = getStructureArr(td.structure, catKey);
         const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
         if (hasTodayDK) { targetCat = catKey; break; }
     }
+    if (!targetCat) return;
 
-    if (!targetCat) return; // 당일 해당 도시 없음
-
-    // 도시 아코디언 열기
-    let changed = false;
-    if (!td.cityOpen[targetCat]) {
-        td.cityOpen[targetCat] = true;
-        changed = true;
-    }
-    // 날짜 아코디언 열기
+    // 도시 + 날짜 아코디언 열기
+    td.cityOpen[targetCat] = true;
     const dayKey = `${targetCat}__${todayDK}`;
-    if (!td.dayOpen[dayKey]) {
-        td.dayOpen[dayKey] = true;
-        changed = true;
+    td.dayOpen[dayKey] = true;
+
+    // 6) 유동 블록 도시(nice_b/swiss_b/london_b)이면 해당 블록도 열기
+    const FLOAT_MAP = { nice:'nice_b', swiss:'swiss_b', london:'london_b' };
+    const floatKey = FLOAT_MAP[targetCat];
+    if (floatKey && filteredCats[floatKey]) {
+        td.cityOpen[floatKey] = true;
+        // 첫 번째 plan 자동 오픈
+        const floatData = td.structure[floatKey];
+        if (floatData && typeof floatData === 'object' && !Array.isArray(floatData)) {
+            const firstPlan = Object.keys(floatData)[0];
+            if (firstPlan) td.dayOpen[`${floatKey}__${firstPlan}`] = true;
+        }
     }
 
-    if (changed) {
-        save();
-        renderContent();
-        setTimeout(initMobileTips, 100);
-    }
+    renderContent();
+    setTimeout(initMobileTips, 100);
 
     // 해당 섹션으로 스크롤
-    setTimeout(() => _doScrollToSection(targetCat), 180);
+    setTimeout(() => _doScrollToSection(targetCat), 200);
 }
 
 // ── TAB UI + D-DAY ────────────────────────────────────────
 function updateTabUI() {
     const tab = appState.activeTab;
+    loadWeather();  // 탭 전환시마다 날씨 갱신
     document.getElementById('theme-bar').style.backgroundColor = config[tab].theme;
     document.getElementById('view-title').textContent = config[tab].title;
     document.getElementById('progress-bar').style.backgroundColor = config[tab].theme;
