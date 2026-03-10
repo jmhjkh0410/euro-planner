@@ -44,7 +44,7 @@
   --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
   --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
   --shadow-lg:0 8px 24px rgba(0,0,0,.10),0 4px 8px rgba(0,0,0,.05);
-  --r-sm:8px;--r-md:14px;--r-lg:20px;--r-xl:24px;
+  --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh;line-height:1.6;
@@ -100,12 +100,12 @@ ul{list-style:none}
 
 /* PROGRESS CARD */
 .progress-sticky{position:sticky;top:60px;z-index:40;margin-bottom:24px}
-.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
+.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 16px 0;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
 .progress-accent{position:absolute;top:0;left:0;right:0;height:3px;transition:background-color .5s}
-.progress-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:12px}
-.progress-title-area{display:flex;flex-direction:column;gap:5px}
-.progress-title{font-size:13px;font-weight:700;color:var(--text-primary)}
-.progress-date-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
+.progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
+.progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
+.progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
 .today-badge:hover{background:var(--border-light)}
 .trip-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700}
@@ -115,10 +115,10 @@ ul{list-style:none}
 .indicator-badge{display:flex;align-items:center;gap:6px;background:var(--surface-raised);border:1px solid var(--border-light);padding:4px 10px;border-radius:999px;flex-shrink:0}
 .indicator-dot{width:6px;height:6px;border-radius:50%}
 .indicator-text{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.progress-row{display:flex;align-items:center;gap:12px}
-.progress-track{flex:1;background:var(--border-light);border-radius:999px;height:8px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
+.progress-row{display:flex;align-items:center;gap:12px;padding-bottom:10px}
+.progress-track{flex:1;background:var(--border-light);border-radius:999px;height:6px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
 .progress-fill{height:100%;border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1)}
-.progress-pct{font-size:18px;font-weight:800;color:var(--text-primary);min-width:44px;text-align:right}
+.progress-pct{font-size:15px;font-weight:800;color:var(--text-primary);min-width:36px;text-align:right}
 
 /* EDIT MODE ACTION BAR */
 .edit-bar{display:none;position:sticky;top:60px;z-index:45;background:#1a1a18;color:#fff;border-radius:var(--r-md);padding:10px 16px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.25);animation:slideDown .2s ease}
@@ -417,7 +417,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
   /* ── 진행 카드 — 훨씬 컴팩트 ── */
   .progress-sticky{margin-bottom:16px;top:52px}
-  .progress-card{padding:12px 14px}
+  .progress-card{padding:8px 12px 0}
   .progress-accent{height:2px}
   .progress-header{margin-bottom:10px;gap:8px}
   .progress-title{font-size:13px}
@@ -552,8 +552,8 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .weather-pill-btn{padding:3px 10px;font-size:10px;font-weight:700;border-radius:20px;background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .18s;white-space:nowrap}
 .weather-pill-btn:hover{background:#dbeafe}
 .weather-pill-btn.active{background:#3b82f6;color:#fff;border-color:#2563eb}
-.weather-widget{margin-top:10px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .25s ease,margin-top .3s ease,padding .3s ease}
-.weather-widget.open{max-height:300px;opacity:1}
+.weather-widget{margin-top:0;padding:0;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid transparent;border-radius:var(--r-md);overflow:hidden;max-height:0;opacity:0;transition:max-height .35s ease,opacity .25s ease,margin .3s ease,padding .3s ease,border-color .3s ease}
+.weather-widget.open{max-height:300px;opacity:1;margin:10px 0;padding:10px 14px;border-color:#bfdbfe}
 .weather-city-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .weather-city-name{font-size:11px;font-weight:800;color:#1d4ed8}
 .weather-updated{font-size:9px;color:#93c5fd;font-weight:600}
