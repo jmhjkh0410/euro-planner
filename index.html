@@ -548,28 +548,22 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .accom-nights{font-size:10px;font-weight:800;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:999px;flex-shrink:0}
 
 
-/* ── 날씨 위젯 ── */
-.weather-widget{margin-top:12px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);display:none}
-.weather-widget.visible{display:block}
-.weather-city-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+/* ── 날씨 버튼 & 팝업 ── */
+.weather-pill-btn{padding:3px 9px;font-size:10px;font-weight:700;border-radius:20px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .18s;white-space:nowrap}
+.weather-pill-btn:hover{background:#dbeafe}
+.weather-pill-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
+.weather-popup{position:relative;z-index:30;margin:0 0 12px;padding:12px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);box-shadow:0 4px 16px rgba(59,130,246,.12)}
+.weather-popup-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .weather-city-name{font-size:11px;font-weight:800;color:#1d4ed8}
 .weather-updated{font-size:9px;color:#93c5fd;font-weight:600}
 .weather-days{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.weather-day{background:rgba(255,255,255,.7);border-radius:8px;padding:8px 6px;text-align:center;border:1px solid #dbeafe}
-.weather-day-label{font-size:9px;font-weight:800;color:#3b82f6;margin-bottom:4px}
-.weather-icon{font-size:20px;margin:2px 0}
-.weather-temp{font-size:11px;font-weight:700;color:#1e3a5f}
+.weather-day{background:rgba(255,255,255,.75);border-radius:8px;padding:8px 6px;text-align:center;border:1px solid #dbeafe}
+.weather-day-label{font-size:9px;font-weight:800;color:#3b82f6;margin-bottom:3px}
+.weather-icon{font-size:22px;margin:2px 0}
+.weather-temp{font-size:12px;font-weight:700;color:#1e3a5f}
 .weather-temp-min{font-size:9px;color:#64748b;font-weight:600}
 .weather-city-tag{font-size:9px;font-weight:700;color:#3b82f6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .weather-desc{font-size:9px;color:#475569;margin-top:2px;font-weight:500}
-.weather-toggle-btn{font-size:10px;color:#3b82f6;font-weight:800;transition:transform .2s}
-.weather-widget.collapsed .weather-days{display:none}
-.weather-widget.collapsed .weather-toggle-btn{transform:rotate(180deg)}
-@media(max-width:768px){
-  .weather-icon{font-size:22px}
-  .weather-temp{font-size:13px}
-  .weather-day-label{font-size:10px}
-}
 </style>
 </head>
 <body>
@@ -656,6 +650,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
               <div class="progress-date-row">
                 <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
                 <span class="trip-badge" id="trip-badge"></span>
+                <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeatherPopup()" style="display:none">🌤 날씨</button>
               </div>
             </div>
             <div class="indicator-badge">
@@ -667,18 +662,15 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
             <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
             <span class="progress-pct" id="progress-pct">0%</span>
           </div>
-          <!-- 날씨 위젯 (일정 탭 전용) -->
-          <div class="weather-widget" id="weather-widget">
-            <div class="weather-city-row" onclick="toggleWeather()" style="cursor:pointer">
-              <span class="weather-city-name" id="weather-city-name">🌍 날씨 로딩 중...</span>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span class="weather-updated" id="weather-updated"></span>
-                <span class="weather-toggle-btn" id="weather-toggle-btn">▲</span>
-              </div>
-            </div>
-            <div class="weather-days" id="weather-days"></div>
-          </div>
         </div>
+      </div>
+      <!-- 날씨 팝업 드롭다운 (progress-card 아래) -->
+      <div class="weather-popup" id="weather-widget" style="display:none">
+        <div class="weather-popup-header">
+          <span class="weather-city-name" id="weather-city-name">🌍 날씨</span>
+          <span class="weather-updated" id="weather-updated"></span>
+        </div>
+        <div class="weather-days" id="weather-days"></div>
       </div>
 
       <div id="list-container"></div>
@@ -1345,9 +1337,66 @@ function getWeatherEmoji(code) {
 }
 
 
-let _weatherCache = {};  // { cityKey: data }
+let _weatherCache = {};   // { cityKey | 'gps': data }
+let _gpsCoords    = null; // { lat, lng, name } — GPS로 얻은 현재 위치
+let _gpsAttempted = false;
 
-// 날짜 오프셋 기준 도시키 반환
+// ── 출발일 판단 ──────────────────────────────────────────
+function isTripStarted() {
+    const { start } = getTripDates();
+    // 출발일 당일 00:00 KST 기준 (한국 시간)
+    const startD = new Date(start); startD.setHours(0,0,0,0);
+    const now    = new Date();
+    return now >= startD;
+}
+
+// ── GPS로 현재 위치 가져오기 ──────────────────────────────
+const GPS_ACCURACY_THRESHOLD = 2000; // 2km 이내일 때만 GPS 신뢰 (핸드폰 GPS)
+
+function getGPSLocation() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) { resolve(null); return; }
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const acc = pos.coords.accuracy; // 미터 단위
+                console.log('[weather] GPS accuracy:', acc + 'm');
+                if (acc <= GPS_ACCURACY_THRESHOLD) {
+                    // 신뢰할 수 있는 GPS (핸드폰)
+                    resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: acc });
+                } else {
+                    // IP 기반으로 부정확 → null 반환해서 날짜 기반 fallback
+                    console.log('[weather] GPS 부정확 (IP 기반 추정), 날짜 기반으로 전환');
+                    resolve(null);
+                }
+            },
+            () => resolve(null),
+            { timeout: 6000, maximumAge: 300000 }  // 5분 캐시
+        );
+    });
+}
+
+// ── GPS 좌표로 날씨 직접 가져오기 (3일치) ───────────────
+async function fetchGPSWeather(lat, lng) {
+    const cacheKey = 'gps';
+    // 5분 내 캐시 재사용
+    if (_weatherCache[cacheKey]?._fetchedAt && Date.now() - _weatherCache[cacheKey]._fetchedAt < 300000) {
+        return _weatherCache[cacheKey];
+    }
+    try {
+        // timezone=auto → 현지 시간대 기준 오늘/내일/모레
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        data._fetchedAt = Date.now();
+        _weatherCache[cacheKey] = data;
+        return data;
+    } catch(e) {
+        console.warn('[weather] GPS 날씨 실패:', e);
+        return null;
+    }
+}
+
+// ── 날짜 오프셋 기준 도시키 반환 (fallback용) ──────────
 function getCityKeyForDate(offsetDays) {
     const target = new Date();
     target.setHours(0,0,0,0);
@@ -1357,8 +1406,8 @@ function getCityKeyForDate(offsetDays) {
     const startD = new Date(start); startD.setHours(0,0,0,0);
     const endD   = new Date(end);   endD.setHours(0,0,0,0);
 
-    if (target < startD) return 'budapest';  // 여행 전
-    if (target > endD)   return null;         // 여행 후
+    if (target < startD) return 'budapest';  // 여행 전 → 부다페스트 디폴트
+    if (target > endD)   return null;
 
     const schedule = [
         { key:'budapest', from:'2026-06-13', to:'2026-06-16' },
@@ -1382,13 +1431,16 @@ function getCityKeyForDate(offsetDays) {
 }
 
 async function fetchCityWeather(cityKey) {
-    if (_weatherCache[cityKey]) return _weatherCache[cityKey];
+    if (_weatherCache[cityKey]?._fetchedAt && Date.now() - _weatherCache[cityKey]._fetchedAt < 300000) {
+        return _weatherCache[cityKey];
+    }
     const coords = CITY_COORDS[cityKey];
     if (!coords) return null;
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
         const res = await fetch(url);
         const data = await res.json();
+        data._fetchedAt = Date.now();
         _weatherCache[cityKey] = data;
         return data;
     } catch(e) {
@@ -1398,22 +1450,70 @@ async function fetchCityWeather(cityKey) {
 }
 
 async function loadWeather() {
-    if (appState.activeTab !== 'itinerary') {
-        document.getElementById('weather-widget').classList.remove('visible');
-        return;
+    const hideAll = () => {
+        const p = document.getElementById('weather-widget');
+        const b = document.getElementById('weather-pill-btn');
+        if (p) p.style.display = 'none';
+        if (b) b.style.display = 'none';
+    };
+    if (appState.activeTab !== 'itinerary') { hideAll(); return; }
+
+    // ── 출발일 이후: GPS 위치 기반 날씨 ──────────────────
+    if (isTripStarted()) {
+        if (!_gpsAttempted) {
+            _gpsAttempted = true;
+            const pos = await getGPSLocation();
+            if (pos) _gpsCoords = pos;
+        }
+        if (_gpsCoords) {
+            const data = await fetchGPSWeather(_gpsCoords.lat, _gpsCoords.lng);
+            if (data) {
+                renderWeatherGPS(data);
+                return;
+            }
+        }
+        // GPS 실패 → 날짜 기반 fallback
     }
 
+    // ── 출발 전 or GPS 실패: 날짜 기반 도시별 날씨 ───────
     const dayKeys = [0, 1, 2].map(i => getCityKeyForDate(i));
-    if (!dayKeys[0]) {
-        document.getElementById('weather-widget').classList.remove('visible');
-        return;
-    }
-
-    // 유니크 도시만 API 호출
+    if (!dayKeys[0]) { hideAll(); return; }
     const uniqueKeys = [...new Set(dayKeys.filter(Boolean))];
     await Promise.all(uniqueKeys.map(k => fetchCityWeather(k)));
-
     renderWeather3Days(dayKeys);
+}
+
+
+// GPS 기반 날씨 렌더 (3일치 한 번에)
+function renderWeatherGPS(data) {
+    const widget = document.getElementById('weather-widget');
+    const daysEl = document.getElementById('weather-days');
+    const cityEl = document.getElementById('weather-city-name');
+    const updEl  = document.getElementById('weather-updated');
+    const pillBtn = document.getElementById('weather-pill-btn');
+
+    if (!data?.daily) return;
+    const { weathercode, temperature_2m_max, temperature_2m_min } = data.daily;
+    const labels = ['오늘', '내일', '모레'];
+
+    daysEl.innerHTML = labels.map((label, i) => {
+        const { icon, desc } = getWeatherEmoji(weathercode[i]);
+        const max = Math.round(temperature_2m_max[i]);
+        const min = Math.round(temperature_2m_min[i]);
+        return `
+        <div class="weather-day">
+            <div class="weather-day-label">${label}</div>
+            <div class="weather-icon">${icon}</div>
+            <div class="weather-temp">${max}°</div>
+            <div class="weather-temp-min">${min}°</div>
+            <div class="weather-desc">${desc}</div>
+        </div>`;
+    }).join('');
+
+    cityEl.textContent = '📍 현재 위치';
+    const now = new Date();
+    updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
+    if (pillBtn) pillBtn.style.display = '';
 }
 
 function renderWeather3Days(dayKeys) {
@@ -1453,17 +1553,22 @@ function renderWeather3Days(dayKeys) {
     cityEl.textContent = '🌍 3일 날씨';
     const now = new Date();
     updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
-    widget.classList.add('visible');
-    if (localStorage.getItem('weatherCollapsed') === '1') widget.classList.add('collapsed');
-    else widget.classList.remove('collapsed');
+    // 버튼 표시 (일정 탭일 때)
+    const pillBtn = document.getElementById('weather-pill-btn');
+    if (pillBtn) pillBtn.style.display = '';
+    // 팝업은 닫힌 상태로 유지 (버튼 클릭 시 열림)
+    // GPS 아이콘 업데이트
+    if (pillBtn && isTripStarted()) pillBtn.textContent = '📍 날씨';
+    else if (pillBtn) pillBtn.textContent = '🌤 날씨';
 }
 
-function toggleWeather() {
-    const w = document.getElementById('weather-widget');
-    if (w) {
-        w.classList.toggle('collapsed');
-        localStorage.setItem('weatherCollapsed', w.classList.contains('collapsed') ? '1' : '0');
-    }
+function toggleWeatherPopup() {
+    const popup = document.getElementById('weather-widget');
+    const btn   = document.getElementById('weather-pill-btn');
+    if (!popup) return;
+    const isVisible = popup.style.display !== 'none';
+    popup.style.display = isVisible ? 'none' : 'block';
+    if (btn) btn.classList.toggle('active', !isVisible);
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
