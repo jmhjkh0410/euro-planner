@@ -2429,13 +2429,23 @@ function doDropTo(targetCat, targetDK, insertBeforeId) {
     // 배열 순서를 유지하면서 수집
     const movedTasks = [];
     Object.keys(td.structure).forEach(k => {
-        const keep = [], moved = [];
-        getStructureArr(td.structure, k).forEach(t => {
-            if (idsToMove.includes(t.id)) moved.push(t);
-            else keep.push(t);
-        });
-        if (Array.isArray(td.structure[k])) td.structure[k] = keep;
-        movedTasks.push(...moved);
+        const val = td.structure[k];
+        if (Array.isArray(val)) {
+            // 일반 배열
+            const keep = [], moved = [];
+            val.forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
+            td.structure[k] = keep;
+            movedTasks.push(...moved);
+        } else if (val && typeof val === 'object') {
+            // 유동 블록: 각 plan 배열에서 찾아 제거
+            Object.keys(val).forEach(planKey => {
+                if (!Array.isArray(val[planKey])) return;
+                const keep = [], moved = [];
+                val[planKey].forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
+                val[planKey] = keep;
+                movedTasks.push(...moved);
+            });
+        }
     });
     if (!movedTasks.length) return;
 
@@ -2571,7 +2581,10 @@ function renderContent() {
         const rawCatData = td.structure[catKey];
         let baseTasks;
         if (rawCatData && !Array.isArray(rawCatData) && typeof rawCatData === 'object') {
-            baseTasks = Object.values(rawCatData).flat();
+            // __plan_x__ 키만 사용 (숫자키·잡키 완전 무시)
+            baseTasks = Object.entries(rawCatData)
+                .filter(([k]) => k.startsWith('__plan_'))
+                .flatMap(([, arr]) => Array.isArray(arr) ? arr : []);
         } else {
             baseTasks = rawCatData || [];
         }
@@ -2786,13 +2799,9 @@ function saveEdit(taskId, oldCat) {
     const time  = document.getElementById(`etm-${taskId}`)?.value || '';
     const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
-    let task = null;
-    for (const k in td.structure) {
-        const arr = getStructureArr(td.structure, k);
-        const i = arr.findIndex(t => t.id === taskId);
-        if (i !== -1) { task = arr.splice(i, 1)[0]; break; }
-    }
-    if (!task) return;
+    const _found = findTaskInStructure(td.structure, taskId);
+    if (!_found) return;
+    const [task] = _found.arr.splice(_found.idx, 1);
     task.title = title; task.desc = desc; task.tips = tips;
     if (time) task._time = time; else delete task._time;
     if (!td.structure[newCat]) td.structure[newCat] = [];
