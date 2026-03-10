@@ -1253,6 +1253,27 @@ function migrateTimeFromStructure(data) {
     });
 }
 
+// ── 유동 블록(swiss_b 등) 포함 배열 안전 추출 ────────────
+function getStructureArr(structure, key) {
+    const val = structure[key];
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'object') return Object.values(val).flat();
+    return [];
+}
+function getStructureAllFlat(structure) {
+    // 모든 catKey를 순회하며 태스크 배열 반환 (유동 블록 포함)
+    const result = [];
+    for (const k in structure) {
+        const val = structure[k];
+        if (Array.isArray(val)) val.forEach(t => result.push({k, t}));
+        else if (val && typeof val === 'object') {
+            Object.values(val).flat().forEach(t => result.push({k, t}));
+        }
+    }
+    return result;
+}
+
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
     const s = localStorage.getItem('EURO_TRIP_DATES_V33');
@@ -1338,9 +1359,10 @@ function bulkDelete() {
     const tab = appState.activeTab, td = appState[tab];
     selectedIds.forEach(id => {
         for (const k in td.structure) {
-            const i = td.structure[k].findIndex(t => t.id === id);
+            const arr = getStructureArr(td.structure, k);
+            const i = arr.findIndex(t => t.id === id);
             if (i !== -1) {
-                const [task] = td.structure[k].splice(i, 1);
+                const [task] = arr.splice(i, 1);
                 appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
                 delete td.checks[id]; delete td.tickets[id];
                 break;
@@ -1456,7 +1478,7 @@ function showTimeInput(taskId, catKey) {
     if (!li) return;
     const td = appState[appState.activeTab];
     let task = null;
-    for (const k in td.structure) { task = td.structure[k].find(t => t.id === taskId); if (task) break; }
+    for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
     if (!task) return;
 
     // 뱃지/버튼 자리를 인라인 input으로 교체
@@ -1616,7 +1638,7 @@ function openTodayItinerary() {
     let targetCat = null;
 
     for (const catKey of Object.keys(filteredCats)) {
-        const tasks = td.structure[catKey] || [];
+        const tasks = getStructureArr(td.structure, catKey);
         const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
         if (hasTodayDK) { targetCat = catKey; break; }
     }
@@ -1782,11 +1804,11 @@ function doDropTo(targetCat, targetDK, insertBeforeId) {
     const movedTasks = [];
     Object.keys(td.structure).forEach(k => {
         const keep = [], moved = [];
-        td.structure[k].forEach(t => {
+        getStructureArr(td.structure, k).forEach(t => {
             if (idsToMove.includes(t.id)) moved.push(t);
             else keep.push(t);
         });
-        td.structure[k] = keep;
+        if (Array.isArray(td.structure[k])) td.structure[k] = keep;
         movedTasks.push(...moved);
     });
     if (!movedTasks.length) return;
@@ -1901,7 +1923,14 @@ function renderContent() {
 
     Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
         const uc = currentUser ? USER_CONFIG[currentUser] : null;
-        let baseTasks = td.structure[catKey] || [];
+        // 유동 블록(swiss_b/nice_b/london_b): { __plan_a__:[...], ... } → 배열로 flatten
+        const rawCatData = td.structure[catKey];
+        let baseTasks;
+        if (rawCatData && !Array.isArray(rawCatData) && typeof rawCatData === 'object') {
+            baseTasks = Object.values(rawCatData).flat();
+        } else {
+            baseTasks = rawCatData || [];
+        }
 
         if (uc && uc.saveMode === 'private') {
             // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
@@ -2076,7 +2105,7 @@ function enterEdit(taskId, catKey) {
     if (!li) return;
     const td = appState[appState.activeTab];
     let task = null;
-    for (const k in td.structure) { task = td.structure[k].find(t => t.id === taskId); if (task) break; }
+    for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
     if (!task) return;
     const cats  = config[appState.activeTab].categories;
     const color = cats[catKey]?.color || '#888';
@@ -2107,8 +2136,9 @@ function saveEdit(taskId, oldCat) {
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
     let task = null;
     for (const k in td.structure) {
-        const i = td.structure[k].findIndex(t => t.id === taskId);
-        if (i !== -1) { task = td.structure[k].splice(i, 1)[0]; break; }
+        const arr = getStructureArr(td.structure, k);
+        const i = arr.findIndex(t => t.id === taskId);
+        if (i !== -1) { task = arr.splice(i, 1)[0]; break; }
     }
     if (!task) return;
     task.title = title; task.desc = desc; task.tips = tips;
@@ -2124,7 +2154,7 @@ function startDelete(taskId) {
     _pendingDelId = taskId;
     const td = appState[appState.activeTab];
     let title = '';
-    for (const k in td.structure) { const t = td.structure[k].find(t => t.id===taskId); if (t) { title=t.title; break; } }
+    for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
     document.getElementById('dlg-delete-desc').textContent =
         `"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
     openDlg('dlg-delete');
@@ -2134,7 +2164,7 @@ function confirmDeleteNow() {
     const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
     const tab = appState.activeTab, td = appState[tab];
     for (const k in td.structure) {
-        const i = td.structure[k].findIndex(t => t.id === id);
+        const i = getStructureArr(td.structure, k).findIndex(t => t.id === id);
         if (i !== -1) {
             const [task] = td.structure[k].splice(i, 1);
             appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
