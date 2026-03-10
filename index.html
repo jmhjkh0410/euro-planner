@@ -1855,20 +1855,18 @@ const MAP_EXCLUDE_PATTERNS = [
     /^준비/, /^정리/, /^팁:/, /^\d+일차/,
 ];
 
-function getMapLink(title, desc) {
-    if (!title) return '';
+function shouldShowMap(title) {
+    if (!title || title.trim().length < 3) return false;
     const t = title.trim();
-    // 제외 패턴 확인
     for (const p of MAP_EXCLUDE_PATTERNS) {
-        if (p.test(t)) return '';
+        if (p.test(t)) return false;
     }
-    // 너무 짧거나 일반적인 단어면 제외
-    if (t.length < 3) return '';
-
-    // 검색어: 제목 그대로 (구글 지도가 잘 찾아줌)
-    const query = encodeURIComponent(t);
-    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    return `<button type="button" class="btn-map" onclick="event.stopPropagation();window.open('${url}','_blank')">🗺 지도</button>`;
+    return true;
+}
+function getMapLink(title, desc) {
+    // innerHTML에 넣지 않음 - 빈 placeholder만 반환
+    // 실제 버튼은 makeTaskEl에서 DOM으로 직접 추가
+    return shouldShowMap(title) ? '<span class="map-btn-placeholder"></span>' : '';
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
@@ -2500,6 +2498,25 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 ${appState.activeTab === 'itinerary' ? getMapLink(task.title, task.desc) : ''}
             </div>`}
         </div>`;
+
+    // 지도 버튼: innerHTML 이후 DOM으로 직접 추가 (onclick 충돌 방지)
+    if (appState.activeTab === 'itinerary' && shouldShowMap(task.title)) {
+        const placeholder = li.querySelector('.map-btn-placeholder');
+        if (placeholder) {
+            const mapBtn = document.createElement('button');
+            mapBtn.type = 'button';
+            mapBtn.className = 'btn-map';
+            mapBtn.textContent = '🗺 지도';
+            const query = encodeURIComponent(task.title.trim());
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+            mapBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                e.preventDefault();
+                window.open(mapUrl, '_blank');
+            });
+            placeholder.replaceWith(mapBtn);
+        }
+    }
 
     li.addEventListener('click', e => {
         if (e.target.closest('button,label,input,a')) return;
