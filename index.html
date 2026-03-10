@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v31 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v38 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1208,6 +1208,30 @@ const config = {
     }
 };
 
+
+// ── 타이틀에서 시간 파싱 마이그레이션 ────────────────────────
+function migrateTimeFromStructure(data) {
+    if (!data) return;
+    const TIME_RE = /^\[(\d{1,2}:\d{2})\]\s*/;
+    function processArr(arr) {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(task => {
+            if (!task || !task.title) return;
+            const m = task.title.match(TIME_RE);
+            if (m && !task._time) {
+                task._time = m[1];
+                task.title = task.title.replace(TIME_RE, '');
+            }
+        });
+    }
+    function processTab(tabData) {
+        const src = tabData && tabData.structure ? tabData.structure : tabData;
+        Object.values(src || {}).forEach(val => processArr(val));
+    }
+    ['reservations','itinerary','packing'].forEach(tab => {
+        processTab(data[tab]);
+    });
+}
 
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
