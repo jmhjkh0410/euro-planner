@@ -1523,8 +1523,12 @@ function renderAccommodation(container, catKey) {
 }
 
 function renderCityMemo(container, catKey, catInfo) {
-    const memo = (appState.cityMemos || {})[catKey] || '';
-    const isMaster = currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
+    // 유동 블록은 부모 catKey의 메모 공유 (읽기 전용)
+    const FLOAT_PARENT = { swiss_b:'swiss', nice_b:'nice', london_b:'london' };
+    const memoKey  = FLOAT_PARENT[catKey] || catKey;
+    const isShared = !!FLOAT_PARENT[catKey];
+    const memo = (appState.cityMemos || {})[memoKey] || '';
+    const isMaster = !isShared && currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
     const memoId = `city-memo-${catKey}`;
 
     const block = document.createElement('div');
@@ -1534,13 +1538,13 @@ function renderCityMemo(container, catKey, catInfo) {
     block.style.borderLeftWidth = '3px';
 
     // 명시적으로 열린 적 있을 때만 open, 없으면 기본 접힘
-    const isOpen = appState.cityMemos?.[`${catKey}__open`] === true;
+    const isOpen = appState.cityMemos?.[`${memoKey}__open`] === true;
 
     block.innerHTML = `
         <div class="city-memo-header" onclick="toggleCityMemo('${catKey}')">
-            <span class="city-memo-title">📌 도시 메모 & 교통 정보${memo ? '' : ' <span style="color:var(--text-muted);font-weight:400">(비어있음)</span>'}</span>
+            <span class="city-memo-title">📌 도시 메모 & 교통 정보${isShared ? ' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:999px;font-weight:700">메인 일정 공유</span>' : ''}${memo ? '' : ' <span style="color:var(--text-muted);font-weight:400">(비어있음)</span>'}</span>
             <div class="city-memo-actions" onclick="event.stopPropagation()">
-                ${isMaster ? `<button class="btn-memo-edit" onclick="enterMemoEdit('${catKey}')">✏️ 편집</button>` : ''}
+                ${isMaster ? `<button class="btn-memo-edit" onclick="enterMemoEdit('${memoKey}')">✏️ 편집</button>` : ''}
                 <span class="city-memo-chevron${isOpen ? ' open' : ''}">▼</span>
             </div>
         </div>
