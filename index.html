@@ -1235,6 +1235,8 @@ function shakeInput() {
 function hidePinOverlay() {
     document.getElementById('pin-overlay').classList.add('hidden');
     document.body.style.overflow = '';
+    // mobile-section-nav 복원
+    renderMobileNav();
 }
 
 function _lockBodyScroll() {
@@ -1244,6 +1246,9 @@ function _lockBodyScroll() {
 
 function showPinOverlay() {
     document.getElementById('pin-overlay').classList.remove('hidden');
+    // mobile-section-nav 숨기기 (fixed라 pin-overlay 위에 올라옴)
+    const mobileNav = document.getElementById('mobile-section-nav');
+    if (mobileNav) mobileNav.style.display = 'none';
     _lockBodyScroll();
     // 이미 로그인 상태면 뒤로가기 버튼 표시
     const backBtn = document.getElementById('pin-back-btn');
