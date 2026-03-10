@@ -548,12 +548,13 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .accom-nights{font-size:10px;font-weight:800;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:999px;flex-shrink:0}
 
 
-/* ── 날씨 버튼 & 팝업 ── */
-.weather-pill-btn{padding:3px 9px;font-size:10px;font-weight:700;border-radius:20px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .18s;white-space:nowrap}
+/* ── 날씨 버튼 & 위젯 ── */
+.weather-pill-btn{padding:3px 10px;font-size:10px;font-weight:700;border-radius:20px;background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .18s;white-space:nowrap}
 .weather-pill-btn:hover{background:#dbeafe}
-.weather-pill-btn.active{background:#3b82f6;color:#fff;border-color:#3b82f6}
-.weather-popup{position:relative;z-index:30;margin:0 0 12px;padding:12px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);box-shadow:0 4px 16px rgba(59,130,246,.12)}
-.weather-popup-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.weather-pill-btn.active{background:#3b82f6;color:#fff;border-color:#2563eb}
+.weather-widget{margin-top:10px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .25s ease,margin-top .3s ease,padding .3s ease}
+.weather-widget.open{max-height:300px;opacity:1}
+.weather-city-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .weather-city-name{font-size:11px;font-weight:800;color:#1d4ed8}
 .weather-updated{font-size:9px;color:#93c5fd;font-weight:600}
 .weather-days{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -564,6 +565,35 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .weather-temp-min{font-size:9px;color:#64748b;font-weight:600}
 .weather-city-tag{font-size:9px;font-weight:700;color:#3b82f6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .weather-desc{font-size:9px;color:#475569;margin-top:2px;font-weight:500}
+
+/* ── 검색 ── */
+.search-nav-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:background .15s;color:var(--text-secondary)}
+.search-nav-btn:hover{background:var(--surface-raised)}
+.search-nav-btn.active{background:#ede9fe;color:#7c3aed}
+.search-panel{max-height:0;overflow:hidden;transition:max-height .3s ease;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:45}
+.search-panel.open{max-height:480px}
+.search-panel-inner{padding:10px 16px 12px}
+.search-input-row{display:flex;align-items:center;gap:8px;background:var(--surface-raised);border:1.5px solid var(--border);border-radius:12px;padding:8px 12px;transition:border-color .2s}
+.search-input-row:focus-within{border-color:#7c3aed}
+.search-icon-left{font-size:14px;flex-shrink:0}
+.search-input{flex:1;border:none;background:none;font-size:13px;color:var(--text-primary);outline:none}
+.search-input::placeholder{color:var(--text-muted)}
+.search-clear-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0 2px}
+.search-results{margin-top:10px;max-height:340px;overflow-y:auto}
+.search-empty{text-align:center;color:var(--text-muted);font-size:12px;padding:20px 0}
+.search-section-label{font-size:10px;font-weight:800;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;padding:6px 4px 3px;margin-top:4px}
+.search-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background .15s}
+.search-item:hover{background:var(--surface-raised)}
+.search-item-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.search-item-body{flex:1;min-width:0}
+.search-item-title{font-size:12px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-item-title mark{background:#ede9fe;color:#6d28d9;border-radius:3px;padding:0 2px}
+.search-item-meta{font-size:10px;color:var(--text-muted);margin-top:1px}
+.search-item-desc{font-size:11px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:768px){
+  .search-panel{top:52px}
+  .search-panel.open{max-height:420px}
+}
 </style>
 </head>
 <body>
@@ -612,6 +642,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
       </div>
     </div>
     <div class="nav-right">
+      <button class="search-nav-btn" onclick="toggleSearch()" title="검색">🔍</button>
       <span id="sync-status" class="sync-status sync-loading">☁️ 연결 중…</span>
       <div class="user-badge" id="user-badge" onclick="showPinOverlay()" title="유저 전환">
         <div class="user-badge-dot" id="user-badge-dot"></div>
@@ -622,6 +653,21 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
     </div>
   </div>
 </nav>
+
+<!-- 🔍 검색 패널 -->
+<div class="search-panel" id="search-panel">
+  <div class="search-panel-inner">
+    <div class="search-input-row">
+      <span class="search-icon-left">🔍</span>
+      <input class="search-input" id="search-input" type="text"
+        placeholder="일정, 예약, 짐... 전체 검색"
+        oninput="doSearch(this.value)"
+        onkeydown="if(event.key==='Escape')toggleSearch()">
+      <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" style="display:none">✕</button>
+    </div>
+    <div class="search-results" id="search-results"></div>
+  </div>
+</div>
 
 <div class="page-wrap">
   <div class="layout">
@@ -650,7 +696,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
               <div class="progress-date-row">
                 <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
                 <span class="trip-badge" id="trip-badge"></span>
-                <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeatherPopup()" style="display:none">🌤 날씨</button>
+                <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeather()" style="display:none">🌤 날씨</button>
               </div>
             </div>
             <div class="indicator-badge">
@@ -662,15 +708,15 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
             <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
             <span class="progress-pct" id="progress-pct">0%</span>
           </div>
+          <!-- 날씨 위젯 (일정 탭 전용, 버튼으로 열고 닫힘) -->
+          <div class="weather-widget" id="weather-widget">
+            <div class="weather-city-row">
+              <span class="weather-city-name" id="weather-city-name">🌍 날씨</span>
+              <span class="weather-updated" id="weather-updated"></span>
+            </div>
+            <div class="weather-days" id="weather-days"></div>
+          </div>
         </div>
-      </div>
-      <!-- 날씨 팝업 드롭다운 (progress-card 아래) -->
-      <div class="weather-popup" id="weather-widget" style="display:none">
-        <div class="weather-popup-header">
-          <span class="weather-city-name" id="weather-city-name">🌍 날씨</span>
-          <span class="weather-updated" id="weather-updated"></span>
-        </div>
-        <div class="weather-days" id="weather-days"></div>
       </div>
 
       <div id="list-container"></div>
@@ -1451,9 +1497,9 @@ async function fetchCityWeather(cityKey) {
 
 async function loadWeather() {
     const hideAll = () => {
-        const p = document.getElementById('weather-widget');
+        const w = document.getElementById('weather-widget');
         const b = document.getElementById('weather-pill-btn');
-        if (p) p.style.display = 'none';
+        if (w) { w.classList.remove('open'); }
         if (b) b.style.display = 'none';
     };
     if (appState.activeTab !== 'itinerary') { hideAll(); return; }
@@ -1490,8 +1536,6 @@ function renderWeatherGPS(data) {
     const daysEl = document.getElementById('weather-days');
     const cityEl = document.getElementById('weather-city-name');
     const updEl  = document.getElementById('weather-updated');
-    const pillBtn = document.getElementById('weather-pill-btn');
-
     if (!data?.daily) return;
     const { weathercode, temperature_2m_max, temperature_2m_min } = data.daily;
     const labels = ['오늘', '내일', '모레'];
@@ -1513,7 +1557,12 @@ function renderWeatherGPS(data) {
     cityEl.textContent = '📍 현재 위치';
     const now = new Date();
     updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
-    if (pillBtn) pillBtn.style.display = '';
+    const pillBtnG = document.getElementById('weather-pill-btn');
+    if (pillBtnG) pillBtnG.style.display = '';
+    if (localStorage.getItem('weatherOpen') === '1') {
+        widget.classList.add('open');
+        if (pillBtnG) pillBtnG.classList.add('active');
+    }
 }
 
 function renderWeather3Days(dayKeys) {
@@ -1553,22 +1602,156 @@ function renderWeather3Days(dayKeys) {
     cityEl.textContent = '🌍 3일 날씨';
     const now = new Date();
     updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
-    // 버튼 표시 (일정 탭일 때)
+    // 버튼 표시, 이전 open 상태 복원
     const pillBtn = document.getElementById('weather-pill-btn');
     if (pillBtn) pillBtn.style.display = '';
-    // 팝업은 닫힌 상태로 유지 (버튼 클릭 시 열림)
-    // GPS 아이콘 업데이트
-    if (pillBtn && isTripStarted()) pillBtn.textContent = '📍 날씨';
-    else if (pillBtn) pillBtn.textContent = '🌤 날씨';
+    if (localStorage.getItem('weatherOpen') === '1') {
+        widget.classList.add('open');
+        if (pillBtn) pillBtn.classList.add('active');
+    }
 }
 
-function toggleWeatherPopup() {
-    const popup = document.getElementById('weather-widget');
-    const btn   = document.getElementById('weather-pill-btn');
-    if (!popup) return;
-    const isVisible = popup.style.display !== 'none';
-    popup.style.display = isVisible ? 'none' : 'block';
-    if (btn) btn.classList.toggle('active', !isVisible);
+function toggleWeather() {
+    const w   = document.getElementById('weather-widget');
+    const btn = document.getElementById('weather-pill-btn');
+    if (!w) return;
+    const opening = !w.classList.contains('open');
+    w.classList.toggle('open', opening);
+    if (btn) btn.classList.toggle('active', opening);
+    localStorage.setItem('weatherOpen', opening ? '1' : '0');
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 🔍 전체 검색
+// ════════════════════════════════════════════════════════════
+let _searchOpen = false;
+
+function toggleSearch() {
+    _searchOpen = !_searchOpen;
+    const panel = document.getElementById('search-panel');
+    const btn   = document.querySelector('.search-nav-btn');
+    panel.classList.toggle('open', _searchOpen);
+    if (btn) btn.classList.toggle('active', _searchOpen);
+    if (_searchOpen) {
+        setTimeout(() => document.getElementById('search-input')?.focus(), 300);
+    } else {
+        clearSearch();
+    }
+}
+
+function clearSearch() {
+    const inp = document.getElementById('search-input');
+    const clr = document.getElementById('search-clear-btn');
+    const res = document.getElementById('search-results');
+    if (inp) inp.value = '';
+    if (clr) clr.style.display = 'none';
+    if (res) res.innerHTML = '';
+}
+
+function doSearch(q) {
+    const clr = document.getElementById('search-clear-btn');
+    const res = document.getElementById('search-results');
+    if (clr) clr.style.display = q ? '' : 'none';
+    if (!q || q.trim().length < 1) { res.innerHTML = ''; return; }
+
+    const kw = q.trim().toLowerCase();
+    const results = [];
+
+    // 탭별 카테고리 설정
+    const TABS = [
+        { tab: 'itinerary',    label: '🗺 일정',  cats: config.itinerary.categories },
+        { tab: 'reservations', label: '📅 예약',  cats: config.reservations.categories },
+        { tab: 'packing',      label: '🎒 짐싸기', cats: config.packing.categories },
+    ];
+
+    for (const { tab, label, cats } of TABS) {
+        const td = appState[tab];
+        for (const [catKey, catInfo] of Object.entries(cats)) {
+            const tasks = getStructureArr(td.structure, catKey);
+            for (const t of tasks) {
+                const titleMatch = t.title?.toLowerCase().includes(kw);
+                const descMatch  = t.desc?.toLowerCase().includes(kw);
+                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
+                if (titleMatch || descMatch || tipsMatch) {
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
+                }
+            }
+        }
+    }
+
+    if (!results.length) {
+        res.innerHTML = `<div class="search-empty">검색 결과가 없어요 😅</div>`;
+        return;
+    }
+
+    // 탭별로 그룹핑
+    const grouped = {};
+    for (const r of results) {
+        const k = r.tab;
+        if (!grouped[k]) grouped[k] = { label: r.tabLabel, items: [] };
+        grouped[k].items.push(r);
+    }
+
+    function highlight(text, kw) {
+        if (!text) return '';
+        const idx = text.toLowerCase().indexOf(kw);
+        if (idx === -1) return escHtml(text);
+        return escHtml(text.slice(0, idx)) + '<mark>' + escHtml(text.slice(idx, idx + kw.length)) + '</mark>' + escHtml(text.slice(idx + kw.length));
+    }
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    let html = '';
+    for (const [tab, group] of Object.entries(grouped)) {
+        html += `<div class="search-section-label">${group.label} · ${group.items.length}건</div>`;
+        for (const r of group.items) {
+            const timeStr = r.task._time ? `${r.task._time} · ` : '';
+            const desc = r.descMatch ? r.task.desc : (r.tipsMatch ? r.task.tips : '');
+            html += `
+            <div class="search-item" onclick="goToSearchResult('${r.tab}','${r.catKey}','${r.task.id}')">
+                <span class="search-item-icon">${r.titleMatch ? '📌' : '📝'}</span>
+                <div class="search-item-body">
+                    <div class="search-item-title">${highlight(r.task.title, kw)}</div>
+                    <div class="search-item-meta">${timeStr}${escHtml(r.catLabel)}</div>
+                    ${desc ? `<div class="search-item-desc">${highlight(desc, kw)}</div>` : ''}
+                </div>
+            </div>`;
+        }
+    }
+    res.innerHTML = html;
+}
+
+function goToSearchResult(tab, catKey, taskId) {
+    // 검색창 닫기
+    _searchOpen = false;
+    document.getElementById('search-panel').classList.remove('open');
+    const btn = document.querySelector('.search-nav-btn');
+    if (btn) btn.classList.remove('active');
+    clearSearch();
+
+    // 탭 전환
+    if (appState.activeTab !== tab) switchTab(tab);
+
+    // 해당 도시 열기
+    if (tab === 'itinerary') {
+        appState.itinerary.cityOpen[catKey] = true;
+        renderContent();
+    }
+
+    // 해당 카드로 스크롤
+    setTimeout(() => {
+        const el = document.getElementById(`task-${taskId}`) ||
+                   document.getElementById(`section-${catKey}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 잠깐 하이라이트
+            el.style.transition = 'box-shadow .3s';
+            el.style.boxShadow = '0 0 0 3px #7c3aed55';
+            setTimeout(() => { el.style.boxShadow = ''; }, 1500);
+        }
+    }, 200);
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
