@@ -547,6 +547,26 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .accom-address{font-size:11px;font-weight:600;color:#166534;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .accom-nights{font-size:10px;font-weight:800;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:999px;flex-shrink:0}
 
+
+/* ── 날씨 위젯 ── */
+.weather-widget{margin-top:12px;padding:10px 14px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:var(--r-md);display:none}
+.weather-widget.visible{display:block}
+.weather-city-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.weather-city-name{font-size:11px;font-weight:800;color:#1d4ed8}
+.weather-updated{font-size:9px;color:#93c5fd;font-weight:600}
+.weather-days{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.weather-day{background:rgba(255,255,255,.7);border-radius:8px;padding:8px 6px;text-align:center;border:1px solid #dbeafe}
+.weather-day-label{font-size:9px;font-weight:800;color:#3b82f6;margin-bottom:4px}
+.weather-icon{font-size:20px;margin:2px 0}
+.weather-temp{font-size:11px;font-weight:700;color:#1e3a5f}
+.weather-temp-min{font-size:9px;color:#64748b;font-weight:600}
+.weather-city-tag{font-size:9px;font-weight:700;color:#3b82f6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.weather-desc{font-size:9px;color:#475569;margin-top:2px;font-weight:500}
+@media(max-width:768px){
+  .weather-icon{font-size:22px}
+  .weather-temp{font-size:13px}
+  .weather-day-label{font-size:10px}
+}
 </style>
 </head>
 <body>
@@ -643,6 +663,14 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
           <div class="progress-row">
             <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
             <span class="progress-pct" id="progress-pct">0%</span>
+          </div>
+          <!-- 날씨 위젯 (일정 탭 전용) -->
+          <div class="weather-widget" id="weather-widget">
+            <div class="weather-city-row">
+              <span class="weather-city-name" id="weather-city-name">🌍 날씨 로딩 중...</span>
+              <span class="weather-updated" id="weather-updated"></span>
+            </div>
+            <div class="weather-days" id="weather-days"></div>
           </div>
         </div>
       </div>
@@ -824,6 +852,7 @@ function _startFirebaseSync() {
                 localStorage.setItem(FB_LOCAL_CONTENT, d);
                 renderContent(); updateProgress(); updateTrashFab();
                 renderMobileNav();
+                loadWeather();
                 setTimeout(initMobileTips, 100);
                 setSyncStatus('ok', '✅ 동기화 완료');
             } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
@@ -1274,6 +1303,153 @@ function getStructureAllFlat(structure) {
     return result;
 }
 
+
+// ════════════════════════════════════════════════════════════
+// 🌤 날씨 위젯 — Open-Meteo API (무료, 키 불필요)
+// ════════════════════════════════════════════════════════════
+const CITY_COORDS = {
+    budapest: { name:'부다페스트', lat:47.4979, lng:19.0402 },
+    wien:     { name:'빈',        lat:48.2082, lng:16.3738 },
+    krakow:   { name:'크라쿠프',  lat:50.0647, lng:19.9450 },
+    berlin:   { name:'베를린',    lat:52.5200, lng:13.4050 },
+    munich:   { name:'뮌헨',      lat:48.1351, lng:11.5820 },
+    swiss:    { name:'프루티겐',  lat:46.5833, lng:7.6333  },
+    swiss_b:  { name:'프루티겐',  lat:46.5833, lng:7.6333  },
+    milano:   { name:'밀라노',    lat:45.4654, lng:9.1859  },
+    nice:     { name:'니스',      lat:43.7102, lng:7.2620  },
+    nice_b:   { name:'니스',      lat:43.7102, lng:7.2620  },
+    paris1:   { name:'파리',      lat:48.8566, lng:2.3522  },
+    paris2:   { name:'파리',      lat:48.8566, lng:2.3522  },
+    london:   { name:'런던',      lat:51.5074, lng:-0.1278 },
+    london_b: { name:'런던',      lat:51.5074, lng:-0.1278 },
+};
+
+// WMO 날씨 코드 → 이모지 + 설명
+function getWeatherEmoji(code) {
+    if (code === 0)              return { icon:'☀️',  desc:'맑음' };
+    if (code <= 2)               return { icon:'🌤',  desc:'구름 조금' };
+    if (code === 3)              return { icon:'☁️',  desc:'흐림' };
+    if (code <= 49)              return { icon:'🌫',  desc:'안개' };
+    if (code <= 55)              return { icon:'🌦',  desc:'이슬비' };
+    if (code <= 65)              return { icon:'🌧',  desc:'비' };
+    if (code <= 77)              return { icon:'🌨',  desc:'눈' };
+    if (code <= 82)              return { icon:'🌦',  desc:'소나기' };
+    if (code <= 99)              return { icon:'⛈',  desc:'뇌우' };
+    return { icon:'🌡', desc:'' };
+}
+
+
+let _weatherCache = {};  // { cityKey: data }
+
+// 날짜 오프셋 기준 도시키 반환
+function getCityKeyForDate(offsetDays) {
+    const target = new Date();
+    target.setHours(0,0,0,0);
+    target.setDate(target.getDate() + offsetDays);
+
+    const { start, end } = getTripDates();
+    const startD = new Date(start); startD.setHours(0,0,0,0);
+    const endD   = new Date(end);   endD.setHours(0,0,0,0);
+
+    if (target < startD) return 'budapest';  // 여행 전
+    if (target > endD)   return null;         // 여행 후
+
+    const schedule = [
+        { key:'budapest', from:'2026-06-13', to:'2026-06-16' },
+        { key:'wien',     from:'2026-06-16', to:'2026-06-20' },
+        { key:'krakow',   from:'2026-06-20', to:'2026-06-21' },
+        { key:'berlin',   from:'2026-06-21', to:'2026-06-24' },
+        { key:'munich',   from:'2026-06-24', to:'2026-06-27' },
+        { key:'swiss',    from:'2026-06-27', to:'2026-07-01' },
+        { key:'milano',   from:'2026-07-01', to:'2026-07-02' },
+        { key:'nice',     from:'2026-07-02', to:'2026-07-05' },
+        { key:'paris1',   from:'2026-07-05', to:'2026-07-09' },
+        { key:'london',   from:'2026-07-09', to:'2026-07-20' },
+        { key:'paris2',   from:'2026-07-20', to:'2026-07-23' },
+    ];
+    for (const c of schedule) {
+        const from = new Date(c.from); from.setHours(0,0,0,0);
+        const to   = new Date(c.to);   to.setHours(0,0,0,0);
+        if (target >= from && target < to) return c.key;
+    }
+    return null;
+}
+
+async function fetchCityWeather(cityKey) {
+    if (_weatherCache[cityKey]) return _weatherCache[cityKey];
+    const coords = CITY_COORDS[cityKey];
+    if (!coords) return null;
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+        _weatherCache[cityKey] = data;
+        return data;
+    } catch(e) {
+        console.warn('[weather] 실패:', cityKey, e);
+        return null;
+    }
+}
+
+async function loadWeather() {
+    if (appState.activeTab !== 'itinerary') {
+        document.getElementById('weather-widget').classList.remove('visible');
+        return;
+    }
+
+    const dayKeys = [0, 1, 2].map(i => getCityKeyForDate(i));
+    if (!dayKeys[0]) {
+        document.getElementById('weather-widget').classList.remove('visible');
+        return;
+    }
+
+    // 유니크 도시만 API 호출
+    const uniqueKeys = [...new Set(dayKeys.filter(Boolean))];
+    await Promise.all(uniqueKeys.map(k => fetchCityWeather(k)));
+
+    renderWeather3Days(dayKeys);
+}
+
+function renderWeather3Days(dayKeys) {
+    const widget = document.getElementById('weather-widget');
+    const daysEl = document.getElementById('weather-days');
+    const cityEl = document.getElementById('weather-city-name');
+    const updEl  = document.getElementById('weather-updated');
+
+    const labels = ['오늘', '내일', '모레'];
+    let html = '';
+
+    for (let i = 0; i < 3; i++) {
+        const key = dayKeys[i];
+        const data = key && _weatherCache[key];
+        const cityName = key ? (CITY_COORDS[key]?.name || '') : '';
+
+        if (!data?.daily) {
+            html += `<div class="weather-day"><div class="weather-day-label">${labels[i]}</div><div class="weather-icon">—</div></div>`;
+            continue;
+        }
+        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[0]);
+        const max = Math.round(data.daily.temperature_2m_max[0]);
+        const min = Math.round(data.daily.temperature_2m_min[0]);
+
+        html += `
+        <div class="weather-day">
+            <div class="weather-day-label">${labels[i]}</div>
+            <div class="weather-city-tag">${cityName}</div>
+            <div class="weather-icon">${icon}</div>
+            <div class="weather-temp">${max}°</div>
+            <div class="weather-temp-min">${min}°</div>
+            <div class="weather-desc">${desc}</div>
+        </div>`;
+    }
+
+    daysEl.innerHTML = html;
+    cityEl.textContent = '🌍 3일 날씨';
+    const now = new Date();
+    updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
+    widget.classList.add('visible');
+}
+
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
     const s = localStorage.getItem('EURO_TRIP_DATES_V33');
@@ -1463,6 +1639,7 @@ function switchTab(tab) {
     renderContent();
     updateProgress();
     renderMobileNav();
+    loadWeather();
     window.scrollTo(0, 0);
     setTimeout(initMobileTips, 100);
     // 일정 탭으로 전환 시 당일 자동 오픈
