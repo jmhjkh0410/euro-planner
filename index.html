@@ -1257,7 +1257,13 @@ function applySoloText(text) {
 }
 
 // ── 예약 탭 필터 ─────────────────────────────────────────
+// 헤더 행 잔재로 들어온 유령 제목 목록
+const GHOST_TITLES = new Set(['시간별 일정', '일정', '내용', '항목', '교통', '구분']);
+
 function getFilteredTasks(tab, catKey, tasks) {
+    // 헤더 잔재 유령 항목 필터 (GS 파싱 오류로 들어온 것)
+    tasks = tasks.filter(t => t && t.title && !GHOST_TITLES.has(t.title.trim()));
+
     if (!currentUser) return tasks;
     const uc = USER_CONFIG[currentUser];
 
