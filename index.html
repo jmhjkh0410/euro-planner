@@ -2164,9 +2164,10 @@ function confirmDeleteNow() {
     const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
     const tab = appState.activeTab, td = appState[tab];
     for (const k in td.structure) {
-        const i = getStructureArr(td.structure, k).findIndex(t => t.id === id);
+        const flatArr = getStructureArr(td.structure, k);
+        const i = flatArr.findIndex(t => t.id === id);
         if (i !== -1) {
-            const [task] = td.structure[k].splice(i, 1);
+            const [task] = flatArr.splice(i, 1);
             appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
             delete td.checks[id]; delete td.tickets[id];
             break;
@@ -2230,7 +2231,14 @@ function addTask(catKey, dk) {
             appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
         } else {
             if (!td.structure[catKey]) td.structure[catKey] = [];
-            td.structure[catKey].push(task);
+            // 유동 블록이면 _dk 기준 plan 배열에 push
+            const catVal = td.structure[catKey];
+            if (!Array.isArray(catVal) && typeof catVal === 'object' && task._dk) {
+                if (!catVal[task._dk]) catVal[task._dk] = [];
+                catVal[task._dk].push(task);
+            } else {
+                td.structure[catKey].push(task);
+            }
         }
     }
 
@@ -2244,7 +2252,7 @@ function updateProgress() {
     const filteredCats = getFilteredCategories(appState.activeTab);
     const all = Object.entries(td.structure)
         .filter(([k]) => filteredCats[k])
-        .flatMap(([k, tasks]) => getFilteredTasks(appState.activeTab, k, tasks))
+        .flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
         .filter(t => getDK(t) !== '__memo__');
     const n   = all.filter(t => td.checks[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
