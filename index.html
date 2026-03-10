@@ -602,6 +602,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .search-hist-item{position:relative}
 .search-hist-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:4px 6px;margin-left:auto;flex-shrink:0}
 .search-hist-del:hover{color:#ef4444}
+
+/* ── 구글 지도 링크 ── */
+.btn-map{font-size:12px;padding:2px 7px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;cursor:pointer;transition:all .15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:3px}
+.btn-map:hover{background:#dcfce7;border-color:#86efac}
 </style>
 </head>
 <body>
@@ -1835,6 +1839,36 @@ function goToSearchResult(tab, catKey, taskId) {
     }, 250);
 }
 
+
+// ════════════════════════════════════════════════════════════
+// 🗺 구글 지도 링크
+// ════════════════════════════════════════════════════════════
+
+// 장소명으로 보기에 적합한 키워드인지 판단
+// 교통수단, 숙소복귀, 식사 등 애매한 건 제외
+const MAP_EXCLUDE_PATTERNS = [
+    /^숙소/, /복귀$/, /^호텔/, /^체크/, /^이동/, /^출발/, /^도착/,
+    /^기차/, /^버스/, /^비행/, /^공항/, /^환승/, /^짐/,
+    /^아침/, /^점심/, /^저녁/, /^식사/, /^휴식/, /^자유/,
+    /^준비/, /^정리/, /^팁:/, /^\d+일차/,
+];
+
+function getMapLink(title, desc) {
+    if (!title) return '';
+    const t = title.trim();
+    // 제외 패턴 확인
+    for (const p of MAP_EXCLUDE_PATTERNS) {
+        if (p.test(t)) return '';
+    }
+    // 너무 짧거나 일반적인 단어면 제외
+    if (t.length < 3) return '';
+
+    // 검색어: 제목 그대로 (구글 지도가 잘 찾아줌)
+    const query = encodeURIComponent(t);
+    const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    return `<a class="btn-map" href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 지도</a>`;
+}
+
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
     const s = localStorage.getItem('EURO_TRIP_DATES_V33');
@@ -2465,6 +2499,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
+                ${getMapLink(task.title, task.desc)}
             </div>`}
         </div>`;
 
