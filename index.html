@@ -911,7 +911,6 @@ function _startFirebaseSync() {
                 renderContent(); updateProgress(); updateTrashFab();
                 renderMobileNav();
                 loadWeather();
-                setTimeout(initMobileTips, 100);
                 setSyncStatus('ok', '✅ 동기화 완료');
             } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
         } else if (uc && uc.isMaster) {
@@ -1176,6 +1175,9 @@ function applyUserMode(code) {
     if (appState.activeTab === 'itinerary') {
         setTimeout(openTodayItinerary, 150);
     }
+
+    // 8) 모바일 팁 토글 버튼 (renderContent 직후 항상 실행)
+    setTimeout(initMobileTips, 60);
 }
 
 // ── 유저 필터 적용된 카테고리 반환 ───────────────────────
@@ -1866,7 +1868,7 @@ function getMapLink(title, desc) {
     // 검색어: 제목 그대로 (구글 지도가 잘 찾아줌)
     const query = encodeURIComponent(t);
     const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    return `<a class="btn-map" href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">🗺 지도</a>`;
+    return `<button type="button" class="btn-map" onclick="event.stopPropagation();window.open('${url}','_blank')">🗺 지도</button>`;
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
@@ -2044,7 +2046,6 @@ function saveAndRender() {
     renderContent();
     updateProgress();
     updateTrashFab();
-    setTimeout(initMobileTips, 100);
     // 편집 모드 중이면 draggable 복원
     if (editMode) document.querySelectorAll('.task-item[data-tid]').forEach(el => { el.draggable = true; });
 }
@@ -2060,7 +2061,6 @@ function switchTab(tab) {
     renderMobileNav();
     loadWeather();
     window.scrollTo(0, 0);
-    setTimeout(initMobileTips, 100);
     // 일정 탭으로 전환 시 당일 자동 오픈
     if (tab === 'itinerary') setTimeout(openTodayItinerary, 120);
 }
@@ -2205,7 +2205,6 @@ function enterMemoEdit(catKey) {
 function cancelMemoEdit(catKey) {
     // 편집 취소 → 다시 renderContent
     renderContent();
-    setTimeout(initMobileTips, 100);
 }
 
 function saveCityMemo(catKey) {
@@ -2259,7 +2258,6 @@ function openTodayItinerary() {
     }
 
     renderContent();
-    setTimeout(initMobileTips, 100);
 
     // 해당 섹션으로 스크롤
     setTimeout(() => _doScrollToSection(targetCat), 200);
@@ -2943,9 +2941,11 @@ function _doScrollToSection(catKey) {
 function initMobileTips() {
     if (window.innerWidth > 768) return;
     document.querySelectorAll('.task-tips').forEach(tipsEl => {
-        // renderContent가 DOM을 새로 그리므로 guard 불필요
+        // 이미 버튼이 삽입된 경우 중복 방지
+        if (tipsEl.previousElementSibling?.classList.contains('tips-toggle')) return;
         tipsEl.classList.add('tips-collapsed');
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'tips-toggle';
         btn.innerHTML = `<span class="tips-label">💡 팁 보기</span><span class="tips-toggle-icon">▼</span>`;
         btn.addEventListener('click', e => {
