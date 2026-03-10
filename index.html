@@ -708,9 +708,12 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
 <script>
 (function(){
-  const m = localStorage.getItem('euro_dark_mode') || 'system';
-  if (m === 'dark') document.documentElement.setAttribute('data-theme','dark');
-  else if (m === 'light') document.documentElement.setAttribute('data-theme','light');
+  var m = localStorage.getItem('euro_dark_mode') || 'system';
+  if (m === 'dark') { document.documentElement.setAttribute('data-theme','dark'); }
+  else if (m === 'light') { document.documentElement.setAttribute('data-theme','light'); }
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches) {
+    document.documentElement.classList.add('sys-dark');
+  }
 })();
 </script>
 
@@ -2714,53 +2717,33 @@ return li;
 // ── 다크모드 ─────────────────────────────────────────────
 const DARK_KEY = ‘euro_dark_mode’;
 
-// 시스템 다크모드 → html.sys-dark 클래스 동기화
-function syncSysDark() {
-const isDark = window.matchMedia(’(prefers-color-scheme:dark)’).matches;
-document.documentElement.classList.toggle(‘sys-dark’, isDark);
-}
-window.matchMedia(’(prefers-color-scheme:dark)’).addEventListener(‘change’, e => {
-syncSysDark();
-updateDarkToggleUI(localStorage.getItem(‘euro_dark_mode’) || ‘system’);
-});
 function initDarkMode() {
-syncSysDark();
-const saved = localStorage.getItem(DARK_KEY) || ‘system’;
+var saved = localStorage.getItem(DARK_KEY) || ‘system’;
 applyDarkMode(saved, false);
-updateDarkToggleUI(saved);
+window.matchMedia(’(prefers-color-scheme:dark)’).addEventListener(‘change’, function() {
+var cur = localStorage.getItem(DARK_KEY) || ‘system’;
+if (cur === ‘system’) applyDarkMode(‘system’, false);
+});
 }
 
-function applyDarkMode(mode, save = true) {
-if (save) localStorage.setItem(DARK_KEY, mode);
-const html = document.documentElement;
+function applyDarkMode(mode, doSave) {
+if (doSave !== false) localStorage.setItem(DARK_KEY, mode);
+var html = document.documentElement;
 if (mode === ‘dark’) {
 html.setAttribute(‘data-theme’, ‘dark’);
+html.classList.remove(‘sys-dark’);
 } else if (mode === ‘light’) {
 html.setAttribute(‘data-theme’, ‘light’);
+html.classList.remove(‘sys-dark’);
 } else {
-// system
 html.removeAttribute(‘data-theme’);
+var isDark = window.matchMedia(’(prefers-color-scheme:dark)’).matches;
+html.classList.toggle(‘sys-dark’, isDark);
 }
-syncSysDark();
-updateDarkToggleUI(mode);
-}
-
-function updateDarkToggleUI(mode) {
-document.querySelectorAll(’.dark-toggle-opt’).forEach(el => {
-el.classList.toggle(‘active’, el.dataset.mode === mode);
+document.querySelectorAll(’.dark-toggle-opt’).forEach(function(el) {
+el.classList.toggle(‘active’, el.getAttribute(‘data-mode’) === mode);
 });
-// 달/해 이모지 업데이트
-const isDark = mode === ‘dark’ ||
-(mode === ‘system’ && window.matchMedia(’(prefers-color-scheme:dark)’).matches);
-const indicator = document.getElementById(‘dark-mode-indicator’);
-if (indicator) indicator.textContent = isDark ? ‘🌙’ : ‘☀️’;
 }
-
-// 시스템 다크모드 변경 감지
-window.matchMedia(’(prefers-color-scheme:dark)’).addEventListener(‘change’, () => {
-const saved = localStorage.getItem(DARK_KEY) || ‘system’;
-if (saved === ‘system’) updateDarkToggleUI(‘system’);
-});
 
 // ── RENDER CONTENT ────────────────────────────────────────
 function renderContent() {
