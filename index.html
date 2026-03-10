@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -11,6 +12,7 @@
 <!-- ================================================================
   🔥 FIREBASE SDK
 ================================================================ -->
+
 <script type="module">
   import { initializeApp }               from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, onValue, set }
@@ -35,6 +37,7 @@
   window._fb = { db, ref, onValue, set };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -105,7 +108,7 @@ ul{list-style:none}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
 .progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
 .progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
-.progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px;padding-bottom:10px}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
 .today-badge:hover{background:var(--border-light)}
 .trip-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700}
@@ -115,7 +118,7 @@ ul{list-style:none}
 .indicator-badge{display:flex;align-items:center;gap:6px;background:var(--surface-raised);border:1px solid var(--border-light);padding:4px 10px;border-radius:999px;flex-shrink:0}
 .indicator-dot{width:6px;height:6px;border-radius:50%}
 .indicator-text{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.progress-row{display:flex;align-items:center;gap:12px;padding-bottom:10px}
+.progress-row{display:flex;align-items:center;gap:12px}
 .progress-track{flex:1;background:var(--border-light);border-radius:999px;height:6px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
 .progress-fill{height:100%;border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1)}
 .progress-pct{font-size:15px;font-weight:800;color:var(--text-primary);min-width:36px;text-align:right}
@@ -607,12 +610,14 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-map{position:absolute;bottom:10px;right:10px;font-size:11px;padding:3px 9px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;z-index:10;pointer-events:auto!important;touch-action:manipulation}
 .btn-map:hover{background:#dcfce7;border-color:#86efac}
 </style>
+
 </head>
 <body>
 
 <!-- ══════════════════════════════════════════════════════════
   🔐 PIN 선택 화면 — 유저별 뷰 분기
 ══════════════════════════════════════════════════════════ -->
+
 <div class="pin-overlay" id="pin-overlay">
   <div class="pin-box">
     <!-- 로그인 상태일 때만 뒤로가기 버튼 표시 -->
@@ -621,24 +626,27 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
     <div class="pin-title">🇪🇺 EURO 40D</div>
     <div class="pin-sub">나만의 여행 플래너</div>
 
-    <!-- 시작하기 버튼 → SOLO 모드 진입 -->
-    <button class="pin-start-btn" onclick="enterWithCode('solo')">시작하기</button>
+```
+<!-- 시작하기 버튼 → SOLO 모드 진입 -->
+<button class="pin-start-btn" onclick="enterWithCode('solo')">시작하기</button>
 
-    <!-- 숨겨진 코드 입력 — 한 줄 꽉 채운 입력창 + 작은 버튼 -->
-    <div class="pin-input-row">
-      <input class="pin-input" id="pin-input" type="text" maxlength="12"
-        placeholder="코드 입력" autocomplete="off" autocorrect="off" autocapitalize="off"
-        onkeydown="if(event.key==='Enter')doPinEnter()">
-      <button class="pin-code-btn" onclick="doPinEnter()">→</button>
-    </div>
-    <div class="pin-error" id="pin-error"></div>
+<!-- 숨겨진 코드 입력 — 한 줄 꽉 채운 입력창 + 작은 버튼 -->
+<div class="pin-input-row">
+  <input class="pin-input" id="pin-input" type="text" maxlength="12"
+    placeholder="코드 입력" autocomplete="off" autocorrect="off" autocapitalize="off"
+    onkeydown="if(event.key==='Enter')doPinEnter()">
+  <button class="pin-code-btn" onclick="doPinEnter()">→</button>
+</div>
+<div class="pin-error" id="pin-error"></div>
+```
+
   </div>
 </div>
 
 <!-- 솔로 모드 — 시작 화면 복귀 버튼 -->
 
-
 <!-- 📱 모바일 하단 섹션 네비게이터 -->
+
 <nav class="mobile-section-nav" id="mobile-section-nav" style="display:none"></nav>
 
 <nav class="nav">
@@ -667,6 +675,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </nav>
 
 <!-- 🔍 검색 패널 -->
+
 <div class="search-panel" id="search-panel">
   <div class="search-panel-inner">
     <div class="search-input-row">
@@ -686,57 +695,59 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
     <aside class="sidebar"><div class="sidebar-sticky" id="sidebar-nav"></div></aside>
     <main class="main">
 
-      <!-- 편집 모드 액션바 -->
-      <div class="edit-bar" id="edit-bar">
-        <div class="edit-bar-left">
-          <span class="edit-bar-label" id="edit-bar-count">0개 선택</span>
-          <span class="edit-bar-hint">선택 후 드래그하거나 삭제</span>
-        </div>
-        <div class="edit-bar-actions">
-          <button class="btn-edit-cancel" onclick="exitEditMode()">완료</button>
-          <button class="btn-edit-delete" id="btn-bulk-delete" onclick="bulkDelete()" disabled>🗑️ 삭제</button>
+```
+  <!-- 편집 모드 액션바 -->
+  <div class="edit-bar" id="edit-bar">
+    <div class="edit-bar-left">
+      <span class="edit-bar-label" id="edit-bar-count">0개 선택</span>
+      <span class="edit-bar-hint">선택 후 드래그하거나 삭제</span>
+    </div>
+    <div class="edit-bar-actions">
+      <button class="btn-edit-cancel" onclick="exitEditMode()">완료</button>
+      <button class="btn-edit-delete" id="btn-bulk-delete" onclick="bulkDelete()" disabled>🗑️ 삭제</button>
+    </div>
+  </div>
+
+  <!-- 진행도 카드 -->
+  <div class="progress-sticky">
+    <div class="progress-card">
+      <div class="progress-accent" id="theme-bar"></div>
+      <div class="progress-header">
+        <span class="progress-title" id="view-title"></span>
+        <div class="indicator-badge">
+          <span class="indicator-dot" id="indicator-dot"></span>
+          <span class="indicator-text" id="indicator-text">섹션 탐색</span>
         </div>
       </div>
-
-      <!-- 진행도 카드 -->
-      <div class="progress-sticky">
-        <div class="progress-card">
-          <div class="progress-accent" id="theme-bar"></div>
-          <div class="progress-header">
-            <div class="progress-title-area">
-              <span class="progress-title" id="view-title"></span>
-              <div class="progress-date-row">
-                <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
-                <span class="trip-badge" id="trip-badge"></span>
-                <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeather()" style="display:none">🌤 날씨</button>
-              </div>
-            </div>
-            <div class="indicator-badge">
-              <span class="indicator-dot" id="indicator-dot"></span>
-              <span class="indicator-text" id="indicator-text">섹션 탐색</span>
-            </div>
-          </div>
-          <div class="progress-row">
-            <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
-            <span class="progress-pct" id="progress-pct">0%</span>
-          </div>
-          <!-- 날씨 위젯 (일정 탭 전용, 버튼으로 열고 닫힘) -->
-          <div class="weather-widget" id="weather-widget">
-            <div class="weather-city-row">
-              <span class="weather-city-name" id="weather-city-name">🌍 날씨</span>
-              <span class="weather-updated" id="weather-updated"></span>
-            </div>
-            <div class="weather-days" id="weather-days"></div>
-          </div>
-        </div>
+      <div class="progress-row">
+        <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+        <span class="progress-pct" id="progress-pct">0%</span>
       </div>
+      <div class="progress-date-row">
+        <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
+        <span class="trip-badge" id="trip-badge"></span>
+        <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeather()" style="display:none">🌤 날씨</button>
+      </div>
+      <!-- 날씨 위젯 (일정 탭 전용, 버튼으로 열고 닫힘) -->
+      <div class="weather-widget" id="weather-widget">
+        <div class="weather-city-row">
+          <span class="weather-city-name" id="weather-city-name">🌍 날씨</span>
+          <span class="weather-updated" id="weather-updated"></span>
+        </div>
+        <div class="weather-days" id="weather-days"></div>
+      </div>
+    </div>
+  </div>
 
-      <div id="list-container"></div>
-    </main>
+  <div id="list-container"></div>
+</main>
+```
+
   </div>
 </div>
 
 <!-- FAB 스택 -->
+
 <div class="fab-stack">
   <button class="fab-btn" id="fab-trash" onclick="openTrash()" title="휴지통">
     🗑️
@@ -750,11 +761,13 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </div>
 
 <!-- 이미지 모달 -->
+
 <div id="modal" onclick="this.style.display='none'">
   <img id="modal-img" src="" class="modal-img" alt="">
 </div>
 
 <!-- 삭제 확인 다이얼로그 -->
+
 <div class="dialog-overlay" id="dlg-delete">
   <div class="dialog-box">
     <div class="dialog-icon">🗑️</div>
@@ -768,6 +781,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </div>
 
 <!-- 여행 날짜 설정 다이얼로그 -->
+
 <div class="dialog-overlay" id="dlg-dates">
   <div class="dialog-box">
     <div class="dialog-icon">✈️</div>
@@ -784,6 +798,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </div>
 
 <!-- 휴지통 패널 -->
+
 <div class="trash-overlay" id="trash-overlay" onclick="closeTrash()"></div>
 <div class="trash-drawer" id="trash-drawer">
   <div class="trash-handle" onclick="closeTrash()"></div>
@@ -807,6 +822,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 </div>
 
 <!-- 드래그 유령 레이어 -->
+
 <div id="drag-ghost"></div>
 
 <script>
@@ -2228,868 +2244,881 @@ function enterMemoEdit(catKey) {
     const current = (appState.cityMemos || {})[catKey] || '';
     body.innerHTML = `
         <textarea class="city-memo-textarea" id="memo-ta-${catKey}">${current.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-        <div class="city-memo-save-row">
-            <button class="btn-memo-cancel" onclick="cancelMemoEdit('${catKey}')">취소</button>
-            <button class="btn-memo-save" onclick="saveCityMemo('${catKey}')">저장</button>
-        </div>`;
-    const ta = document.getElementById(`memo-ta-${catKey}`);
-    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+
+```
+    <div class="city-memo-save-row">
+        <button class="btn-memo-cancel" onclick="cancelMemoEdit('${catKey}')">취소</button>
+        <button class="btn-memo-save" onclick="saveCityMemo('${catKey}')">저장</button>
+    </div>`;
+const ta = document.getElementById(`memo-ta-${catKey}`);
+if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+```
+
 }
 
 function cancelMemoEdit(catKey) {
-    // 편집 취소 → 다시 renderContent
-    renderContent();
+// 편집 취소 → 다시 renderContent
+renderContent();
 }
 
 function saveCityMemo(catKey) {
-    const ta = document.getElementById(`memo-ta-${catKey}`);
-    if (!ta) return;
-    if (!appState.cityMemos) appState.cityMemos = {};
-    appState.cityMemos[catKey] = ta.value.trim();
-    appState.cityMemos[`${catKey}__open`] = true;
-    saveAndRender();
+const ta = document.getElementById(`memo-ta-${catKey}`);
+if (!ta) return;
+if (!appState.cityMemos) appState.cityMemos = {};
+appState.cityMemos[catKey] = ta.value.trim();
+appState.cityMemos[`${catKey}__open`] = true;
+saveAndRender();
 }
 
 function openTodayItinerary() {
-    const { start, end } = getTripDates();
-    const today = new Date(); today.setHours(0,0,0,0);
-    start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+const { start, end } = getTripDates();
+const today = new Date(); today.setHours(0,0,0,0);
+start.setHours(0,0,0,0); end.setHours(0,0,0,0);
 
-    // 여행 중이 아니면 아무것도 안 함
-    if (today < start || today > end) return;
+```
+// 여행 중이 아니면 아무것도 안 함
+if (today < start || today > end) return;
 
-    // 오늘의 dk = 여행 시작일부터 몇 번째 날인지
-    const todayDK = String(Math.floor((today - start) / 86400000) + 1);
+// 오늘의 dk = 여행 시작일부터 몇 번째 날인지
+const todayDK = String(Math.floor((today - start) / 86400000) + 1);
 
-    const td = appState.itinerary;
-    const filteredCats = getFilteredCategories('itinerary');
-    let targetCat = null;
+const td = appState.itinerary;
+const filteredCats = getFilteredCategories('itinerary');
+let targetCat = null;
 
-    // 오늘 DK를 가진 도시 찾기
-    for (const catKey of Object.keys(filteredCats)) {
-        const tasks = getStructureArr(td.structure, catKey);
-        const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
-        if (hasTodayDK) { targetCat = catKey; break; }
+// 오늘 DK를 가진 도시 찾기
+for (const catKey of Object.keys(filteredCats)) {
+    const tasks = getStructureArr(td.structure, catKey);
+    const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
+    if (hasTodayDK) { targetCat = catKey; break; }
+}
+if (!targetCat) return;
+
+// 도시 + 날짜 아코디언 열기
+td.cityOpen[targetCat] = true;
+const dayKey = `${targetCat}__${todayDK}`;
+td.dayOpen[dayKey] = true;
+
+// 6) 유동 블록 도시(nice_b/swiss_b/london_b)이면 해당 블록도 열기
+const FLOAT_MAP = { nice:'nice_b', swiss:'swiss_b', london:'london_b' };
+const floatKey = FLOAT_MAP[targetCat];
+if (floatKey && filteredCats[floatKey]) {
+    td.cityOpen[floatKey] = true;
+    // 첫 번째 plan 자동 오픈
+    const floatData = td.structure[floatKey];
+    if (floatData && typeof floatData === 'object' && !Array.isArray(floatData)) {
+        const firstPlan = Object.keys(floatData)[0];
+        if (firstPlan) td.dayOpen[`${floatKey}__${firstPlan}`] = true;
     }
-    if (!targetCat) return;
+}
 
-    // 도시 + 날짜 아코디언 열기
-    td.cityOpen[targetCat] = true;
-    const dayKey = `${targetCat}__${todayDK}`;
-    td.dayOpen[dayKey] = true;
+renderContent();
 
-    // 6) 유동 블록 도시(nice_b/swiss_b/london_b)이면 해당 블록도 열기
-    const FLOAT_MAP = { nice:'nice_b', swiss:'swiss_b', london:'london_b' };
-    const floatKey = FLOAT_MAP[targetCat];
-    if (floatKey && filteredCats[floatKey]) {
-        td.cityOpen[floatKey] = true;
-        // 첫 번째 plan 자동 오픈
-        const floatData = td.structure[floatKey];
-        if (floatData && typeof floatData === 'object' && !Array.isArray(floatData)) {
-            const firstPlan = Object.keys(floatData)[0];
-            if (firstPlan) td.dayOpen[`${floatKey}__${firstPlan}`] = true;
-        }
-    }
+// 해당 섹션으로 스크롤
+setTimeout(() => _doScrollToSection(targetCat), 200);
+```
 
-    renderContent();
-
-    // 해당 섹션으로 스크롤
-    setTimeout(() => _doScrollToSection(targetCat), 200);
 }
 
 // ── TAB UI + D-DAY ────────────────────────────────────────
 function updateTabUI() {
-    const tab = appState.activeTab;
-    loadWeather();  // 탭 전환시마다 날씨 갱신
-    document.getElementById('theme-bar').style.backgroundColor = config[tab].theme;
-    document.getElementById('view-title').textContent = config[tab].title;
-    document.getElementById('progress-bar').style.backgroundColor = config[tab].theme;
-    ['reservations','itinerary','packing'].forEach(t =>
-        document.getElementById(`tab-btn-${t}`).classList.toggle('tab-active', t === tab)
-    );
-    // D-day (모든 탭)
-    const {start,end} = getTripDates();
-    const today = new Date(); today.setHours(0,0,0,0);
-    start.setHours(0,0,0,0); end.setHours(0,0,0,0);
-    const wd = ['일','월','화','수','목','금','토'];
-    document.getElementById('today-badge').textContent =
-        `📅 ${today.getMonth()+1}월 ${today.getDate()}일(${wd[today.getDay()]})`;
-    const tb = document.getElementById('trip-badge');
-    if (today < start) {
-        const d = Math.ceil((start - today) / 86400000);
-        tb.className = 'trip-badge trip-before'; tb.textContent = `✈️ 출발까지 D-${d}`;
-    } else if (today <= end) {
-        const d = Math.ceil((today - start) / 86400000) + 1;
-        tb.className = 'trip-badge trip-ongoing'; tb.textContent = `🌍 여행 ${d}일차 진행 중!`;
-    } else {
-        tb.className = 'trip-badge trip-after'; tb.textContent = '🎉 여행 완료!';
-    }
+const tab = appState.activeTab;
+loadWeather();  // 탭 전환시마다 날씨 갱신
+document.getElementById(‘theme-bar’).style.backgroundColor = config[tab].theme;
+document.getElementById(‘view-title’).textContent = config[tab].title;
+document.getElementById(‘progress-bar’).style.backgroundColor = config[tab].theme;
+[‘reservations’,‘itinerary’,‘packing’].forEach(t =>
+document.getElementById(`tab-btn-${t}`).classList.toggle(‘tab-active’, t === tab)
+);
+// D-day (모든 탭)
+const {start,end} = getTripDates();
+const today = new Date(); today.setHours(0,0,0,0);
+start.setHours(0,0,0,0); end.setHours(0,0,0,0);
+const wd = [‘일’,‘월’,‘화’,‘수’,‘목’,‘금’,‘토’];
+document.getElementById(‘today-badge’).textContent =
+`📅 ${today.getMonth()+1}월 ${today.getDate()}일(${wd[today.getDay()]})`;
+const tb = document.getElementById(‘trip-badge’);
+if (today < start) {
+const d = Math.ceil((start - today) / 86400000);
+tb.className = ‘trip-badge trip-before’; tb.textContent = `✈️ 출발까지 D-${d}`;
+} else if (today <= end) {
+const d = Math.ceil((today - start) / 86400000) + 1;
+tb.className = ‘trip-badge trip-ongoing’; tb.textContent = `🌍 여행 ${d}일차 진행 중!`;
+} else {
+tb.className = ‘trip-badge trip-after’; tb.textContent = ‘🎉 여행 완료!’;
+}
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────
 function renderSidebar() {
-    const sb = document.getElementById('sidebar-nav');
-    sb.innerHTML = '';
-    Object.entries(getFilteredCategories(appState.activeTab)).forEach(([key,cat]) => {
-        const btn = document.createElement('button');
-        btn.className = 'sidebar-item'; btn.id = `nav-${key}`;
-        btn.innerHTML = `<span class="sidebar-dot" style="background:${cat.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cat.title}</span>`;
-        btn.onclick = () => document.getElementById(`section-${key}`)?.scrollIntoView({behavior:'smooth'});
-        sb.appendChild(btn);
-    });
+const sb = document.getElementById(‘sidebar-nav’);
+sb.innerHTML = ‘’;
+Object.entries(getFilteredCategories(appState.activeTab)).forEach(([key,cat]) => {
+const btn = document.createElement(‘button’);
+btn.className = ‘sidebar-item’; btn.id = `nav-${key}`;
+btn.innerHTML = `<span class="sidebar-dot" style="background:${cat.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cat.title}</span>`;
+btn.onclick = () => document.getElementById(`section-${key}`)?.scrollIntoView({behavior:‘smooth’});
+sb.appendChild(btn);
+});
 }
 
 // ── DAY KEY ───────────────────────────────────────────────
 function getDK(task) {
-    if (task._dk !== undefined) return task._dk;
-    return getDKfromId(task.id);
+if (task.*dk !== undefined) return task.*dk;
+return getDKfromId(task.id);
 }
 function getDKfromId(id) {
-    if (/-m$/.test(id)) return '__memo__';
-    // nice_b-plan_a-0, swiss_b-__plan_b__-2 형식
-    const pm2 = id.match(/[_-](?:__)?plan_([a-e])(?:__)?[-_]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
-    const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
-    const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
-    return '__etc__';
+if (/-m$/.test(id)) return ‘**memo**’;
+// nice_b-plan_a-0, swiss_b-**plan_b**-2 형식
+const pm2 = id.match(/[_-](?:__)?plan*([a-e])(?:__)?[-*]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
+const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
+const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
+return ‘**etc**’;
 }
 const DK_LABEL = {
-    '__memo__': '📌 숙소 & 교통 핵심 메모',
-    '__plan_a__': '☀️ Plan A — 날씨 맑음',
-    '__plan_b__': '⛅ Plan B — 구름 조금',
-    '__plan_c__': '☁️ Plan C — 흐림/비',
-    '__plan_d__': '🗓️ Plan D',
-    '__plan_e__': '🍻 Plan E — 현지 친구 찬스',
-    '__etc__': '📝 기타'
+‘**memo**’: ‘📌 숙소 & 교통 핵심 메모’,
+‘**plan_a**’: ‘☀️ Plan A — 날씨 맑음’,
+‘**plan_b**’: ‘⛅ Plan B — 구름 조금’,
+‘**plan_c**’: ‘☁️ Plan C — 흐림/비’,
+‘**plan_d**’: ‘🗓️ Plan D’,
+‘**plan_e**’: ‘🍻 Plan E — 현지 친구 찬스’,
+‘**etc**’: ‘📝 기타’
 };
 function getDKLabel(dk, tasks) {
-    if (DK_LABEL[dk]) return DK_LABEL[dk];
-    const hint = tasks.find(t => { const m = t.id.match(/-(\d+)[a-z]/); return m && m[1] === dk && t.desc?.match(/\d+일차/); });
-    if (hint) { const dm = hint.desc.match(/\(([^)]+)\)/); return `📅 ${dk}일차${dm ? ' '+dm[0] : ''}`; }
-    return `📅 ${dk}일차`;
+if (DK_LABEL[dk]) return DK_LABEL[dk];
+const hint = tasks.find(t => { const m = t.id.match(/-(\d+)[a-z]/); return m && m[1] === dk && t.desc?.match(/\d+일차/); });
+if (hint) { const dm = hint.desc.match(/(([^)]+))/); return `📅 ${dk}일차${dm ? ' '+dm[0] : ''}`; }
+return `📅 ${dk}일차`;
 }
 
 // ── DRAG AND DROP ─────────────────────────────────────────
 let _dragId = null, _dragCat = null, _multiDrag = false;
 
 function onDragStart(e) {
-    if (!editMode) { e.preventDefault(); return; }
-    const tid = this.dataset.tid;
-    _dragCat = this.dataset.cat;
+if (!editMode) { e.preventDefault(); return; }
+const tid = this.dataset.tid;
+_dragCat = this.dataset.cat;
 
-    // 드래그하는 item이 선택 목록에 있으면 → 다중 드래그
-    if (selectedIds.size > 0 && selectedIds.has(tid)) {
-        _multiDrag = true;
-        _dragId = tid;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', '__multi__');
-        // 유령 레이어 표시
-        const ghost = document.getElementById('drag-ghost');
-        ghost.textContent = `${selectedIds.size}개 항목 이동 중`;
-        ghost.style.display = 'block';
-        ghost.style.left = (e.clientX + 14) + 'px';
-        ghost.style.top  = (e.clientY - 18) + 'px';
-    } else {
-        _multiDrag = false;
-        _dragId = tid;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', tid);
-    }
-    this.classList.add('dragging');
-    setTimeout(() => document.querySelectorAll('.drop-zone').forEach(z => z.style.pointerEvents = 'auto'), 0);
+```
+// 드래그하는 item이 선택 목록에 있으면 → 다중 드래그
+if (selectedIds.size > 0 && selectedIds.has(tid)) {
+    _multiDrag = true;
+    _dragId = tid;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '__multi__');
+    // 유령 레이어 표시
+    const ghost = document.getElementById('drag-ghost');
+    ghost.textContent = `${selectedIds.size}개 항목 이동 중`;
+    ghost.style.display = 'block';
+    ghost.style.left = (e.clientX + 14) + 'px';
+    ghost.style.top  = (e.clientY - 18) + 'px';
+} else {
+    _multiDrag = false;
+    _dragId = tid;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tid);
+}
+this.classList.add('dragging');
+setTimeout(() => document.querySelectorAll('.drop-zone').forEach(z => z.style.pointerEvents = 'auto'), 0);
+```
+
 }
 
 function onDragEnd() {
-    this.classList.remove('dragging');
-    const ghost = document.getElementById('drag-ghost');
-    if (ghost) ghost.style.display = 'none';
-    document.querySelectorAll('.drop-zone').forEach(z => { z.classList.remove('over'); z.style.pointerEvents = 'none'; });
-    _dragId = _dragCat = null; _multiDrag = false;
+this.classList.remove(‘dragging’);
+const ghost = document.getElementById(‘drag-ghost’);
+if (ghost) ghost.style.display = ‘none’;
+document.querySelectorAll(’.drop-zone’).forEach(z => { z.classList.remove(‘over’); z.style.pointerEvents = ‘none’; });
+_dragId = _dragCat = null; _multiDrag = false;
 }
 
 // 유령이 마우스 따라다니기
-document.addEventListener('dragover', e => {
-    const ghost = document.getElementById('drag-ghost');
-    if (ghost && ghost.style.display !== 'none') {
-        ghost.style.left = (e.clientX + 14) + 'px';
-        ghost.style.top  = (e.clientY - 18) + 'px';
-    }
+document.addEventListener(‘dragover’, e => {
+const ghost = document.getElementById(‘drag-ghost’);
+if (ghost && ghost.style.display !== ‘none’) {
+ghost.style.left = (e.clientX + 14) + ‘px’;
+ghost.style.top  = (e.clientY - 18) + ‘px’;
+}
 });
 
 function makeDropZone(targetCat, targetDK, insertBeforeId) {
-    const z = document.createElement('div');
-    z.className = 'drop-zone';
-    z.style.pointerEvents = 'none';
-    z.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); z.classList.add('over'); });
-    z.addEventListener('dragleave', () => z.classList.remove('over'));
-    z.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); z.classList.remove('over'); doDropTo(targetCat, targetDK, insertBeforeId); });
-    return z;
+const z = document.createElement(‘div’);
+z.className = ‘drop-zone’;
+z.style.pointerEvents = ‘none’;
+z.addEventListener(‘dragover’, e => { e.preventDefault(); e.stopPropagation(); z.classList.add(‘over’); });
+z.addEventListener(‘dragleave’, () => z.classList.remove(‘over’));
+z.addEventListener(‘drop’, e => { e.preventDefault(); e.stopPropagation(); z.classList.remove(‘over’); doDropTo(targetCat, targetDK, insertBeforeId); });
+return z;
 }
 
 function doDropTo(targetCat, targetDK, insertBeforeId) {
-    if (!_dragId) return;
-    const td = appState[appState.activeTab];
+if (!_dragId) return;
+const td = appState[appState.activeTab];
 
-    // 이동 대상 ID 목록
-    const idsToMove = (_multiDrag && selectedIds.size > 0) ? [...selectedIds] : [_dragId];
+```
+// 이동 대상 ID 목록
+const idsToMove = (_multiDrag && selectedIds.size > 0) ? [...selectedIds] : [_dragId];
 
-    // 배열 순서를 유지하면서 수집
-    const movedTasks = [];
-    Object.keys(td.structure).forEach(k => {
-        const val = td.structure[k];
-        if (Array.isArray(val)) {
-            // 일반 배열
+// 배열 순서를 유지하면서 수집
+const movedTasks = [];
+Object.keys(td.structure).forEach(k => {
+    const val = td.structure[k];
+    if (Array.isArray(val)) {
+        // 일반 배열
+        const keep = [], moved = [];
+        val.forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
+        td.structure[k] = keep;
+        movedTasks.push(...moved);
+    } else if (val && typeof val === 'object') {
+        // 유동 블록: 각 plan 배열에서 찾아 제거
+        Object.keys(val).forEach(planKey => {
+            if (!Array.isArray(val[planKey])) return;
             const keep = [], moved = [];
-            val.forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
-            td.structure[k] = keep;
+            val[planKey].forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
+            val[planKey] = keep;
             movedTasks.push(...moved);
-        } else if (val && typeof val === 'object') {
-            // 유동 블록: 각 plan 배열에서 찾아 제거
-            Object.keys(val).forEach(planKey => {
-                if (!Array.isArray(val[planKey])) return;
-                const keep = [], moved = [];
-                val[planKey].forEach(t => { if (idsToMove.includes(t.id)) moved.push(t); else keep.push(t); });
-                val[planKey] = keep;
-                movedTasks.push(...moved);
-            });
-        }
-    });
-    if (!movedTasks.length) return;
-
-    // itinerary: 대상 dayKey 지정
-    if (appState.activeTab === 'itinerary' && targetDK !== undefined) {
-        movedTasks.forEach(t => { t._dk = targetDK; });
+        });
     }
+});
+if (!movedTasks.length) return;
 
-    if (!td.structure[targetCat]) td.structure[targetCat] = [];
-    const arr = td.structure[targetCat];
-    if (insertBeforeId) {
-        const ti = arr.findIndex(t => t.id === insertBeforeId);
-        if (ti !== -1) arr.splice(ti, 0, ...movedTasks);
-        else arr.push(...movedTasks);
-    } else {
-        arr.push(...movedTasks);
-    }
+// itinerary: 대상 dayKey 지정
+if (appState.activeTab === 'itinerary' && targetDK !== undefined) {
+    movedTasks.forEach(t => { t._dk = targetDK; });
+}
 
-    // 다중 드래그 완료 후 선택 해제
-    if (_multiDrag) { selectedIds.clear(); updateEditBar(); }
-    _dragId = _dragCat = null; _multiDrag = false;
-    saveAndRender();
+if (!td.structure[targetCat]) td.structure[targetCat] = [];
+const arr = td.structure[targetCat];
+if (insertBeforeId) {
+    const ti = arr.findIndex(t => t.id === insertBeforeId);
+    if (ti !== -1) arr.splice(ti, 0, ...movedTasks);
+    else arr.push(...movedTasks);
+} else {
+    arr.push(...movedTasks);
+}
+
+// 다중 드래그 완료 후 선택 해제
+if (_multiDrag) { selectedIds.clear(); updateEditBar(); }
+_dragId = _dragCat = null; _multiDrag = false;
+saveAndRender();
+```
+
 }
 
 // ── RENDER ITEM ───────────────────────────────────────────
 function renderItem(task, catKey, catInfo, td, dk) {
-    const done   = !!td.checks[task.id];
-    const ticket = td.tickets[task.id];
-    const li = document.createElement('li');
-    li.className = `task-item${done ? ' completed' : ''}`;
-    li.style.borderLeftColor = catInfo.color;
-    li.id = `item-${task.id}`;
-    li.dataset.tid = task.id;
-    li.dataset.cat = catKey;
-    if (dk !== undefined) li.dataset.dk = dk;
-    li.draggable = editMode;  // 편집모드 상태에 따라
+const done   = !!td.checks[task.id];
+const ticket = td.tickets[task.id];
+const li = document.createElement(‘li’);
+li.className = `task-item${done ? ' completed' : ''}`;
+li.style.borderLeftColor = catInfo.color;
+li.id = `item-${task.id}`;
+li.dataset.tid = task.id;
+li.dataset.cat = catKey;
+if (dk !== undefined) li.dataset.dk = dk;
+li.draggable = editMode;  // 편집모드 상태에 따라
 
-    // 현재 진행 중인 항목 강조 (여행 중 + 오늘 + 시간 있는 경우)
-    let isNow = false;
-    if (task._time && dk !== undefined) {
-        const { start, end } = getTripDates();
-        const today = new Date(); today.setHours(0,0,0,0);
-        const startC = new Date(start); startC.setHours(0,0,0,0);
-        const endC   = new Date(end);   endC.setHours(0,0,0,0);
-        if (today >= startC && today <= endC) {
-            const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
-            if (String(dk) === todayDK) {
-                const now = new Date();
-                const [h, m] = task._time.split(':').map(Number);
-                const taskMin = h * 60 + m;
-                const nowMin  = now.getHours() * 60 + now.getMinutes();
-                isNow = nowMin >= taskMin && nowMin < taskMin + 90;
-            }
+```
+// 현재 진행 중인 항목 강조 (여행 중 + 오늘 + 시간 있는 경우)
+let isNow = false;
+if (task._time && dk !== undefined) {
+    const { start, end } = getTripDates();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const startC = new Date(start); startC.setHours(0,0,0,0);
+    const endC   = new Date(end);   endC.setHours(0,0,0,0);
+    if (today >= startC && today <= endC) {
+        const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
+        if (String(dk) === todayDK) {
+            const now = new Date();
+            const [h, m] = task._time.split(':').map(Number);
+            const taskMin = h * 60 + m;
+            const nowMin  = now.getHours() * 60 + now.getMinutes();
+            isNow = nowMin >= taskMin && nowMin < taskMin + 90;
         }
     }
-    if (isNow) li.classList.add('is-now');
+}
+if (isNow) li.classList.add('is-now');
 
-    const isMemoTask = dk === '__memo__';
-    if (isMemoTask) {
-        li.classList.add('memo-task');
-        li.style.cursor = 'default';
-    }
+const isMemoTask = dk === '__memo__';
+if (isMemoTask) {
+    li.classList.add('memo-task');
+    li.style.cursor = 'default';
+}
 
-    const timeBadge = task._time
-        ? `<span class="task-time-badge${isNow ? ' now' : ''}" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">${isNow ? '🔴 지금' : task._time}</span>`
-        : (dk !== undefined && !isMemoTask ? `<button type="button" class="btn-add-time" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">+ 시간</button>` : '');
+const timeBadge = task._time
+    ? `<span class="task-time-badge${isNow ? ' now' : ''}" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">${isNow ? '🔴 지금' : task._time}</span>`
+    : (dk !== undefined && !isMemoTask ? `<button type="button" class="btn-add-time" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">+ 시간</button>` : '');
 
-    const tipsHtml = task.tips
-        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${applySoloText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
-        : '';
-    const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
+const tipsHtml = task.tips
+    ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${applySoloText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
+    : '';
+const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
 
-    li.innerHTML = `
-        <span class="drag-handle">⠿</span>
-        ${isMemoTask ? '' : `<div class="check-circle">${chkSvg}</div>`}
-        <div class="task-body">
-            <div class="task-top">
-                <div class="task-top-row">
-                    ${timeBadge}
-                    <span class="task-title">${applySoloText(task.title)}</span>
-                </div>
-                <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
+li.innerHTML = `
+    <span class="drag-handle">⠿</span>
+    ${isMemoTask ? '' : `<div class="check-circle">${chkSvg}</div>`}
+    <div class="task-body">
+        <div class="task-top">
+            <div class="task-top-row">
+                ${timeBadge}
+                <span class="task-title">${applySoloText(task.title)}</span>
             </div>
-            ${task.desc ? `<p class="task-desc">${applySoloText(task.desc)}</p>` : ''}
-            ${tipsHtml}
-            ${isMemoTask ? '' : `<div class="task-meta-row">
-                <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
-                <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
-                ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
+            <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
+        </div>
+        ${task.desc ? `<p class="task-desc">${applySoloText(task.desc)}</p>` : ''}
+        ${tipsHtml}
+        ${isMemoTask ? '' : `<div class="task-meta-row">
+            <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
+            <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
+            ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
 
-            </div>`}
-        </div>`;
+        </div>`}
+    </div>`;
 
-    // 지도 버튼: task-body 밖 li에 직접 추가 (pointer-events:none 상속 우회)
-    if (appState.activeTab === 'itinerary' && shouldShowMap(task.title)) {
-        const mapBtn = document.createElement('button');
-        mapBtn.type = 'button';
-        mapBtn.className = 'btn-map';
-        mapBtn.textContent = '🗺 지도';
-        const query = encodeURIComponent(task.title.trim());
-        const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + query;
-        mapBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            window.open(mapUrl, '_blank');
-            return false;
-        });
-        li.appendChild(mapBtn);
-    }
-
-    li.addEventListener('click', e => {
-        if (e.target.closest('button,label,input,a')) return;
-        if (editMode) { toggleSelect(task.id); return; }
-        if (isMemoTask) return;
-        toggleCheck(task.id);
+// 지도 버튼: task-body 밖 li에 직접 추가 (pointer-events:none 상속 우회)
+if (appState.activeTab === 'itinerary' && shouldShowMap(task.title)) {
+    const mapBtn = document.createElement('button');
+    mapBtn.type = 'button';
+    mapBtn.className = 'btn-map';
+    mapBtn.textContent = '🗺 지도';
+    const query = encodeURIComponent(task.title.trim());
+    const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + query;
+    mapBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        window.open(mapUrl, '_blank');
+        return false;
     });
-    li.addEventListener('dragstart', onDragStart);
-    li.addEventListener('dragend',   onDragEnd);
-    return li;
+    li.appendChild(mapBtn);
+}
+
+li.addEventListener('click', e => {
+    if (e.target.closest('button,label,input,a')) return;
+    if (editMode) { toggleSelect(task.id); return; }
+    if (isMemoTask) return;
+    toggleCheck(task.id);
+});
+li.addEventListener('dragstart', onDragStart);
+li.addEventListener('dragend',   onDragEnd);
+return li;
+```
+
 }
 
 // ── RENDER CONTENT ────────────────────────────────────────
 function renderContent() {
-    const container = document.getElementById('list-container');
-    container.innerHTML = '';
-    const td  = appState[appState.activeTab];
-    const cfg = config[appState.activeTab];
-    const isIt = appState.activeTab === 'itinerary';
+const container = document.getElementById(‘list-container’);
+container.innerHTML = ‘’;
+const td  = appState[appState.activeTab];
+const cfg = config[appState.activeTab];
+const isIt = appState.activeTab === ‘itinerary’;
 
-    Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
-        const uc = currentUser ? USER_CONFIG[currentUser] : null;
-        // 유동 블록(swiss_b/nice_b/london_b): { __plan_a__:[...], ... } → 배열로 flatten
-        const rawCatData = td.structure[catKey];
-        let baseTasks;
-        if (rawCatData && !Array.isArray(rawCatData) && typeof rawCatData === 'object') {
-            // __plan_x__ 키만 사용 (숫자키·잡키 완전 무시)
-            baseTasks = Object.entries(rawCatData)
-                .filter(([k]) => k.startsWith('__plan_'))
-                .flatMap(([, arr]) => Array.isArray(arr) ? arr : []);
-        } else {
-            baseTasks = rawCatData || [];
-        }
-        // 고정 일정 카드(swiss/nice/london)에 유동 블록 항목이 섞이지 않도록 필터
-        const FIXED_CATS = ['swiss', 'nice', 'london'];
-        if (FIXED_CATS.includes(catKey)) {
-            baseTasks = baseTasks.filter(t => {
-                const dk = getDK(t);
-                return !dk || !dk.startsWith('__plan_');
-            });
-        }
+```
+Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+    // 유동 블록(swiss_b/nice_b/london_b): { __plan_a__:[...], ... } → 배열로 flatten
+    const rawCatData = td.structure[catKey];
+    let baseTasks;
+    if (rawCatData && !Array.isArray(rawCatData) && typeof rawCatData === 'object') {
+        // __plan_x__ 키만 사용 (숫자키·잡키 완전 무시)
+        baseTasks = Object.entries(rawCatData)
+            .filter(([k]) => k.startsWith('__plan_'))
+            .flatMap(([, arr]) => Array.isArray(arr) ? arr : []);
+    } else {
+        baseTasks = rawCatData || [];
+    }
+    // 고정 일정 카드(swiss/nice/london)에 유동 블록 항목이 섞이지 않도록 필터
+    const FIXED_CATS = ['swiss', 'nice', 'london'];
+    if (FIXED_CATS.includes(catKey)) {
+        baseTasks = baseTasks.filter(t => {
+            const dk = getDK(t);
+            return !dk || !dk.startsWith('__plan_');
+        });
+    }
 
-        if (uc && uc.saveMode === 'private') {
-            // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
-            const privateTasks = (td._private || {})[catKey] || [];
-            baseTasks = [...baseTasks, ...privateTasks];
-        } else if (uc && uc.saveMode === 'session') {
-            // solo: 마스터 항목 + 세션 임시 항목 합치기
-            const sessionTasks = (soloSessionStructure?.[appState.activeTab] || {})[catKey] || [];
-            baseTasks = [...baseTasks, ...sessionTasks];
-        }
+    if (uc && uc.saveMode === 'private') {
+        // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
+        const privateTasks = (td._private || {})[catKey] || [];
+        baseTasks = [...baseTasks, ...privateTasks];
+    } else if (uc && uc.saveMode === 'session') {
+        // solo: 마스터 항목 + 세션 임시 항목 합치기
+        const sessionTasks = (soloSessionStructure?.[appState.activeTab] || {})[catKey] || [];
+        baseTasks = [...baseTasks, ...sessionTasks];
+    }
 
-        let tasks = getFilteredTasks(appState.activeTab, catKey, baseTasks);
-        const section = document.createElement('section');
-        section.id = `section-${catKey}`;
-        section.className = 'cat-section';
+    let tasks = getFilteredTasks(appState.activeTab, catKey, baseTasks);
+    const section = document.createElement('section');
+    section.id = `section-${catKey}`;
+    section.className = 'cat-section';
 
-        if (isIt) {
-            const isOpen = !!(appState.itinerary.cityOpen[catKey]);
-            const done   = tasks.filter(t => getDK(t) !== '__memo__' && td.checks[t.id]).length;
-            const total  = tasks.filter(t => getDK(t) !== '__memo__').length;
-            section.innerHTML = `
-                <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
-                    <div class="city-card-left">
-                        <span class="city-card-title">${catInfo.title}</span>
-                        <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
-                    </div>
-                    <span class="city-chevron${isOpen?' open':''}">▼</span>
-                </button>
-                <div class="accordion-body${isOpen?' open':''}" id="city-body-${catKey}">
-                    <div style="padding:2px 4px 8px" id="city-inner-${catKey}"></div>
-                </div>`;
-            container.appendChild(section);
-            if (!isOpen) return;
-
-            const inner = section.querySelector(`#city-inner-${catKey}`);
-
-            // ── 숙소 주소 칩 ──
-            renderAccommodation(inner, catKey);
-            // ── 도시 메모 블록 (일정 위, 기본 접힘) ──
-            renderCityMemo(inner, catKey, catInfo);
-
-            // tasks → day 그룹핑 + 오늘 타임라인 배너
-            const { start, end } = getTripDates();
-            const today = new Date(); today.setHours(0,0,0,0);
-            const startC = new Date(start); startC.setHours(0,0,0,0);
-            const endC   = new Date(end);   endC.setHours(0,0,0,0);
-            const isToday = (dk) => {
-                if (today < startC || today > endC) return false;
-                const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
-                return String(dk) === todayDK;
-            };
-
-            const groups = {}, order = [];
-            tasks.forEach(t => {
-                const dk = getDK(t);
-                if (dk === '__memo__') return; // 메모 그룹은 도시 메모 블록에서 표시
-                if (!groups[dk]) { groups[dk] = []; order.push(dk); }
-                groups[dk].push(t);
-            });
-
-            order.forEach(dk => {
-                const gt      = groups[dk];
-                const dayOpen = !!(appState.itinerary.dayOpen[`${catKey}__${dk}`]);
-                const ddone   = gt.filter(t => td.checks[t.id]).length;
-                const todayDay = isToday(dk);
-
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'day-group';
-                // 빈 날짜로 드롭 지원
-                dayDiv.addEventListener('dragover', e => e.preventDefault());
-                dayDiv.addEventListener('drop', e => { e.stopPropagation(); if (_dragId) doDropTo(catKey, dk, null); });
-
-                const hdr = document.createElement('button');
-                hdr.type = 'button';
-                hdr.className = `day-header${todayDay ? ' today-day' : ''}`;
-                if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
-                hdr.onclick = () => toggleDay(catKey, dk);
-                hdr.innerHTML = `
-                    <div class="day-header-left">
-                        <span class="day-label">${getDKLabel(dk, tasks)}</span>
-                        ${todayDay ? `<span class="day-count" style="background:#fde68a;color:#92400e">📍 오늘</span>` : ''}
-                        ${ddone > 0
-                            ? `<span class="day-count done">${ddone}/${gt.length} 완료</span>`
-                            : `<span class="day-count pending">${gt.length}개</span>`}
-                    </div>
-                    <span class="day-chevron${dayOpen?' open':''}" id="dc-${catKey}-${dk}">▼</span>`;
-
-                const body = document.createElement('div');
-                body.className = `day-accordion-body${dayOpen?' open':''}`;
-                body.id = `day-body-${catKey}-${dk}`;
-
-                const wrap = document.createElement('div');
-                wrap.className = 'day-body-inner';
-
-                // 오늘이면 타임라인 배너
-                if (todayDay) {
-                    const now = new Date();
-                    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-                    const banner = document.createElement('div');
-                    banner.className = 'timeline-today-banner';
-                    banner.innerHTML = `📍 <strong>오늘 일정</strong> &nbsp;현재 시각 ${timeStr} · 빨간 뱃지가 진행 중인 항목이에요`;
-                    wrap.appendChild(banner);
-                }
-
-                wrap.appendChild(makeDropZone(catKey, dk, gt[0]?.id));
-                gt.forEach((task, ti) => {
-                    wrap.appendChild(renderItem(task, catKey, catInfo, td, dk));
-                    wrap.appendChild(makeDropZone(catKey, dk, gt[ti+1]?.id || null));
-                });
-                const addBtn = document.createElement('button');
-                addBtn.type = 'button'; addBtn.className = 'btn-add-task'; addBtn.style.marginTop = '4px';
-                addBtn.textContent = '+ 이 날 항목 추가';
-                addBtn.onclick = () => addTask(catKey, dk);
-                wrap.appendChild(addBtn);
-
-                body.appendChild(wrap); dayDiv.appendChild(hdr); dayDiv.appendChild(body);
-                inner.appendChild(dayDiv);
-            });
-
-        } else {
-            // 예약 / 짐싸기
-            section.innerHTML = `
-                <div class="cat-header">
-                    <h3 class="cat-title" style="border-left:4px solid ${catInfo.color};padding-left:10px">${catInfo.title}</h3>
-                    <div class="cat-line"></div>
+    if (isIt) {
+        const isOpen = !!(appState.itinerary.cityOpen[catKey]);
+        const done   = tasks.filter(t => getDK(t) !== '__memo__' && td.checks[t.id]).length;
+        const total  = tasks.filter(t => getDK(t) !== '__memo__').length;
+        section.innerHTML = `
+            <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
+                <div class="city-card-left">
+                    <span class="city-card-title">${catInfo.title}</span>
+                    <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
                 </div>
-                <ul class="task-list" id="list-${catKey}"></ul>
-                <button type="button" class="btn-add-task" onclick="addTask('${catKey}')">+ 항목 추가</button>`;
-            container.appendChild(section);
-            const ul = section.querySelector('ul');
-            ul.appendChild(makeDropZone(catKey, undefined, tasks[0]?.id));
-            tasks.forEach((task, ti) => {
-                ul.appendChild(renderItem(task, catKey, catInfo, td, undefined));
-                ul.appendChild(makeDropZone(catKey, undefined, tasks[ti+1]?.id || null));
+                <span class="city-chevron${isOpen?' open':''}">▼</span>
+            </button>
+            <div class="accordion-body${isOpen?' open':''}" id="city-body-${catKey}">
+                <div style="padding:2px 4px 8px" id="city-inner-${catKey}"></div>
+            </div>`;
+        container.appendChild(section);
+        if (!isOpen) return;
+
+        const inner = section.querySelector(`#city-inner-${catKey}`);
+
+        // ── 숙소 주소 칩 ──
+        renderAccommodation(inner, catKey);
+        // ── 도시 메모 블록 (일정 위, 기본 접힘) ──
+        renderCityMemo(inner, catKey, catInfo);
+
+        // tasks → day 그룹핑 + 오늘 타임라인 배너
+        const { start, end } = getTripDates();
+        const today = new Date(); today.setHours(0,0,0,0);
+        const startC = new Date(start); startC.setHours(0,0,0,0);
+        const endC   = new Date(end);   endC.setHours(0,0,0,0);
+        const isToday = (dk) => {
+            if (today < startC || today > endC) return false;
+            const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
+            return String(dk) === todayDK;
+        };
+
+        const groups = {}, order = [];
+        tasks.forEach(t => {
+            const dk = getDK(t);
+            if (dk === '__memo__') return; // 메모 그룹은 도시 메모 블록에서 표시
+            if (!groups[dk]) { groups[dk] = []; order.push(dk); }
+            groups[dk].push(t);
+        });
+
+        order.forEach(dk => {
+            const gt      = groups[dk];
+            const dayOpen = !!(appState.itinerary.dayOpen[`${catKey}__${dk}`]);
+            const ddone   = gt.filter(t => td.checks[t.id]).length;
+            const todayDay = isToday(dk);
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day-group';
+            // 빈 날짜로 드롭 지원
+            dayDiv.addEventListener('dragover', e => e.preventDefault());
+            dayDiv.addEventListener('drop', e => { e.stopPropagation(); if (_dragId) doDropTo(catKey, dk, null); });
+
+            const hdr = document.createElement('button');
+            hdr.type = 'button';
+            hdr.className = `day-header${todayDay ? ' today-day' : ''}`;
+            if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
+            hdr.onclick = () => toggleDay(catKey, dk);
+            hdr.innerHTML = `
+                <div class="day-header-left">
+                    <span class="day-label">${getDKLabel(dk, tasks)}</span>
+                    ${todayDay ? `<span class="day-count" style="background:#fde68a;color:#92400e">📍 오늘</span>` : ''}
+                    ${ddone > 0
+                        ? `<span class="day-count done">${ddone}/${gt.length} 완료</span>`
+                        : `<span class="day-count pending">${gt.length}개</span>`}
+                </div>
+                <span class="day-chevron${dayOpen?' open':''}" id="dc-${catKey}-${dk}">▼</span>`;
+
+            const body = document.createElement('div');
+            body.className = `day-accordion-body${dayOpen?' open':''}`;
+            body.id = `day-body-${catKey}-${dk}`;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'day-body-inner';
+
+            // 오늘이면 타임라인 배너
+            if (todayDay) {
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                const banner = document.createElement('div');
+                banner.className = 'timeline-today-banner';
+                banner.innerHTML = `📍 <strong>오늘 일정</strong> &nbsp;현재 시각 ${timeStr} · 빨간 뱃지가 진행 중인 항목이에요`;
+                wrap.appendChild(banner);
+            }
+
+            wrap.appendChild(makeDropZone(catKey, dk, gt[0]?.id));
+            gt.forEach((task, ti) => {
+                wrap.appendChild(renderItem(task, catKey, catInfo, td, dk));
+                wrap.appendChild(makeDropZone(catKey, dk, gt[ti+1]?.id || null));
             });
-        }
-    });
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button'; addBtn.className = 'btn-add-task'; addBtn.style.marginTop = '4px';
+            addBtn.textContent = '+ 이 날 항목 추가';
+            addBtn.onclick = () => addTask(catKey, dk);
+            wrap.appendChild(addBtn);
+
+            body.appendChild(wrap); dayDiv.appendChild(hdr); dayDiv.appendChild(body);
+            inner.appendChild(dayDiv);
+        });
+
+    } else {
+        // 예약 / 짐싸기
+        section.innerHTML = `
+            <div class="cat-header">
+                <h3 class="cat-title" style="border-left:4px solid ${catInfo.color};padding-left:10px">${catInfo.title}</h3>
+                <div class="cat-line"></div>
+            </div>
+            <ul class="task-list" id="list-${catKey}"></ul>
+            <button type="button" class="btn-add-task" onclick="addTask('${catKey}')">+ 항목 추가</button>`;
+        container.appendChild(section);
+        const ul = section.querySelector('ul');
+        ul.appendChild(makeDropZone(catKey, undefined, tasks[0]?.id));
+        tasks.forEach((task, ti) => {
+            ul.appendChild(renderItem(task, catKey, catInfo, td, undefined));
+            ul.appendChild(makeDropZone(catKey, undefined, tasks[ti+1]?.id || null));
+        });
+    }
+});
+```
+
 }
 
 // ── ACCORDION ─────────────────────────────────────────────
 function toggleCity(catKey) {
-    const now = !appState.itinerary.cityOpen[catKey];
-    appState.itinerary.cityOpen[catKey] = now;
-    save();
-    if (now) renderContent();
-    else {
-        document.getElementById(`city-body-${catKey}`)?.classList.remove('open');
-        document.querySelector(`#section-${catKey} .city-chevron`)?.classList.remove('open');
-    }
+const now = !appState.itinerary.cityOpen[catKey];
+appState.itinerary.cityOpen[catKey] = now;
+save();
+if (now) renderContent();
+else {
+document.getElementById(`city-body-${catKey}`)?.classList.remove(‘open’);
+document.querySelector(`#section-${catKey} .city-chevron`)?.classList.remove(‘open’);
+}
 }
 function toggleDay(catKey, dk) {
-    const sk = `${catKey}__${dk}`;
-    const now = !appState.itinerary.dayOpen[sk];
-    appState.itinerary.dayOpen[sk] = now;
-    save();
-    document.getElementById(`day-body-${catKey}-${dk}`)?.classList.toggle('open', now);
-    document.getElementById(`dc-${catKey}-${dk}`)?.classList.toggle('open', now);
-    updateProgress();
+const sk = `${catKey}__${dk}`;
+const now = !appState.itinerary.dayOpen[sk];
+appState.itinerary.dayOpen[sk] = now;
+save();
+document.getElementById(`day-body-${catKey}-${dk}`)?.classList.toggle(‘open’, now);
+document.getElementById(`dc-${catKey}-${dk}`)?.classList.toggle(‘open’, now);
+updateProgress();
 }
 
 // ── CHECK ─────────────────────────────────────────────────
 function toggleCheck(id) {
-    const td = appState[appState.activeTab];
-    td.checks[id] = !td.checks[id];
-    document.getElementById(`item-${id}`)?.classList.toggle('completed', !!td.checks[id]);
-    save(); updateProgress();
+const td = appState[appState.activeTab];
+td.checks[id] = !td.checks[id];
+document.getElementById(`item-${id}`)?.classList.toggle(‘completed’, !!td.checks[id]);
+save(); updateProgress();
 }
 
 // ── EDIT ITEM (인라인) ────────────────────────────────────
 function enterEdit(taskId, catKey) {
-    const li = document.getElementById(`item-${taskId}`);
-    if (!li) return;
-    const td = appState[appState.activeTab];
-    let task = null;
-    for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
-    if (!task) return;
-    const cats  = config[appState.activeTab].categories;
-    const color = cats[catKey]?.color || '#888';
-    li.innerHTML = `<div class="edit-form">
-        <input type="text" id="et-${taskId}" class="edit-input" value="${(task.title||'').replace(/"/g,'&quot;')}" placeholder="제목">
-        <input type="text" id="ed-${taskId}" class="edit-input" value="${(task.desc||'').replace(/"/g,'&quot;')}" placeholder="날짜/교통 등">
-        <input type="time" id="etm-${taskId}" class="edit-input" value="${task._time||''}" placeholder="시간 (예: 14:30)" style="color:var(--text-primary)">
-        <textarea id="ep-${taskId}" class="edit-input edit-textarea" placeholder="팁 메모">${task.tips||''}</textarea>
-        <select id="ec-${taskId}" class="edit-input edit-select">
-            ${Object.entries(cats).map(([k,v]) => `<option value="${k}"${k===catKey?' selected':''}>${v.title}</option>`).join('')}
-        </select>
-        <div class="edit-actions">
-            <button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>
-            <div class="edit-actions-right">
-                <button type="button" class="btn-cancel-edit" onclick="renderContent()">취소</button>
-                <button type="button" class="btn-save-edit" style="background:${color}" onclick="saveEdit('${taskId}','${catKey}')">저장</button>
-            </div>
-        </div>
-    </div>`;
-    li.style.cursor = 'default';
+const li = document.getElementById(`item-${taskId}`);
+if (!li) return;
+const td = appState[appState.activeTab];
+let task = null;
+for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
+if (!task) return;
+const cats  = config[appState.activeTab].categories;
+const color = cats[catKey]?.color || ‘#888’;
+li.innerHTML = `<div class="edit-form"> <input type="text" id="et-${taskId}" class="edit-input" value="${(task.title||'').replace(/"/g,'&quot;')}" placeholder="제목"> <input type="text" id="ed-${taskId}" class="edit-input" value="${(task.desc||'').replace(/"/g,'&quot;')}" placeholder="날짜/교통 등"> <input type="time" id="etm-${taskId}" class="edit-input" value="${task._time||''}" placeholder="시간 (예: 14:30)" style="color:var(--text-primary)"> <textarea id="ep-${taskId}" class="edit-input edit-textarea" placeholder="팁 메모">${task.tips||''}</textarea> <select id="ec-${taskId}" class="edit-input edit-select"> ${Object.entries(cats).map(([k,v]) => `<option value=”${k}”${k===catKey?’ selected’:’’}>${v.title}</option>`).join('')} </select> <div class="edit-actions"> <button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button> <div class="edit-actions-right"> <button type="button" class="btn-cancel-edit" onclick="renderContent()">취소</button> <button type="button" class="btn-save-edit" style="background:${color}" onclick="saveEdit('${taskId}','${catKey}')">저장</button> </div> </div> </div>`;
+li.style.cursor = ‘default’;
 }
 function saveEdit(taskId, oldCat) {
-    const td = appState[appState.activeTab];
-    const title = document.getElementById(`et-${taskId}`)?.value || '';
-    const desc  = document.getElementById(`ed-${taskId}`)?.value || '';
-    const time  = document.getElementById(`etm-${taskId}`)?.value || '';
-    const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
-    const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
-    const _found = findTaskInStructure(td.structure, taskId);
-    if (!_found) return;
-    const [task] = _found.arr.splice(_found.idx, 1);
-    task.title = title; task.desc = desc; task.tips = tips;
-    if (time) task._time = time; else delete task._time;
-    if (!td.structure[newCat]) td.structure[newCat] = [];
-    td.structure[newCat].push(task);
-    saveAndRender();
+const td = appState[appState.activeTab];
+const title = document.getElementById(`et-${taskId}`)?.value || ‘’;
+const desc  = document.getElementById(`ed-${taskId}`)?.value || ‘’;
+const time  = document.getElementById(`etm-${taskId}`)?.value || ‘’;
+const tips  = document.getElementById(`ep-${taskId}`)?.value || ‘’;
+const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
+const _found = findTaskInStructure(td.structure, taskId);
+if (!_found) return;
+const [task] = _found.arr.splice(_found.idx, 1);
+task.title = title; task.desc = desc; task.tips = tips;
+if (time) task._time = time; else delete task._time;
+if (!td.structure[newCat]) td.structure[newCat] = [];
+td.structure[newCat].push(task);
+saveAndRender();
 }
 
 // ── DELETE → TRASH ────────────────────────────────────────
 let _pendingDelId = null;
 function startDelete(taskId) {
-    _pendingDelId = taskId;
-    const td = appState[appState.activeTab];
-    let title = '';
-    for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
-    document.getElementById('dlg-delete-desc').textContent =
-        `"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
-    openDlg('dlg-delete');
+_pendingDelId = taskId;
+const td = appState[appState.activeTab];
+let title = ‘’;
+for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
+document.getElementById(‘dlg-delete-desc’).textContent =
+`"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
+openDlg(‘dlg-delete’);
 }
 function confirmDeleteNow() {
-    if (!_pendingDelId) return;
-    const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
-    const tab = appState.activeTab, td = appState[tab];
-    const found = findTaskInStructure(td.structure, id);
-    if (found) {
-        const [task] = found.arr.splice(found.idx, 1);
-        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, deletedAt:Date.now() });
-        delete td.checks[id]; delete td.tickets[id];
-    }
-    saveAndRender(); updateTrashFab();
+if (!_pendingDelId) return;
+const id = _pendingDelId; closeDlg(‘dlg-delete’); _pendingDelId = null;
+const tab = appState.activeTab, td = appState[tab];
+const found = findTaskInStructure(td.structure, id);
+if (found) {
+const [task] = found.arr.splice(found.idx, 1);
+appState.trash.unshift({ …task, fromTab:tab, fromCat:found.catKey, deletedAt:Date.now() });
+delete td.checks[id]; delete td.tickets[id];
+}
+saveAndRender(); updateTrashFab();
 }
 
 // ── ADD TASK ──────────────────────────────────────────────
 function addTask(catKey, dk) {
-    const tab = appState.activeTab;
-    const td = appState[tab];
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+const tab = appState.activeTab;
+const td = appState[tab];
+const uc = currentUser ? USER_CONFIG[currentUser] : null;
 
-    let newId;
+```
+let newId;
+if (dk !== undefined && tab === 'itinerary') {
+    const pre = catKey.slice(0,3);
+    if (dk === '__memo__')            newId = `${pre}-mx-${Date.now()}`;
+    else if (dk.startsWith('__plan_')){ const pl = dk.replace('__plan_','').replace('__',''); newId = `${pre}-p${pl}0-${Date.now()}`; }
+    else if (dk === '__etc__')         newId = `${pre}-zx-${Date.now()}`;
+    else                               newId = `${pre}-${dk}x-${Date.now()}`;
+} else {
+    newId = 'tk-' + Date.now();
+}
+const task = { id:newId, title:'새로운 항목', desc:'', tips:'' };
+if (dk !== undefined && tab === 'itinerary') task._dk = dk;
+
+// saveMode에 따라 저장 위치 분기
+if (uc && uc.saveMode === 'session') {
+    // solo: 세션 메모리에만 추가
+    if (!soloSessionStructure) soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
+    const s = soloSessionStructure[tab];
+    if (!s[catKey]) s[catKey] = [];
     if (dk !== undefined && tab === 'itinerary') {
-        const pre = catKey.slice(0,3);
-        if (dk === '__memo__')            newId = `${pre}-mx-${Date.now()}`;
-        else if (dk.startsWith('__plan_')){ const pl = dk.replace('__plan_','').replace('__',''); newId = `${pre}-p${pl}0-${Date.now()}`; }
-        else if (dk === '__etc__')         newId = `${pre}-zx-${Date.now()}`;
-        else                               newId = `${pre}-${dk}x-${Date.now()}`;
+        let lastIdx = -1;
+        s[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+        if (lastIdx !== -1) s[catKey].splice(lastIdx + 1, 0, task); else s[catKey].push(task);
+        appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
     } else {
-        newId = 'tk-' + Date.now();
+        s[catKey].push(task);
     }
-    const task = { id:newId, title:'새로운 항목', desc:'', tips:'' };
-    if (dk !== undefined && tab === 'itinerary') task._dk = dk;
-
-    // saveMode에 따라 저장 위치 분기
-    if (uc && uc.saveMode === 'session') {
-        // solo: 세션 메모리에만 추가
-        if (!soloSessionStructure) soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
-        const s = soloSessionStructure[tab];
-        if (!s[catKey]) s[catKey] = [];
-        if (dk !== undefined && tab === 'itinerary') {
-            let lastIdx = -1;
-            s[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
-            if (lastIdx !== -1) s[catKey].splice(lastIdx + 1, 0, task); else s[catKey].push(task);
-            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
-        } else {
-            s[catKey].push(task);
-        }
-    } else if (uc && uc.saveMode === 'private') {
-        // cat/seo: 개인 _private에 추가
-        if (!td._private) td._private = {};
-        if (!td._private[catKey]) td._private[catKey] = [];
-        if (dk !== undefined && tab === 'itinerary') {
-            let lastIdx = -1;
-            td._private[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
-            if (lastIdx !== -1) td._private[catKey].splice(lastIdx + 1, 0, task); else td._private[catKey].push(task);
-            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
-        } else {
-            td._private[catKey].push(task);
-        }
+} else if (uc && uc.saveMode === 'private') {
+    // cat/seo: 개인 _private에 추가
+    if (!td._private) td._private = {};
+    if (!td._private[catKey]) td._private[catKey] = [];
+    if (dk !== undefined && tab === 'itinerary') {
+        let lastIdx = -1;
+        td._private[catKey].forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+        if (lastIdx !== -1) td._private[catKey].splice(lastIdx + 1, 0, task); else td._private[catKey].push(task);
+        appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
     } else {
-        // 마스터: 기존 structure에 추가
-        const catVal = td.structure[catKey];
-        const isFloat = catVal && !Array.isArray(catVal) && typeof catVal === 'object';
-
-        if (isFloat && dk !== undefined) {
-            // 유동 블록 (swiss_b/nice_b/london_b) + plan dk
-            if (!catVal[dk]) catVal[dk] = [];
-            const planArr = catVal[dk];
-            planArr.push(task);
-            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
-        } else if (!isFloat && dk !== undefined && tab === 'itinerary') {
-            // 일반 도시 + 날짜 dk
-            if (!td.structure[catKey]) td.structure[catKey] = [];
-            const arr = td.structure[catKey];
-            let lastIdx = -1;
-            arr.forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
-            if (lastIdx !== -1) arr.splice(lastIdx + 1, 0, task); else arr.push(task);
-            appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
-        } else {
-            if (!td.structure[catKey]) td.structure[catKey] = [];
-            td.structure[catKey].push(task);
-        }
+        td._private[catKey].push(task);
     }
+} else {
+    // 마스터: 기존 structure에 추가
+    const catVal = td.structure[catKey];
+    const isFloat = catVal && !Array.isArray(catVal) && typeof catVal === 'object';
 
-    saveAndRender();
-    setTimeout(() => enterEdit(newId, catKey), 60);
+    if (isFloat && dk !== undefined) {
+        // 유동 블록 (swiss_b/nice_b/london_b) + plan dk
+        if (!catVal[dk]) catVal[dk] = [];
+        const planArr = catVal[dk];
+        planArr.push(task);
+        appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+    } else if (!isFloat && dk !== undefined && tab === 'itinerary') {
+        // 일반 도시 + 날짜 dk
+        if (!td.structure[catKey]) td.structure[catKey] = [];
+        const arr = td.structure[catKey];
+        let lastIdx = -1;
+        arr.forEach((t, i) => { if (getDK(t) === dk) lastIdx = i; });
+        if (lastIdx !== -1) arr.splice(lastIdx + 1, 0, task); else arr.push(task);
+        appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
+    } else {
+        if (!td.structure[catKey]) td.structure[catKey] = [];
+        td.structure[catKey].push(task);
+    }
+}
+
+saveAndRender();
+setTimeout(() => enterEdit(newId, catKey), 60);
+```
+
 }
 
 // ── PROGRESS ──────────────────────────────────────────────
 function updateProgress() {
-    const td  = appState[appState.activeTab];
-    const filteredCats = getFilteredCategories(appState.activeTab);
-    const all = Object.entries(td.structure)
-        .filter(([k]) => filteredCats[k])
-        .flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
-        .filter(t => getDK(t) !== '__memo__');
-    const n   = all.filter(t => td.checks[t.id]).length;
-    const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
-    document.getElementById('progress-bar').style.width  = pct + '%';
-    document.getElementById('progress-pct').textContent  = pct + '%';
+const td  = appState[appState.activeTab];
+const filteredCats = getFilteredCategories(appState.activeTab);
+const all = Object.entries(td.structure)
+.filter(([k]) => filteredCats[k])
+.flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
+.filter(t => getDK(t) !== ‘**memo**’);
+const n   = all.filter(t => td.checks[t.id]).length;
+const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
+document.getElementById(‘progress-bar’).style.width  = pct + ‘%’;
+document.getElementById(‘progress-pct’).textContent  = pct + ‘%’;
 }
 
 // ── SCROLL SPY ────────────────────────────────────────────
 function handleScroll() {
-    const filteredCats = getFilteredCategories(appState.activeTab);
-    let ak = '';
-    for (const k in filteredCats) {
-        const el = document.getElementById(`section-${k}`);
-        if (el && el.getBoundingClientRect().top <= 180) ak = k;
-    }
-    // 데스크탑 사이드바
-    document.querySelectorAll('.sidebar-item').forEach(it => {
-        const m = it.id === `nav-${ak}`;
-        it.classList.toggle('active', m);
-        if (m && ak) {
-            const c = filteredCats[ak].color;
-            it.style.borderLeftColor = c; it.style.color = c;
-            document.getElementById('indicator-dot').style.backgroundColor = c;
-            document.getElementById('indicator-text').textContent = filteredCats[ak].title;
-        } else { it.style.borderLeftColor='transparent'; it.style.color=''; }
-    });
-    // 모바일 하단 네비 active 동기화
-    document.querySelectorAll('.mobile-sec-btn').forEach(btn => {
-        const active = btn.dataset.cat === ak;
-        btn.classList.toggle('active', active);
-        if (active) {
-            btn.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
-        }
-    });
+const filteredCats = getFilteredCategories(appState.activeTab);
+let ak = ‘’;
+for (const k in filteredCats) {
+const el = document.getElementById(`section-${k}`);
+if (el && el.getBoundingClientRect().top <= 180) ak = k;
+}
+// 데스크탑 사이드바
+document.querySelectorAll(’.sidebar-item’).forEach(it => {
+const m = it.id === `nav-${ak}`;
+it.classList.toggle(‘active’, m);
+if (m && ak) {
+const c = filteredCats[ak].color;
+it.style.borderLeftColor = c; it.style.color = c;
+document.getElementById(‘indicator-dot’).style.backgroundColor = c;
+document.getElementById(‘indicator-text’).textContent = filteredCats[ak].title;
+} else { it.style.borderLeftColor=‘transparent’; it.style.color=’’; }
+});
+// 모바일 하단 네비 active 동기화
+document.querySelectorAll(’.mobile-sec-btn’).forEach(btn => {
+const active = btn.dataset.cat === ak;
+btn.classList.toggle(‘active’, active);
+if (active) {
+btn.scrollIntoView({ behavior:‘smooth’, block:‘nearest’, inline:‘center’ });
+}
+});
 }
 
 // ── 모바일 하단 섹션 네비 렌더 ─────────────────────────────
 function renderMobileNav() {
-    const nav = document.getElementById('mobile-section-nav');
-    if (!nav) return;
-    const isMobile = window.innerWidth <= 768;
-    nav.style.display = isMobile ? 'flex' : 'none';
-    if (!isMobile) return;
+const nav = document.getElementById(‘mobile-section-nav’);
+if (!nav) return;
+const isMobile = window.innerWidth <= 768;
+nav.style.display = isMobile ? ‘flex’ : ‘none’;
+if (!isMobile) return;
 
-    const filteredCats = getFilteredCategories(appState.activeTab);
-    nav.innerHTML = Object.entries(filteredCats).map(([k, cat]) =>
-        `<button class="mobile-sec-btn" data-cat="${k}" onclick="scrollToSection('${k}')">
-           <span class="mobile-sec-dot" style="background:${cat.color}"></span>
-           ${cat.title}
-         </button>`
-    ).join('');
+```
+const filteredCats = getFilteredCategories(appState.activeTab);
+nav.innerHTML = Object.entries(filteredCats).map(([k, cat]) =>
+    `<button class="mobile-sec-btn" data-cat="${k}" onclick="scrollToSection('${k}')">
+       <span class="mobile-sec-dot" style="background:${cat.color}"></span>
+       ${cat.title}
+     </button>`
+).join('');
+```
+
 }
 
 function scrollToSection(catKey) {
-    const tab = appState.activeTab;
+const tab = appState.activeTab;
 
-    // 이터너리: 해당 도시 아코디언 열기 (닫혀 있으면)
-    if (tab === 'itinerary') {
-        if (!appState.itinerary.cityOpen[catKey]) {
-            appState.itinerary.cityOpen[catKey] = true;
-            save();
-            renderContent();
-            setTimeout(() => _doScrollToSection(catKey), 60);
-            return;
-        }
+```
+// 이터너리: 해당 도시 아코디언 열기 (닫혀 있으면)
+if (tab === 'itinerary') {
+    if (!appState.itinerary.cityOpen[catKey]) {
+        appState.itinerary.cityOpen[catKey] = true;
+        save();
+        renderContent();
+        setTimeout(() => _doScrollToSection(catKey), 60);
+        return;
     }
-    _doScrollToSection(catKey);
+}
+_doScrollToSection(catKey);
+```
+
 }
 
 function _doScrollToSection(catKey) {
-    const el = document.getElementById(`section-${catKey}`);
-    if (!el) return;
-    const offset = 64;
-    const top = el.getBoundingClientRect().top + window.scrollY - offset;
-    window.scrollTo({ top, behavior: 'smooth' });
+const el = document.getElementById(`section-${catKey}`);
+if (!el) return;
+const offset = 64;
+const top = el.getBoundingClientRect().top + window.scrollY - offset;
+window.scrollTo({ top, behavior: ‘smooth’ });
 }
 
 // ── 모바일 Tips 토글 ──────────────────────────────────────
 function initMobileTips() {
-    if (window.innerWidth > 768) return;
-    document.querySelectorAll('.task-tips').forEach(tipsEl => {
-        // 이미 버튼이 삽입된 경우 중복 방지
-        if (tipsEl.previousElementSibling?.classList.contains('tips-toggle')) return;
-        tipsEl.classList.add('tips-collapsed');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'tips-toggle';
-        btn.innerHTML = `<span class="tips-label">💡 팁 보기</span><span class="tips-toggle-icon">▼</span>`;
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            const collapsed = tipsEl.classList.toggle('tips-collapsed');
-            btn.classList.toggle('open', !collapsed);
-            btn.querySelector('.tips-label').textContent = collapsed ? '💡 팁 보기' : '💡 팁 접기';
-        });
-        tipsEl.parentElement.insertBefore(btn, tipsEl);
-    });
+if (window.innerWidth > 768) return;
+document.querySelectorAll(’.task-tips’).forEach(tipsEl => {
+// 이미 버튼이 삽입된 경우 중복 방지
+if (tipsEl.previousElementSibling?.classList.contains(‘tips-toggle’)) return;
+tipsEl.classList.add(‘tips-collapsed’);
+const btn = document.createElement(‘button’);
+btn.type = ‘button’;
+btn.className = ‘tips-toggle’;
+btn.innerHTML = `<span class="tips-label">💡 팁 보기</span><span class="tips-toggle-icon">▼</span>`;
+btn.addEventListener(‘click’, e => {
+e.stopPropagation();
+const collapsed = tipsEl.classList.toggle(‘tips-collapsed’);
+btn.classList.toggle(‘open’, !collapsed);
+btn.querySelector(’.tips-label’).textContent = collapsed ? ‘💡 팁 보기’ : ‘💡 팁 접기’;
+});
+tipsEl.parentElement.insertBefore(btn, tipsEl);
+});
 }
 
-window.addEventListener('resize', () => {
-    renderMobileNav();
-    if (window.innerWidth > 768) {
-        // 데스크탑: tips 항상 표시
-        document.querySelectorAll('.task-tips').forEach(el => {
-            el.classList.remove('tips-collapsed');
-        });
-    }
+window.addEventListener(‘resize’, () => {
+renderMobileNav();
+if (window.innerWidth > 768) {
+// 데스크탑: tips 항상 표시
+document.querySelectorAll(’.task-tips’).forEach(el => {
+el.classList.remove(‘tips-collapsed’);
+});
+}
 });
 
 // ── FILE / TICKET (Base64 방식 — Firebase Storage 불필요) ──
 function handleUpload(input, taskId) {
-    const f = input.files[0]; if (!f) return;
-    const maxMB = 5;
-    if (f.size > maxMB * 1024 * 1024) {
-        alert(`파일이 너무 커요! ${maxMB}MB 이하 파일만 첨부 가능합니다.\n(바우처·티켓 사진은 보통 1~3MB 이하예요)`);
-        return;
-    }
-    // 업로드 진행 표시
-    _showUploadProgress(taskId, 0);
-    const r = new FileReader();
-    r.onprogress = (e) => {
-        if (e.lengthComputable) {
-            _showUploadProgress(taskId, Math.round(e.loaded / e.total * 90));
-        }
-    };
-    r.onload = (e) => {
-        appState[appState.activeTab].tickets[taskId] = {
-            name: f.name,
-            data: e.target.result,
-            type: f.type
-        };
-        _hideUploadProgress(taskId);
-        saveAndRender();
-    };
-    r.onerror = () => {
-        _hideUploadProgress(taskId);
-        alert('파일 읽기 실패. 다시 시도해주세요.');
-    };
-    r.readAsDataURL(f);
+const f = input.files[0]; if (!f) return;
+const maxMB = 5;
+if (f.size > maxMB * 1024 * 1024) {
+alert(`파일이 너무 커요! ${maxMB}MB 이하 파일만 첨부 가능합니다.\n(바우처·티켓 사진은 보통 1~3MB 이하예요)`);
+return;
+}
+// 업로드 진행 표시
+_showUploadProgress(taskId, 0);
+const r = new FileReader();
+r.onprogress = (e) => {
+if (e.lengthComputable) {
+_showUploadProgress(taskId, Math.round(e.loaded / e.total * 90));
+}
+};
+r.onload = (e) => {
+appState[appState.activeTab].tickets[taskId] = {
+name: f.name,
+data: e.target.result,
+type: f.type
+};
+_hideUploadProgress(taskId);
+saveAndRender();
+};
+r.onerror = () => {
+_hideUploadProgress(taskId);
+alert(‘파일 읽기 실패. 다시 시도해주세요.’);
+};
+r.readAsDataURL(f);
 }
 
 function _showUploadProgress(taskId, pct) {
-    let el = document.getElementById(`upload-prog-${taskId}`);
-    if (!el) {
-        el = document.createElement('div');
-        el.id = `upload-prog-${taskId}`;
-        el.style.cssText = 'position:fixed;bottom:90px;right:20px;z-index:9999;background:#1a1a18;color:#fff;border-radius:12px;padding:12px 18px;font-size:12px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:200px';
-        document.body.appendChild(el);
-    }
-    el.innerHTML = `📎 파일 처리 중… ${pct}%<div style="margin-top:6px;height:4px;background:rgba(255,255,255,.2);border-radius:2px"><div style="height:100%;background:#22c55e;border-radius:2px;transition:width .3s;width:${pct}%"></div></div>`;
+let el = document.getElementById(`upload-prog-${taskId}`);
+if (!el) {
+el = document.createElement(‘div’);
+el.id = `upload-prog-${taskId}`;
+el.style.cssText = ‘position:fixed;bottom:90px;right:20px;z-index:9999;background:#1a1a18;color:#fff;border-radius:12px;padding:12px 18px;font-size:12px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.3);min-width:200px’;
+document.body.appendChild(el);
+}
+el.innerHTML = `📎 파일 처리 중… ${pct}%<div style="margin-top:6px;height:4px;background:rgba(255,255,255,.2);border-radius:2px"><div style="height:100%;background:#22c55e;border-radius:2px;transition:width .3s;width:${pct}%"></div></div>`;
 }
 function _hideUploadProgress(taskId) {
-    document.getElementById(`upload-prog-${taskId}`)?.remove();
+document.getElementById(`upload-prog-${taskId}`)?.remove();
 }
 
 function viewTicket(id) {
-    const t = appState[appState.activeTab].tickets[id];
-    if (!t) return;
-    // PDF는 새 탭에서 열기
-    if (t.type && t.type.includes('pdf')) {
-        const w = window.open();
-        w.document.write(`<iframe src="${t.data}" style="width:100%;height:100vh;border:none"></iframe>`);
-        return;
-    }
-    document.getElementById('modal-img').src = t.data;
-    document.getElementById('modal').style.display = 'flex';
+const t = appState[appState.activeTab].tickets[id];
+if (!t) return;
+// PDF는 새 탭에서 열기
+if (t.type && t.type.includes(‘pdf’)) {
+const w = window.open();
+w.document.write(`<iframe src="${t.data}" style="width:100%;height:100vh;border:none"></iframe>`);
+return;
+}
+document.getElementById(‘modal-img’).src = t.data;
+document.getElementById(‘modal’).style.display = ‘flex’;
 }
 
 function delTicket(id) {
-    delete appState[appState.activeTab].tickets[id];
-    saveAndRender();
+delete appState[appState.activeTab].tickets[id];
+saveAndRender();
 }
 
 // ── TRASH ─────────────────────────────────────────────────
@@ -3097,172 +3126,176 @@ let trashSelectActive = false;
 let trashSelectedIdxs = new Set();
 
 function updateTrashFab() {
-    const n = appState.trash.length;
-    const b = document.getElementById('fab-trash-badge');
-    b.style.display = n > 0 ? 'flex' : 'none';
-    b.textContent   = n > 9 ? '9+' : n;
-    if (document.getElementById('trash-drawer').classList.contains('open')) renderTrashDrawer();
+const n = appState.trash.length;
+const b = document.getElementById(‘fab-trash-badge’);
+b.style.display = n > 0 ? ‘flex’ : ‘none’;
+b.textContent   = n > 9 ? ‘9+’ : n;
+if (document.getElementById(‘trash-drawer’).classList.contains(‘open’)) renderTrashDrawer();
 }
 
 function openTrash() {
-    trashSelectActive = false; trashSelectedIdxs.clear();
-    renderTrashDrawer();
-    document.getElementById('trash-overlay').classList.add('open');
-    document.getElementById('trash-drawer').classList.add('open');
-    document.body.style.overflow = 'hidden';
+trashSelectActive = false; trashSelectedIdxs.clear();
+renderTrashDrawer();
+document.getElementById(‘trash-overlay’).classList.add(‘open’);
+document.getElementById(‘trash-drawer’).classList.add(‘open’);
+document.body.style.overflow = ‘hidden’;
 }
 function closeTrash() {
-    document.getElementById('trash-overlay').classList.remove('open');
-    document.getElementById('trash-drawer').classList.remove('open');
-    document.body.style.overflow = '';
-    trashSelectActive = false; trashSelectedIdxs.clear();
+document.getElementById(‘trash-overlay’).classList.remove(‘open’);
+document.getElementById(‘trash-drawer’).classList.remove(‘open’);
+document.body.style.overflow = ‘’;
+trashSelectActive = false; trashSelectedIdxs.clear();
 }
 
 function toggleTrashSelectMode() {
-    trashSelectActive = !trashSelectActive;
-    trashSelectedIdxs.clear();
-    document.getElementById('trash-select-bar').classList.toggle('visible', trashSelectActive);
-    document.getElementById('btn-trash-select-toggle').textContent = trashSelectActive ? '취소' : '선택';
-    renderTrashDrawer();
+trashSelectActive = !trashSelectActive;
+trashSelectedIdxs.clear();
+document.getElementById(‘trash-select-bar’).classList.toggle(‘visible’, trashSelectActive);
+document.getElementById(‘btn-trash-select-toggle’).textContent = trashSelectActive ? ‘취소’ : ‘선택’;
+renderTrashDrawer();
 }
 
 function toggleTrashSelect(idx) {
-    if (trashSelectedIdxs.has(idx)) trashSelectedIdxs.delete(idx);
-    else trashSelectedIdxs.add(idx);
-    const n = trashSelectedIdxs.size;
-    document.getElementById('trash-select-label').textContent = n > 0 ? `${n}개 선택됨` : '항목을 선택하세요';
-    document.getElementById('btn-trash-sel-del').disabled = n === 0;
-    // 해당 행 시각 업데이트
-    document.querySelectorAll('.trash-item[data-idx]').forEach(el => {
-        const i = parseInt(el.dataset.idx);
-        const sel = trashSelectedIdxs.has(i);
-        el.classList.toggle('trash-selected', sel);
-        const chk = el.querySelector('.trash-check'); if (chk) chk.textContent = sel ? '✓' : '';
-    });
+if (trashSelectedIdxs.has(idx)) trashSelectedIdxs.delete(idx);
+else trashSelectedIdxs.add(idx);
+const n = trashSelectedIdxs.size;
+document.getElementById(‘trash-select-label’).textContent = n > 0 ? `${n}개 선택됨` : ‘항목을 선택하세요’;
+document.getElementById(‘btn-trash-sel-del’).disabled = n === 0;
+// 해당 행 시각 업데이트
+document.querySelectorAll(’.trash-item[data-idx]’).forEach(el => {
+const i = parseInt(el.dataset.idx);
+const sel = trashSelectedIdxs.has(i);
+el.classList.toggle(‘trash-selected’, sel);
+const chk = el.querySelector(’.trash-check’); if (chk) chk.textContent = sel ? ‘✓’ : ‘’;
+});
 }
 
 function selectAllTrash() {
-    appState.trash.forEach((_, i) => trashSelectedIdxs.add(i));
-    const n = trashSelectedIdxs.size;
-    document.getElementById('trash-select-label').textContent = `${n}개 선택됨`;
-    document.getElementById('btn-trash-sel-del').disabled = false;
-    renderTrashDrawer();
+appState.trash.forEach((_, i) => trashSelectedIdxs.add(i));
+const n = trashSelectedIdxs.size;
+document.getElementById(‘trash-select-label’).textContent = `${n}개 선택됨`;
+document.getElementById(‘btn-trash-sel-del’).disabled = false;
+renderTrashDrawer();
 }
 
 function bulkTrashDelete() {
-    if (!trashSelectedIdxs.size) return;
-    const sorted = [...trashSelectedIdxs].sort((a, b) => b - a);
-    sorted.forEach(i => appState.trash.splice(i, 1));
-    trashSelectedIdxs.clear();
-    document.getElementById('trash-select-label').textContent = '항목을 선택하세요';
-    document.getElementById('btn-trash-sel-del').disabled = true;
-    save(); updateTrashFab();
+if (!trashSelectedIdxs.size) return;
+const sorted = […trashSelectedIdxs].sort((a, b) => b - a);
+sorted.forEach(i => appState.trash.splice(i, 1));
+trashSelectedIdxs.clear();
+document.getElementById(‘trash-select-label’).textContent = ‘항목을 선택하세요’;
+document.getElementById(‘btn-trash-sel-del’).disabled = true;
+save(); updateTrashFab();
 }
 
 // alias - v28 코드 호환
 function bulkDeleteTrash() { bulkTrashDelete(); }
 
 function renderTrashDrawer() {
-    document.getElementById('trash-pill').textContent = appState.trash.length;
-    document.getElementById('trash-select-bar').classList.toggle('visible', trashSelectActive);
-    document.getElementById('btn-trash-select-toggle').textContent = trashSelectActive ? '취소' : '선택';
+document.getElementById(‘trash-pill’).textContent = appState.trash.length;
+document.getElementById(‘trash-select-bar’).classList.toggle(‘visible’, trashSelectActive);
+document.getElementById(‘btn-trash-select-toggle’).textContent = trashSelectActive ? ‘취소’ : ‘선택’;
 
-    const body = document.getElementById('trash-body');
-    if (!appState.trash.length) {
-        body.innerHTML = `<div class="trash-empty-state"><div class="trash-empty-icon">🗑️</div>휴지통이 비어있어요</div>`;
-        trashSelectActive = false;
-        document.getElementById('trash-select-bar').classList.remove('visible');
-        return;
-    }
+```
+const body = document.getElementById('trash-body');
+if (!appState.trash.length) {
+    body.innerHTML = `<div class="trash-empty-state"><div class="trash-empty-icon">🗑️</div>휴지통이 비어있어요</div>`;
+    trashSelectActive = false;
+    document.getElementById('trash-select-bar').classList.remove('visible');
+    return;
+}
 
-    body.innerHTML = '';
+body.innerHTML = '';
 
-    // 선택 모드일 때 전체 선택 버튼
+// 선택 모드일 때 전체 선택 버튼
+if (trashSelectActive) {
+    const selAllRow = document.createElement('div');
+    selAllRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 2px 10px;border-bottom:1px solid var(--border-light);margin-bottom:8px';
+    const allChecked = trashSelectedIdxs.size === appState.trash.length;
+    selAllRow.innerHTML = `
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary)">
+            <input type="checkbox" onchange="this.checked ? selectAllTrash() : (trashSelectedIdxs.clear(), document.getElementById('trash-select-label').textContent='항목을 선택하세요', document.getElementById('btn-trash-sel-del').disabled=true, renderTrashDrawer())" ${allChecked ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer">
+            전체 선택
+        </label>
+        <span style="font-size:10px;color:var(--text-muted)">${appState.trash.length}개</span>`;
+    body.appendChild(selAllRow);
+}
+
+appState.trash.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = `trash-item${trashSelectedIdxs.has(idx) ? ' trash-selected' : ''}`;
+    row.dataset.idx = idx;
+    const d  = new Date(item.deletedAt);
+    const ts = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const tl = {reservations:'예약', itinerary:'일정', packing:'짐싸기'}[item.fromTab] || item.fromTab;
+    const sel = trashSelectedIdxs.has(idx);
+
     if (trashSelectActive) {
-        const selAllRow = document.createElement('div');
-        selAllRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 2px 10px;border-bottom:1px solid var(--border-light);margin-bottom:8px';
-        const allChecked = trashSelectedIdxs.size === appState.trash.length;
-        selAllRow.innerHTML = `
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary)">
-                <input type="checkbox" onchange="this.checked ? selectAllTrash() : (trashSelectedIdxs.clear(), document.getElementById('trash-select-label').textContent='항목을 선택하세요', document.getElementById('btn-trash-sel-del').disabled=true, renderTrashDrawer())" ${allChecked ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer">
-                전체 선택
-            </label>
-            <span style="font-size:10px;color:var(--text-muted)">${appState.trash.length}개</span>`;
-        body.appendChild(selAllRow);
+        row.innerHTML = `
+            <div class="trash-check">${sel ? '✓' : ''}</div>
+            <div class="trash-item-info">
+                <div class="trash-item-title">${item.title}</div>
+                <div class="trash-item-meta">${tl} · ${item.desc || ''} · ${ts}</div>
+            </div>`;
+        row.addEventListener('click', () => toggleTrashSelect(idx));
+    } else {
+        row.innerHTML = `
+            <div class="trash-item-info">
+                <div class="trash-item-title">${item.title}</div>
+                <div class="trash-item-meta">${tl} · ${item.desc || ''} · ${ts}</div>
+            </div>
+            <div class="trash-item-actions">
+                <button class="btn-restore" onclick="event.stopPropagation();restoreTrash(${idx})">↩ 복구</button>
+                <button class="btn-perm-del" onclick="event.stopPropagation();permDel(${idx})">✕</button>
+            </div>`;
     }
+    body.appendChild(row);
+});
+```
 
-    appState.trash.forEach((item, idx) => {
-        const row = document.createElement('div');
-        row.className = `trash-item${trashSelectedIdxs.has(idx) ? ' trash-selected' : ''}`;
-        row.dataset.idx = idx;
-        const d  = new Date(item.deletedAt);
-        const ts = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-        const tl = {reservations:'예약', itinerary:'일정', packing:'짐싸기'}[item.fromTab] || item.fromTab;
-        const sel = trashSelectedIdxs.has(idx);
-
-        if (trashSelectActive) {
-            row.innerHTML = `
-                <div class="trash-check">${sel ? '✓' : ''}</div>
-                <div class="trash-item-info">
-                    <div class="trash-item-title">${item.title}</div>
-                    <div class="trash-item-meta">${tl} · ${item.desc || ''} · ${ts}</div>
-                </div>`;
-            row.addEventListener('click', () => toggleTrashSelect(idx));
-        } else {
-            row.innerHTML = `
-                <div class="trash-item-info">
-                    <div class="trash-item-title">${item.title}</div>
-                    <div class="trash-item-meta">${tl} · ${item.desc || ''} · ${ts}</div>
-                </div>
-                <div class="trash-item-actions">
-                    <button class="btn-restore" onclick="event.stopPropagation();restoreTrash(${idx})">↩ 복구</button>
-                    <button class="btn-perm-del" onclick="event.stopPropagation();permDel(${idx})">✕</button>
-                </div>`;
-        }
-        body.appendChild(row);
-    });
 }
 
 function restoreTrash(idx) {
-    const item = appState.trash[idx]; if (!item) return;
-    appState.trash.splice(idx, 1);
-    trashSelectedIdxs.clear();
-    const { fromTab:ft, fromCat:fc, deletedAt:_, ...task } = item;
-    const structure = appState[ft].structure;
-    if (!structure[fc]) structure[fc] = [];
-    const val = structure[fc];
-    if (Array.isArray(val)) {
-        // 일반 배열: 그냥 push
-        val.push(task);
-    } else if (val && typeof val === 'object') {
-        // 유동 블록: task의 _dk로 맞는 plan에 복구
-        const dk = task._dk || '__plan_a__';
-        if (!val[dk]) val[dk] = [];
-        val[dk].push(task);
-    }
-    save(); updateTrashFab();
-    if (appState.activeTab === ft) { renderContent(); updateProgress(); }
+const item = appState.trash[idx]; if (!item) return;
+appState.trash.splice(idx, 1);
+trashSelectedIdxs.clear();
+const { fromTab:ft, fromCat:fc, deletedAt:_, …task } = item;
+const structure = appState[ft].structure;
+if (!structure[fc]) structure[fc] = [];
+const val = structure[fc];
+if (Array.isArray(val)) {
+// 일반 배열: 그냥 push
+val.push(task);
+} else if (val && typeof val === ‘object’) {
+// 유동 블록: task의 _dk로 맞는 plan에 복구
+const dk = task._dk || ‘**plan_a**’;
+if (!val[dk]) val[dk] = [];
+val[dk].push(task);
+}
+save(); updateTrashFab();
+if (appState.activeTab === ft) { renderContent(); updateProgress(); }
 }
 function permDel(idx) {
-    appState.trash.splice(idx, 1);
-    // 인덱스 재조정
-    const newSet = new Set();
-    trashSelectedIdxs.forEach(i => { if (i < idx) newSet.add(i); else if (i > idx) newSet.add(i-1); });
-    trashSelectedIdxs = newSet;
-    save(); updateTrashFab();
+appState.trash.splice(idx, 1);
+// 인덱스 재조정
+const newSet = new Set();
+trashSelectedIdxs.forEach(i => { if (i < idx) newSet.add(i); else if (i > idx) newSet.add(i-1); });
+trashSelectedIdxs = newSet;
+save(); updateTrashFab();
 }
 function emptyTrash() {
-    if (!appState.trash.length) return;
-    if (!confirm('휴지통을 완전히 비울까요? 복구할 수 없어요.')) return;
-    appState.trash = []; trashSelectedIdxs.clear(); trashSelectActive = false;
-    save(); updateTrashFab();
+if (!appState.trash.length) return;
+if (!confirm(‘휴지통을 완전히 비울까요? 복구할 수 없어요.’)) return;
+appState.trash = []; trashSelectedIdxs.clear(); trashSelectActive = false;
+save(); updateTrashFab();
 }
 
 // ── DIALOG ────────────────────────────────────────────────
-function openDlg(id)  { document.getElementById(id).classList.add('open'); }
-function closeDlg(id) { document.getElementById(id).classList.remove('open'); }
+function openDlg(id)  { document.getElementById(id).classList.add(‘open’); }
+function closeDlg(id) { document.getElementById(id).classList.remove(‘open’); }
 
 window.onload = init;
 </script>
+
 </body>
 </html>
