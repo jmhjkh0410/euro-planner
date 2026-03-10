@@ -562,6 +562,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .weather-temp-min{font-size:9px;color:#64748b;font-weight:600}
 .weather-city-tag{font-size:9px;font-weight:700;color:#3b82f6;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .weather-desc{font-size:9px;color:#475569;margin-top:2px;font-weight:500}
+.weather-toggle-btn{font-size:10px;color:#3b82f6;font-weight:800;transition:transform .2s}
+.weather-widget.collapsed .weather-days{display:none}
+.weather-widget.collapsed .weather-toggle-btn{transform:rotate(180deg)}
 @media(max-width:768px){
   .weather-icon{font-size:22px}
   .weather-temp{font-size:13px}
@@ -666,9 +669,12 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
           </div>
           <!-- 날씨 위젯 (일정 탭 전용) -->
           <div class="weather-widget" id="weather-widget">
-            <div class="weather-city-row">
+            <div class="weather-city-row" onclick="toggleWeather()" style="cursor:pointer">
               <span class="weather-city-name" id="weather-city-name">🌍 날씨 로딩 중...</span>
-              <span class="weather-updated" id="weather-updated"></span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="weather-updated" id="weather-updated"></span>
+                <span class="weather-toggle-btn" id="weather-toggle-btn">▲</span>
+              </div>
             </div>
             <div class="weather-days" id="weather-days"></div>
           </div>
@@ -1448,6 +1454,16 @@ function renderWeather3Days(dayKeys) {
     const now = new Date();
     updEl.textContent = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')} 기준`;
     widget.classList.add('visible');
+    if (localStorage.getItem('weatherCollapsed') === '1') widget.classList.add('collapsed');
+    else widget.classList.remove('collapsed');
+}
+
+function toggleWeather() {
+    const w = document.getElementById('weather-widget');
+    if (w) {
+        w.classList.toggle('collapsed');
+        localStorage.setItem('weatherCollapsed', w.classList.contains('collapsed') ? '1' : '0');
+    }
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
@@ -1893,6 +1909,8 @@ function getDK(task) {
 }
 function getDKfromId(id) {
     if (/-m$/.test(id)) return '__memo__';
+    // nice_b-plan_a-0, swiss_b-__plan_b__-2 형식
+    const pm2 = id.match(/[_-](?:__)?plan_([a-e])(?:__)?[-_]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
     const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
     const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
     return '__etc__';
@@ -2107,6 +2125,14 @@ function renderContent() {
             baseTasks = Object.values(rawCatData).flat();
         } else {
             baseTasks = rawCatData || [];
+        }
+        // 고정 일정 카드(swiss/nice/london)에 유동 블록 항목이 섞이지 않도록 필터
+        const FIXED_CATS = ['swiss', 'nice', 'london'];
+        if (FIXED_CATS.includes(catKey)) {
+            baseTasks = baseTasks.filter(t => {
+                const dk = getDK(t);
+                return !dk || !dk.startsWith('__plan_');
+            });
         }
 
         if (uc && uc.saveMode === 'private') {
