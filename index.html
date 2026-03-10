@@ -1228,26 +1228,20 @@ function shakeInput() {
 
 function hidePinOverlay() {
     document.getElementById('pin-overlay').classList.add('hidden');
-    // iOS Safari 스크롤 잠금 해제
-    const scrollY = document.body.style.top;
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
     document.body.style.overflow = '';
-    if (scrollY) window.scrollTo(0, -parseInt(scrollY || '0'));
+    renderMobileNav();
 }
 
 function _lockBodyScroll() {
-    // iOS Safari에서 body overflow:hidden이 안 먹히므로 position:fixed 사용
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    // position:fixed는 iOS Safari에서 터치이벤트를 막으므로 사용하지 않음
     document.body.style.overflow = 'hidden';
 }
 
 function showPinOverlay() {
     document.getElementById('pin-overlay').classList.remove('hidden');
+    // mobile-section-nav 숨기기 (fixed라 pin-overlay 위에 뜸)
+    const mNav = document.getElementById('mobile-section-nav');
+    if (mNav) mNav.style.display = 'none';
     _lockBodyScroll();
     // 이미 로그인 상태면 뒤로가기 버튼 표시
     const backBtn = document.getElementById('pin-back-btn');
@@ -2132,7 +2126,7 @@ function init() {
         if (savedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
         applyUserMode(savedCode);
     } else {
-        _lockBodyScroll();  // 핀 화면 표시 중 iOS Safari 포함 배경 잠금
+        document.body.style.overflow = 'hidden';  // 핀 화면 표시 중 스크롤 잠금
     }
 
     // 1) 로컬 캐시로 빠른 초기 렌더링
@@ -3147,7 +3141,9 @@ function renderMobileNav() {
 const nav = document.getElementById(‘mobile-section-nav’);
 if (!nav) return;
 const isMobile = window.innerWidth <= 768;
-nav.style.display = isMobile ? ‘flex’ : ‘none’;
+// pin-overlay가 열려있으면 무조건 숨김
+const pinOpen = !document.getElementById(‘pin-overlay’).classList.contains(‘hidden’);
+nav.style.display = (isMobile && !pinOpen) ? ‘flex’ : ‘none’;
 if (!isMobile) return;
 
 ```
