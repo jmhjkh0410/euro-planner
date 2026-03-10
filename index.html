@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v38 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v39 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -537,6 +537,16 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .nav-logo{font-size:12px}
   .task-title{font-size:14px!important}
 }
+
+/* ── 숙소 주소 칩 ── */
+.accom-chip{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,#f0fdf4,#f7fef9);border:1px solid #bbf7d0;border-radius:var(--r-md);margin-bottom:8px}
+.accom-icon{font-size:16px;flex-shrink:0}
+.accom-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.accom-city{font-size:10px;font-weight:800;color:#15803d;display:flex;align-items:center;gap:6px}
+.accom-dates{font-size:9px;font-weight:600;color:#86efac;background:#166534;padding:1px 6px;border-radius:999px}
+.accom-address{font-size:11px;font-weight:600;color:#166534;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.accom-nights{font-size:10px;font-weight:800;color:#15803d;background:#dcfce7;padding:3px 8px;border-radius:999px;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -591,7 +601,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v38 🔥</span>
+      <span class="nav-version">v39 🔥</span>
     </div>
   </div>
 </nav>
@@ -761,11 +771,12 @@ function _applyChecksState(d) {
 
 function _getContentState() {
     return {
-        reservations: { structure: appState.reservations.structure },
-        itinerary:    { structure: appState.itinerary.structure },
-        packing:      { structure: appState.packing.structure },
-        cityMemos: appState.cityMemos || {},
-        trash: appState.trash
+        reservations:   { structure: appState.reservations.structure },
+        itinerary:      { structure: appState.itinerary.structure },
+        packing:        { structure: appState.packing.structure },
+        cityMemos:      appState.cityMemos || {},
+        accommodations: appState.accommodations || {},
+        trash:          appState.trash
     };
 }
 
@@ -776,10 +787,10 @@ function _applyContentState(d) {
     });
     migrateTimeFromStructure(appState);
     if (d.cityMemos) {
-        // Firebase 데이터 우선, 없는 키는 초기값으로 채움
         appState.cityMemos = Object.assign({}, appState.cityMemos, d.cityMemos);
     }
     if (d.trash !== undefined) appState.trash = d.trash;
+    if (d.accommodations) appState.accommodations = d.accommodations;
 }
 
 // private 유저 개인 추가 항목 (마스터 content 위에 덮어쓰지 않고 별도 저장)
@@ -841,22 +852,31 @@ function _startFirebaseSync() {
 }
 
 function _saveContentToFirebase() {
-    if (!window._fb) return;
-    const { db, ref, set } = window._fb;
     const s = JSON.stringify(_getContentState());
+    // 항상 로컬에 먼저 저장 (오프라인 대비)
     localStorage.setItem(FB_LOCAL_CONTENT, s);
+    if (!window._fb) {
+        setSyncStatus('ok', '✅ 로컬 저장 완료 (오프라인)');
+        return;
+    }
+    const { db, ref, set } = window._fb;
     set(ref(db, FB_CONTENT_PATH), s)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
-        .catch(() => setSyncStatus('error', '❌ 저장 실패'));
+        .catch(() => {
+            // Firebase 실패해도 로컬엔 이미 저장됨
+            setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)');
+        });
 }
 
 function _saveChecksToFirebase() {
-    if (!window._fb || !currentUser) return;
-    const { db, ref, set } = window._fb;
+    if (!currentUser) return;
     const uc = USER_CONFIG[currentUser];
     if (!uc.checksPath) return;
     const s = JSON.stringify(_getChecksState());
+    // 항상 로컬에 먼저 저장
     localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, s);
+    if (!window._fb) return;
+    const { db, ref, set } = window._fb;
     set(ref(db, uc.checksPath), s).catch(e => console.error('[checks save]', e));
 }
 
@@ -1262,6 +1282,7 @@ let appState = {
     itinerary:    { structure: {}, checks:{}, tickets:{}, cityOpen:{}, dayOpen:{} },
     packing:      { structure: {}, checks:{}, tickets:{} },
     cityMemos: {},
+    accommodations: {},
     trash: []
 };
 
@@ -1474,6 +1495,33 @@ function formatMemoText(raw) {
         })
         .join('\n');
 }
+// ── 숙소 주소 칩 렌더링 ─────────────────────────────────
+function renderAccommodation(container, catKey) {
+    const accoms = appState.accommodations || {};
+    // catKey 매핑 (swiss/swiss_b → frutigen, london/london_b → london 등)
+    const keyMap = {
+        swiss: 'swiss', swiss_b: 'swiss',
+        london: 'london', london_b: 'london',
+        paris1: 'paris1', paris2: 'paris2',
+        nice_b: 'nice'
+    };
+    const lookupKey = keyMap[catKey] || catKey;
+    const info = accoms[lookupKey];
+    if (!info || !info.address) return;
+
+    const chip = document.createElement('div');
+    chip.className = 'accom-chip';
+    chip.innerHTML = `
+        <span class="accom-icon">🏠</span>
+        <div class="accom-info">
+            <span class="accom-city">${info.city || ''} ${info.dates ? '<span class="accom-dates">'+info.dates+'</span>' : ''}</span>
+            <span class="accom-address">${info.address}</span>
+        </div>
+        ${info.nights ? `<span class="accom-nights">${info.nights}</span>` : ''}
+    `;
+    container.appendChild(chip);
+}
+
 function renderCityMemo(container, catKey, catInfo) {
     const memo = (appState.cityMemos || {})[catKey] || '';
     const isMaster = currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
@@ -1886,6 +1934,8 @@ function renderContent() {
 
             const inner = section.querySelector(`#city-inner-${catKey}`);
 
+            // ── 숙소 주소 칩 ──
+            renderAccommodation(inner, catKey);
             // ── 도시 메모 블록 (일정 위, 기본 접힘) ──
             renderCityMemo(inner, catKey, catInfo);
 
