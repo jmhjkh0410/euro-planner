@@ -2499,12 +2499,12 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
-                ${getMapLink(task.title, task.desc)}
+                ${appState.activeTab === 'itinerary' ? getMapLink(task.title, task.desc) : ''}
             </div>`}
         </div>`;
 
     li.addEventListener('click', e => {
-        if (e.target.closest('button,label,input')) return;
+        if (e.target.closest('button,label,input,a')) return;
         if (editMode) { toggleSelect(task.id); return; }
         if (isMemoTask) return;
         toggleCheck(task.id);
