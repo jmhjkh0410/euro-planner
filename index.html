@@ -1035,8 +1035,8 @@ const USER_CONFIG = {
         checksPath: 'euroPlanner/v33/checks/swiss',
         structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
-        itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
-        itineraryDayStart: { swiss: 2, swiss_b: 2 },  // 스위스 2일차부터
+        itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london','london_b'],
+        itineraryDayStart: { london: 2, london_b: 2 },  // 런던 2일차까지(런던 1일차=이다은 작별날 제외)
         soloMode: false,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
@@ -1049,8 +1049,8 @@ const USER_CONFIG = {
         checksPath: 'euroPlanner/v33/checks/paris',
         structurePath: 'euroPlanner/v33/structure/paris',
         tabs:  ['reservations','itinerary','packing'],
-        itineraryCats: ['london','london_b','paris2'],  // 런던 2일차~파리2차
-        itineraryDayStart: { london: 2, london_b: 2 },  // 런던 2일차부터
+        itineraryCats: ['london','london_b','paris2'],
+        itineraryDayStart: { london: 2, london_b: 2 },
         soloMode: false,
         reservationFilter: ['r27e','r4','r20','r21','r26','r28']
     }
@@ -2355,20 +2355,60 @@ function renderSidebar() {
 }
 
 // ── DAY KEY ───────────────────────────────────────────────
+// Firebase 데이터에 _dk가 잘못 저장된 항목들을 코드 레벨에서 올바른 값으로 교정
+// (Firebase 직접 수정 없이 ID 기반으로 오버라이드)
+const DK_OVERRIDE = {
+    // swiss: 취리히 공항 도착 → 1일차 (잘못된 _dk=0)
+    'swiss-0-1': '1',  'swi-0-1': '1',
+    // swiss: 체크아웃 & 밀라노행 → 5일차 (잘못된 _dk=0)
+    'swiss-0-9': '5',  'swi-0-9': '5',
+    // nice: 니스역 도착 → 1일차 (잘못된 _dk=0)
+    'nice-0-1': '1',
+    // nice: 체크아웃 & 기차역 이동 → 4일차 (잘못된 _dk=0)
+    'nice-0-6': '4',
+    // paris2: 숙소 체크인/저녁 → 1일차 (_dk='move' 특수값)
+    'paris2-move-2': '1',  'paris2-move-3': '1',
+    // london: 도착 → 1일차 (_dk 없음)
+    'london-x-1': '1',
+};
 function getDK(task) {
-    if (task._dk !== undefined) return task._dk;
-    return getDKfromId(task.id);
+    // 1) ID 오버라이드 테이블 우선 적용
+    if (task.id && DK_OVERRIDE[task.id]) return DK_OVERRIDE[task.id];
+    // 2) _dk 값 처리
+    const raw = task._dk;
+    if (raw !== undefined && raw !== null && raw !== '') {
+        // v2 DB: plan_a~e → __plan_a__~ 로 변환
+        if (/^plan_[a-e]$/.test(raw)) return `__${raw}__`;
+        // v2 DB: fixed → 그대로 사용
+        if (raw === 'fixed') return 'fixed';
+        // 비정상값 제거
+        if (raw === '0' || raw === 'move' || raw === 'x') {/* fall through to id */}
+        else return raw;
+    }
+    // 3) id 패턴에서 추출
+    const fromId = getDKfromId(task.id);
+    if (fromId && fromId !== '__etc__') return fromId;
+    // 4) 최종 fallback: 1일차
+    return '1';
 }
 function getDKfromId(id) {
+    if (!id) return '__etc__';
     if (/-m$/.test(id)) return '__memo__';
-    // nice_b-plan_a-0, swiss_b-__plan_b__-2 형식
+    // v2 새 ID 형식: {city}-plan_a-{seq} → __plan_a__
+    const pv2 = id.match(/-plan_([a-e])-/i); if (pv2) return `__plan_${pv2[1].toLowerCase()}__`;
+    // 구버전: nice_b-plan_a-0, swiss_b-__plan_b__-2
     const pm2 = id.match(/[_-](?:__)?plan_([a-e])(?:__)?[-_]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
     const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
+    // v2 새 ID 형식: {city}-fixed-{seq} → fixed
+    if (/-fixed-/.test(id)) return 'fixed';
+    // v2 새 ID 형식: {city}-{num}-{seq}
+    const dv2 = id.match(/^[a-z0-9_]+-(\d+)-\d+$/); if (dv2) return dv2[1];
     const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
     return '__etc__';
 }
 const DK_LABEL = {
     '__memo__': '📌 숙소 & 교통 핵심 메모',
+    'fixed':    '📌 고정 일정',
     '__plan_a__': '☀️ Plan A — 날씨 맑음',
     '__plan_b__': '⛅ Plan B — 구름 조금',
     '__plan_c__': '☁️ Plan C — 흐림/비',
@@ -2617,6 +2657,18 @@ function renderContent() {
                 return !dk || !dk.startsWith('__plan_');
             });
         }
+        // swiss: plan 항목이 고정 배열에 섞이지 않도록 필터 (v2: plan_tag로 분리됐지만 혹시 모를 잔재 제거)
+        // swiss: _dk=0 숨김 (구버전 잔재)
+        if (catKey === 'swiss') {
+            baseTasks = baseTasks.filter(t => {
+                const dk = getDK(t);
+                return dk !== '0' && !dk.startsWith('__plan_');
+            });
+        }
+        // nice: plan 항목 고정에서 제거
+        if (catKey === 'nice') {
+            baseTasks = baseTasks.filter(t => !getDK(t).startsWith('__plan_'));
+        }
 
         if (uc && uc.saveMode === 'private') {
             // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
@@ -2664,6 +2716,7 @@ function renderContent() {
             const startC = new Date(start); startC.setHours(0,0,0,0);
             const endC   = new Date(end);   endC.setHours(0,0,0,0);
             const isToday = (dk) => {
+                if (dk === 'fixed' || String(dk).startsWith('__plan_')) return false;
                 if (today < startC || today > endC) return false;
                 const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
                 return String(dk) === todayDK;
@@ -2673,8 +2726,22 @@ function renderContent() {
             tasks.forEach(t => {
                 const dk = getDK(t);
                 if (dk === '__memo__') return; // 메모 그룹은 도시 메모 블록에서 표시
+                if (dk === '0') return; // 구버전 잔재 _dk=0 완전 숨김
                 if (!groups[dk]) { groups[dk] = []; order.push(dk); }
                 groups[dk].push(t);
+            });
+            // dk 정렬: fixed → 숫자 오름차순 → plan_* → 나머지
+            order.sort((a, b) => {
+                const rank = dk => {
+                    if (dk === 'fixed') return 0;
+                    if (/^\d+$/.test(dk)) return 1;
+                    if (dk.startsWith('__plan_')) return 3;
+                    return 2;
+                };
+                const ra = rank(a), rb = rank(b);
+                if (ra !== rb) return ra - rb;
+                if (ra === 1) return Number(a) - Number(b);
+                return a.localeCompare(b);
             });
 
             order.forEach(dk => {
