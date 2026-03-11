@@ -611,7 +611,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 <body>
 
 <!-- ══════════════════════════════════════════════════════════
-  🔐 PIN 선택 화면 - 유저별 뷰 분기
+  🔐 PIN 선택 화면 — 유저별 뷰 분기
 ══════════════════════════════════════════════════════════ -->
 <div class="pin-overlay" id="pin-overlay">
   <div class="pin-box">
@@ -621,10 +621,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
     <div class="pin-title">🇪🇺 EURO 40D</div>
     <div class="pin-sub">나만의 여행 플래너</div>
 
-    <!-- 시작하기 버튼 -> SOLO 모드 진입 -->
+    <!-- 시작하기 버튼 → SOLO 모드 진입 -->
     <button class="pin-start-btn" onclick="enterWithCode('solo')">시작하기</button>
 
-    <!-- 숨겨진 코드 입력 - 한 줄 꽉 채운 입력창 + 작은 버튼 -->
+    <!-- 숨겨진 코드 입력 — 한 줄 꽉 채운 입력창 + 작은 버튼 -->
     <div class="pin-input-row">
       <input class="pin-input" id="pin-input" type="text" maxlength="12"
         placeholder="코드 입력" autocomplete="off" autocorrect="off" autocapitalize="off"
@@ -635,7 +635,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   </div>
 </div>
 
-<!-- 솔로 모드 - 시작 화면 복귀 버튼 -->
+<!-- 솔로 모드 — 시작 화면 복귀 버튼 -->
 
 
 <!-- 📱 모바일 하단 섹션 네비게이터 -->
@@ -1194,7 +1194,7 @@ function getFilteredCategories(tab) {
 
 // ── SOLO 모드 텍스트 치환 ────────────────────────────────
 function applySoloText(text) {
-    if (!currentUser || !USER_CONFIG[currentUser].soloMode) return text;
+    if (currentUser && !USER_CONFIG[currentUser].soloMode) return text;
     return text
         // ── 태그 제거 ──────────────────────────────────────
         .replace(/👥\s*/g, '')
@@ -1247,6 +1247,20 @@ function applySoloText(text) {
         .replace(/2인분 결제/g, '결제')
         .replace(/반드시 수량 2장 선택!/g, '사전 예약 필수!')
         .replace(/7\/9 대영박물관은 2인 예약,?\s*/g, '')
+
+        // ── 취리히/친구 상봉 관련 추가 패턴 ─────────────────────
+        .replace(/취리히.*?친구.*?상봉[^\n]*/g, '취리히 공항 도착')
+        .replace(/친구.*?상봉[^\n]*/g, '')
+        .replace(/상봉[^\n]*친구[^\n]*/g, '')
+        .replace(/동행[^\n]*합류[^\n]*/g, '')
+        .replace(/합류[^\n]*동행[^\n]*/g, '')
+        .replace(/친구[^\n]*픽업[^\n]*/g, '')
+        .replace(/픽업[^\n]*친구[^\n]*/g, '')
+        .replace(/일행[^\n]*합류[^\n]*/g, '')
+        .replace(/,?\s*일행과 함께[^,\n]*/g, '')
+        .replace(/일행과\s*/g, '')
+        .replace(/동행자[^\n]*/g, '')
+        .replace(/같이 가는 친구[^\n]*/g, '')
 
         // ── 빈 줄 정리 ─────────────────────────────────────
         .replace(/\n{2,}/g, '\n')
@@ -1764,11 +1778,15 @@ function doSearch(q) {
         for (const [catKey, catInfo] of Object.entries(cats)) {
             const tasks = getStructureArr(td.structure, catKey);
             for (const t of tasks) {
-                const titleMatch = t.title?.toLowerCase().includes(kw);
-                const descMatch  = t.desc?.toLowerCase().includes(kw);
-                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
+                const title = applySoloText(t.title || '');
+                const desc  = applySoloText(t.desc  || '');
+                const tips  = applySoloText(t.tips  || '');
+                const titleMatch = title.toLowerCase().includes(kw);
+                const descMatch  = desc.toLowerCase().includes(kw);
+                const tipsMatch  = tips.toLowerCase().includes(kw);
                 if (titleMatch || descMatch || tipsMatch) {
-                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
+                    const filteredTask = { ...t, title, desc, tips };
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: filteredTask, titleMatch, descMatch, tipsMatch });
                 }
             }
         }
