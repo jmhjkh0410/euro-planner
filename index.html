@@ -1036,6 +1036,7 @@ const USER_CONFIG = {
         structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
+        itineraryDayStart: { swiss: 2, swiss_b: 2 },  // 스위스 2일차부터
         soloMode: false,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
@@ -1048,7 +1049,8 @@ const USER_CONFIG = {
         checksPath: 'euroPlanner/v33/checks/paris',
         structurePath: 'euroPlanner/v33/structure/paris',
         tabs:  ['reservations','itinerary','packing'],
-        itineraryCats: ['paris1','london','london_b','paris2'],
+        itineraryCats: ['london','london_b','paris2'],  // 런던 2일차~파리2차
+        itineraryDayStart: { london: 2, london_b: 2 },  // 런던 2일차부터
         soloMode: false,
         reservationFilter: ['r27e','r4','r20','r21','r26','r28']
     }
@@ -1202,8 +1204,10 @@ function applySoloText(text) {
         .replace(/\[혼자\]\s*/g, '')
 
         // ── 친구 합류/작별 이벤트 ──────────────────────────
+        .replace(/취리히[^\n]*(및|&|후)[^\n]*친구[^\n]*합류[^\n]*/g, '취리히 공항 도착')
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
         .replace(/& 친구 합류\s*🎉?/g, '')
+        .replace(/친구\s*(및|&|후)?\s*합류\s*🎉?/g, '')
         .replace(/친구 합류\s*🎉?/g, '')
         .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
         .replace(/친구 작별[^\n]*/g, '공항 배웅')
@@ -1248,20 +1252,6 @@ function applySoloText(text) {
         .replace(/반드시 수량 2장 선택!/g, '사전 예약 필수!')
         .replace(/7\/9 대영박물관은 2인 예약,?\s*/g, '')
 
-        // ── 취리히/친구 상봉 관련 추가 패턴 ─────────────────────
-        .replace(/취리히.*?친구.*?상봉[^\n]*/g, '취리히 공항 도착')
-        .replace(/친구.*?상봉[^\n]*/g, '')
-        .replace(/상봉[^\n]*친구[^\n]*/g, '')
-        .replace(/동행[^\n]*합류[^\n]*/g, '')
-        .replace(/합류[^\n]*동행[^\n]*/g, '')
-        .replace(/친구[^\n]*픽업[^\n]*/g, '')
-        .replace(/픽업[^\n]*친구[^\n]*/g, '')
-        .replace(/일행[^\n]*합류[^\n]*/g, '')
-        .replace(/,?\s*일행과 함께[^,\n]*/g, '')
-        .replace(/일행과\s*/g, '')
-        .replace(/동행자[^\n]*/g, '')
-        .replace(/같이 가는 친구[^\n]*/g, '')
-
         // ── 빈 줄 정리 ─────────────────────────────────────
         .replace(/\n{2,}/g, '\n')
         .replace(/^\n|\n$/g, '')
@@ -1282,6 +1272,17 @@ function getFilteredTasks(tab, catKey, tasks) {
     // 예약 탭 친구 필터
     if (tab === 'reservations' && uc.reservationFilter) {
         return tasks.filter(t => uc.reservationFilter.includes(t.id));
+    }
+
+    // 일정 탭 날짜 시작 필터 (특정 도시의 N일차부터만 표시)
+    if (tab === 'itinerary' && uc.itineraryDayStart && uc.itineraryDayStart[catKey] !== undefined) {
+        const startDk = uc.itineraryDayStart[catKey];
+        return tasks.filter(t => {
+            const dk = t._dk !== undefined ? t._dk : null;
+            if (dk === null || dk === '__etc__' || dk === '__memo__') return true;
+            const dkNum = parseInt(dk, 10);
+            return isNaN(dkNum) || dkNum >= startDk;
+        });
     }
     return tasks;
 }
