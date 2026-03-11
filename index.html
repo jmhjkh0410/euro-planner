@@ -2377,10 +2377,8 @@ function getDK(task) {
     // 2) _dk 값 처리
     const raw = task._dk;
     if (raw !== undefined && raw !== null && raw !== '') {
-        // v2 DB: plan_a~e → __plan_a__~ 로 변환
+        // v2 DB: plan_a~e → __plan_a__~ 로 변환 (Apps Script에서 변환 안 된 경우 대비)
         if (/^plan_[a-e]$/.test(raw)) return `__${raw}__`;
-        // v2 DB: fixed → 그대로 사용
-        if (raw === 'fixed') return 'fixed';
         // 비정상값 제거
         if (raw === '0' || raw === 'move' || raw === 'x') {/* fall through to id */}
         else return raw;
@@ -2399,8 +2397,6 @@ function getDKfromId(id) {
     // 구버전: nice_b-plan_a-0, swiss_b-__plan_b__-2
     const pm2 = id.match(/[_-](?:__)?plan_([a-e])(?:__)?[-_]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
     const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
-    // v2 새 ID 형식: {city}-fixed-{seq} → fixed
-    if (/-fixed-/.test(id)) return 'fixed';
     // v2 새 ID 형식: {city}-{num}-{seq}
     const dv2 = id.match(/^[a-z0-9_]+-(\d+)-\d+$/); if (dv2) return dv2[1];
     const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
@@ -2408,7 +2404,6 @@ function getDKfromId(id) {
 }
 const DK_LABEL = {
     '__memo__': '📌 숙소 & 교통 핵심 메모',
-    'fixed':    '📌 고정 일정',
     '__plan_a__': '☀️ Plan A — 날씨 맑음',
     '__plan_b__': '⛅ Plan B — 구름 조금',
     '__plan_c__': '☁️ Plan C — 흐림/비',
