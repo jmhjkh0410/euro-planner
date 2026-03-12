@@ -1216,8 +1216,11 @@ function applySoloText(text) {
 
         // ── 친구 합류/작별 이벤트 ──────────────────────────
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
+        .replace(/취리히 공항 도착 & 친구 상봉/g, '취리히 공항 도착')
         .replace(/& 친구 합류\s*🎉?/g, '')
+        .replace(/& 친구 상봉/g, '')
         .replace(/친구 합류\s*🎉?/g, '')
+        .replace(/친구 상봉/g, '')
         .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
         .replace(/친구 작별[^\n]*/g, '공항 배웅')
 
@@ -1777,23 +1780,28 @@ function doSearch(q) {
     const kw = q.trim().toLowerCase();
     const results = [];
 
-    // 탭별 카테고리 설정
+    // 탭별 카테고리 설정 (유저 필터 적용)
     const TABS = [
-        { tab: 'itinerary',    label: '🗺 일정',  cats: config.itinerary.categories },
-        { tab: 'reservations', label: '📅 예약',  cats: config.reservations.categories },
-        { tab: 'packing',      label: '🎒 짐싸기', cats: config.packing.categories },
+        { tab: 'itinerary',    label: '🗺 일정'  },
+        { tab: 'reservations', label: '📅 예약'  },
+        { tab: 'packing',      label: '🎒 짐싸기' },
     ];
 
-    for (const { tab, label, cats } of TABS) {
+    for (const { tab, label } of TABS) {
         const td = appState[tab];
+        const cats = getFilteredCategories(tab);
         for (const [catKey, catInfo] of Object.entries(cats)) {
-            const tasks = getStructureArr(td.structure, catKey);
+            const rawTasks = getStructureArr(td.structure, catKey);
+            const tasks = getFilteredTasks(tab, catKey, rawTasks);
             for (const t of tasks) {
-                const titleMatch = t.title?.toLowerCase().includes(kw);
-                const descMatch  = t.desc?.toLowerCase().includes(kw);
-                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
+                const title = applySoloText(t.title || '');
+                const desc  = applySoloText(t.desc  || '');
+                const tips  = applySoloText(t.tips  || '');
+                const titleMatch = title.toLowerCase().includes(kw);
+                const descMatch  = desc.toLowerCase().includes(kw);
+                const tipsMatch  = tips.toLowerCase().includes(kw);
                 if (titleMatch || descMatch || tipsMatch) {
-                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: {...t, title, desc, tips}, titleMatch, descMatch, tipsMatch });
                 }
             }
         }
