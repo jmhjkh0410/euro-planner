@@ -103,7 +103,7 @@ ul{list-style:none}
 .progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 16px 0;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
 .progress-accent{position:absolute;top:0;left:0;right:0;height:3px;transition:background-color .5s}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
-.progress-title-area{display:flex;flex-direction:column;gap:5px}
+.progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
 .progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
 .progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
@@ -825,15 +825,6 @@ const FB_LOCAL_CHECKS  = 'EURO_PLANNER_V33_CHECKS';
 
 // solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
 let soloSessionStructure = null;
-// solo 세션 전용 체크 상태 (메모리만, 저장 안 함)
-let soloSessionChecks = null; // { reservations:{}, itinerary:{}, packing:{} }
-
-// 현재 유저 기준 체크 상태 반환 (솔로면 세션 메모리)
-function getChecks(tab) {
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
-    if (uc && uc.saveMode === 'session' && soloSessionChecks) return soloSessionChecks[tab] || {};
-    return appState[tab].checks || {};
-}
 
 let fbReady = false;
 let _unsubContent = null;
@@ -915,15 +906,13 @@ function _startFirebaseSync() {
         const d = snap.val();
         if (d) {
             try {
-                const parsed = JSON.parse(d);
-                _applyContentState(parsed);
+                _applyContentState(JSON.parse(d));
                 localStorage.setItem(FB_LOCAL_CONTENT, d);
-                try { renderContent(); } catch(e2) { console.error('[renderContent error]', e2); throw e2; }
-                updateProgress(); updateTrashFab();
+                renderContent(); updateProgress(); updateTrashFab();
                 renderMobileNav();
                 loadWeather();
                 setSyncStatus('ok', '✅ 동기화 완료');
-            } catch(e) { console.error('[content sync error]', e); setSyncStatus('error', '❌ ' + (e?.message || e)); }
+            } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
         } else if (uc && uc.isMaster) {
             _saveContentToFirebase();
         }
@@ -997,7 +986,8 @@ function save() {
         _saveChecksToFirebase();
 
     } else if (uc.saveMode === 'session') {
-        // 솔로: 모든 변경사항 세션 메모리만 — Firebase 저장 안 함, 앱 끄면 사라짐
+        // 솔로: 체크는 full과 공유, structure는 세션 메모리만 (저장 안 함)
+        _saveChecksToFirebase();
         setSyncStatus('ok', '✅ 저장 완료 (세션 전용)');
 
     } else if (uc.saveMode === 'private') {
@@ -1031,7 +1021,7 @@ const USER_CONFIG = {
         color: '#10b981',
         isMaster: false,
         saveMode: 'session',    // 세션 메모리만 — 앱 끄면 삭제
-        checksPath: null,
+        checksPath: 'euroPlanner/v33/checks/full',
         structurePath: null,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
@@ -1048,7 +1038,6 @@ const USER_CONFIG = {
         structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
-        itineraryDayEnd: { london: 3 },   // london 3일차까지만 표시
         soloMode: false,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
@@ -1098,7 +1087,7 @@ function enterWithCode(code) {
     }
     sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
     currentUser = normalizedCode;
-    if (normalizedCode === 'solo') { soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} }; soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} }; }
+    if (normalizedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
     applyUserMode(normalizedCode);
     hidePinOverlay();
 }
@@ -1216,15 +1205,8 @@ function applySoloText(text) {
 
         // ── 친구 합류/작별 이벤트 ──────────────────────────
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
-        .replace(/취리히 공항 도착 & 친구 상봉/g, '취리히 공항 도착')
-        .replace(/취리히 공항 도착 및 친구 합류/g, '취리히 공항 도착')
-        .replace(/취리히 공항 도착 및 친구 상봉/g, '취리히 공항 도착')
-        .replace(/취리히 도착 후 친구 합류/g, '취리히 도착')
-        .replace(/도착 후 친구 합류/g, '도착')
         .replace(/& 친구 합류\s*🎉?/g, '')
-        .replace(/& 친구 상봉/g, '')
         .replace(/친구 합류\s*🎉?/g, '')
-        .replace(/친구 상봉/g, '')
         .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
         .replace(/친구 작별[^\n]*/g, '공항 배웅')
 
@@ -1285,22 +1267,10 @@ function getFilteredTasks(tab, catKey, tasks) {
     if (!currentUser) return tasks;
     const uc = USER_CONFIG[currentUser];
 
-    // 예약 탭 친구 필터 (마스터 항목만 whitelist, 본인 _private 항목은 통과)
+    // 예약 탭 친구 필터
     if (tab === 'reservations' && uc.reservationFilter) {
-        const privateIds = new Set(
-            Object.values(appState.reservations._private || {}).flat().map(t => t.id)
-        );
-        return tasks.filter(t => uc.reservationFilter.includes(t.id) || privateIds.has(t.id));
+        return tasks.filter(t => uc.reservationFilter.includes(t.id));
     }
-
-    // 솔로모드: 공항 배웅 항목 숨기기
-    if (tab === 'itinerary' && uc.soloMode) {
-        tasks = tasks.filter(t => {
-            const title = (t.title || '').trim();
-            return !title.includes('공항 배웅') && !title.includes('친구 작별');
-        });
-    }
-
     return tasks;
 }
 
@@ -1321,20 +1291,20 @@ const config = {
         title: "유럽 여행 진행도 🗺️",
         theme: "#8e44ad",
         categories: {
-            budapest: { title: "🇭🇺 부다페스트",       short: "부다",      color: "#e74c3c" },
-            wien:     { title: "🇦🇹 빈(Wien)",          short: "빈",        color: "#c0392b" },
-            krakow:   { title: "🇵🇱 크라쿠프",          short: "크라",      color: "#d35400" },
-            berlin:   { title: "🇩🇪 베를린",            short: "베를린",    color: "#e67e22" },
-            munich:   { title: "🇩🇪 뮌헨",              short: "뮌헨",      color: "#f39c12" },
-            swiss:    { title: "🇨🇭 스위스",            short: "스위스",    color: "#27ae60" },
-            swiss_b:  { title: "🇨🇭 스위스 유동",       short: "스위스유동", color: "#1e8449" },
-            milano:   { title: "🇮🇹 밀라노",            short: "밀라노",    color: "#16a085" },
-            nice:     { title: "🇫🇷 니스",              short: "니스",      color: "#2980b9" },
-            nice_b:   { title: "🇫🇷 니스 유동",         short: "니스유동",  color: "#1a5276" },
-            paris1:   { title: "🇫🇷 파리 1차",          short: "파리1",     color: "#8e44ad" },
-            london:   { title: "🇬🇧 런던",              short: "런던",      color: "#2c3e50" },
-            london_b: { title: "🇬🇧 런던 유동",         short: "런던유동",  color: "#1a252f" },
-            paris2:   { title: "🇫🇷 파리 2차",          short: "파리2",     color: "#6c3483" }
+            budapest: { title: "🇭🇺 부다페스트 2박 3일",  short: "부다",   color: "#e74c3c" },
+            wien:     { title: "🇦🇹 빈(Wien) 3박 4일",    short: "빈",     color: "#c0392b" },
+            krakow:   { title: "🇵🇱 크라쿠프 1박 2일",    short: "크라",   color: "#d35400" },
+            berlin:   { title: "🇩🇪 베를린 3박 4일",      short: "베를린", color: "#e67e22" },
+            munich:   { title: "🇩🇪 뮌헨 3박 4일",        short: "뮌헨",   color: "#f39c12" },
+            swiss:    { title: "🇨🇭 스위스 4박 5일",      short: "스위스", color: "#27ae60" },
+            swiss_b:  { title: "🇨🇭 스위스 Plan A/B/C",  short: "스위스유동", color: "#1e8449" },
+            milano:   { title: "🇮🇹 밀라노 1박 2일",      short: "밀라노", color: "#16a085" },
+            nice:     { title: "🇫🇷 니스 3박 4일",        short: "니스",   color: "#2980b9" },
+            nice_b:   { title: "🇫🇷 니스 Plan A/B",       short: "니스유동", color: "#1a5276" },
+            paris1:   { title: "🇫🇷 파리 1차 4박 5일",    short: "파리1",  color: "#8e44ad" },
+            london:   { title: "🇬🇧 런던 11박 12일 고정",  short: "런던",   color: "#2c3e50" },
+            london_b: { title: "🇬🇧 런던 유동 블록 A~E",  short: "런던유동", color: "#1a252f" },
+            paris2:   { title: "🇫🇷 파리 2차 2박 3일",    short: "파리2",  color: "#6c3483" }
         }
     },
     packing: {
@@ -1784,28 +1754,23 @@ function doSearch(q) {
     const kw = q.trim().toLowerCase();
     const results = [];
 
-    // 탭별 카테고리 설정 (유저 필터 적용)
+    // 탭별 카테고리 설정
     const TABS = [
-        { tab: 'itinerary',    label: '🗺 일정'  },
-        { tab: 'reservations', label: '📅 예약'  },
-        { tab: 'packing',      label: '🎒 짐싸기' },
+        { tab: 'itinerary',    label: '🗺 일정',  cats: config.itinerary.categories },
+        { tab: 'reservations', label: '📅 예약',  cats: config.reservations.categories },
+        { tab: 'packing',      label: '🎒 짐싸기', cats: config.packing.categories },
     ];
 
-    for (const { tab, label } of TABS) {
+    for (const { tab, label, cats } of TABS) {
         const td = appState[tab];
-        const cats = getFilteredCategories(tab);
         for (const [catKey, catInfo] of Object.entries(cats)) {
-            const rawTasks = getStructureArr(td.structure, catKey);
-            const tasks = getFilteredTasks(tab, catKey, rawTasks);
+            const tasks = getStructureArr(td.structure, catKey);
             for (const t of tasks) {
-                const title = applySoloText(t.title || '');
-                const desc  = applySoloText(t.desc  || '');
-                const tips  = applySoloText(t.tips  || '');
-                const titleMatch = title.toLowerCase().includes(kw);
-                const descMatch  = desc.toLowerCase().includes(kw);
-                const tipsMatch  = tips.toLowerCase().includes(kw);
+                const titleMatch = t.title?.toLowerCase().includes(kw);
+                const descMatch  = t.desc?.toLowerCase().includes(kw);
+                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
                 if (titleMatch || descMatch || tipsMatch) {
-                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: {...t, title, desc, tips}, titleMatch, descMatch, tipsMatch });
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
                 }
             }
         }
@@ -2036,7 +2001,7 @@ function init() {
         currentUser = savedCode;
         document.getElementById('pin-overlay').classList.add('hidden');
         // 세션 복원 시 스크롤 잠금 불필요 (pin overlay 안 보임)
-        if (savedCode === 'solo') { soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} }; soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} }; }
+        if (savedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
         applyUserMode(savedCode);
     } else {
         _lockBodyScroll();  // 핀 화면 표시 중 iOS Safari 포함 배경 잠금
@@ -2167,42 +2132,6 @@ function formatMemoText(raw) {
         })
         .join('\n');
 }
-// ── 도시 카드 타이틀 동적 생성 ──────────────────────────
-// 일반 도시: accommodations.nights 기반 "N박 M일"
-// 유동 블록: structure의 __plan_x__ 키 기반 "Plan A/B/C"
-const FLOAT_CATS = { swiss_b: true, nice_b: true, london_b: true };
-const PLAN_LABELS = { __plan_a__:'A', __plan_b__:'B', __plan_c__:'C', __plan_d__:'D', __plan_e__:'E' };
-
-function getCityTitle(catKey) {
-    const base = config.itinerary.categories[catKey]?.title || catKey;
-
-    // 유동 블록: structure에서 plan 키 읽기
-    if (FLOAT_CATS[catKey]) {
-        const data = appState.itinerary.structure[catKey];
-        if (data && typeof data === 'object' && !Array.isArray(data)) {
-            const plans = Object.keys(data)
-                .filter(k => k.startsWith('__plan_') && Array.isArray(data[k]) && data[k].length > 0)
-                .map(k => PLAN_LABELS[k])
-                .filter(Boolean);
-            if (plans.length > 0) return `${base} Plan ${plans.join('/')}`;
-        }
-        return base;
-    }
-
-    // 일반 도시: accommodations.nights 읽기
-    const accoms = appState.accommodations || {};
-    const keyMap = { swiss_b:'swiss', nice_b:'nice', london_b:'london', paris1:'paris1', paris2:'paris2' };
-    const lookupKey = keyMap[catKey] || catKey;
-    const info = accoms[lookupKey];
-    if (info?.nights) {
-        const n1 = parseInt(info.nights) || 0;
-        const n2 = parseInt(info.nights2) || 0; // london 두 번째 숙소
-        const total = n1 + n2;
-        if (total > 0) return `${base} ${total}박 ${total+1}일`;
-    }
-    return base;
-}
-
 // ── 숙소 주소 칩 렌더링 ─────────────────────────────────
 function renderAccommodation(container, catKey) {
     const accoms = appState.accommodations || {};
@@ -2412,8 +2341,10 @@ function renderSidebar() {
 
 // ── DAY KEY ───────────────────────────────────────────────
 function getDK(task) {
-    if (task._dk !== undefined) return task._dk;
-    return getDKfromId(task.id);
+    const raw = task._dk !== undefined ? task._dk : getDKfromId(task.id);
+    // plan_a → __plan_a__ 정규화
+    if (typeof raw === 'string' && /^plan_[a-e]$/.test(raw)) return `__${raw}__`;
+    return raw;
 }
 function getDKfromId(id) {
     if (/-m$/.test(id)) return '__memo__';
@@ -2549,7 +2480,7 @@ function doDropTo(targetCat, targetDK, insertBeforeId) {
 
 // ── RENDER ITEM ───────────────────────────────────────────
 function renderItem(task, catKey, catInfo, td, dk) {
-    const done   = !!getChecks(appState.activeTab)[task.id];
+    const done   = !!td.checks[task.id];
     const ticket = td.tickets[task.id];
     const li = document.createElement('li');
     li.className = `task-item${done ? ' completed' : ''}`;
@@ -2634,8 +2565,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
     }
 
     li.addEventListener('click', e => {
-        if (e.target.closest('button,label,input,a,textarea,select')) return;
-        if (li.dataset.editing) return;
+        if (e.target.closest('button,label,input,a')) return;
         if (editMode) { toggleSelect(task.id); return; }
         if (isMemoTask) return;
         toggleCheck(task.id);
@@ -2692,12 +2622,12 @@ function renderContent() {
 
         if (isIt) {
             const isOpen = !!(appState.itinerary.cityOpen[catKey]);
-            const done   = tasks.filter(t => getDK(t) !== '__memo__' && getChecks(appState.activeTab)[t.id]).length;
+            const done   = tasks.filter(t => getDK(t) !== '__memo__' && td.checks[t.id]).length;
             const total  = tasks.filter(t => getDK(t) !== '__memo__').length;
             section.innerHTML = `
                 <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
                     <div class="city-card-left">
-                        <span class="city-card-title">${getCityTitle(catKey)}</span>
+                        <span class="city-card-title">${catInfo.title}</span>
                         <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
                     </div>
                     <span class="city-chevron${isOpen?' open':''}">▼</span>
@@ -2734,26 +2664,10 @@ function renderContent() {
                 groups[dk].push(t);
             });
 
-            // itineraryDayEnd 필터: 해당 catKey에 최대 일차 제한이 있으면 초과 dk 제거
-            const dayEndLimit = uc?.itineraryDayEnd?.[catKey];
-            const dayStartLimit = uc?.itineraryDayStart?.[catKey];
-            if (dayEndLimit !== undefined || dayStartLimit !== undefined) {
-                order.forEach(dk => {
-                    const dkNum = Number(dk);
-                    if (!isNaN(dkNum)) {
-                        if (dayEndLimit !== undefined && dkNum > dayEndLimit) delete groups[dk];
-                        if (dayStartLimit !== undefined && dkNum < dayStartLimit) delete groups[dk];
-                    }
-                });
-                const limitedOrder = order.filter(dk => groups[dk] !== undefined);
-                order.length = 0;
-                limitedOrder.forEach(d => order.push(d));
-            }
-
             order.forEach(dk => {
                 const gt      = groups[dk];
                 const dayOpen = !!(appState.itinerary.dayOpen[`${catKey}__${dk}`]);
-                const ddone   = gt.filter(t => getChecks(appState.activeTab)[t.id]).length;
+                const ddone   = gt.filter(t => td.checks[t.id]).length;
                 const todayDay = isToday(dk);
 
                 const dayDiv = document.createElement('div');
@@ -2809,8 +2723,6 @@ function renderContent() {
                 inner.appendChild(dayDiv);
             });
 
-
-
         } else {
             // 예약 / 짐싸기
             section.innerHTML = `
@@ -2854,16 +2766,6 @@ function toggleDay(catKey, dk) {
 
 // ── CHECK ─────────────────────────────────────────────────
 function toggleCheck(id) {
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
-    if (uc && uc.saveMode === 'session') {
-        // 솔로: 세션 메모리 체크
-        if (!soloSessionChecks) soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} };
-        const tab = appState.activeTab;
-        soloSessionChecks[tab][id] = !soloSessionChecks[tab][id];
-        document.getElementById(`item-${id}`)?.classList.toggle('completed', !!soloSessionChecks[tab][id]);
-        updateProgress();
-        return;
-    }
     const td = appState[appState.activeTab];
     td.checks[id] = !td.checks[id];
     document.getElementById(`item-${id}`)?.classList.toggle('completed', !!td.checks[id]);
@@ -2875,19 +2777,8 @@ function enterEdit(taskId, catKey) {
     const li = document.getElementById(`item-${taskId}`);
     if (!li) return;
     const td = appState[appState.activeTab];
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     let task = null;
-    // structure 먼저 탐색
     for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
-    // private 유저는 _private에서도 탐색
-    if (!task && uc && uc.saveMode === 'private' && td._private) {
-        for (const k in td._private) { task = (td._private[k] || []).find(t => t.id === taskId); if (task) break; }
-    }
-    // session 유저는 soloSessionStructure에서도 탐색
-    if (!task && uc && uc.saveMode === 'session' && soloSessionStructure) {
-        const ss = soloSessionStructure[appState.activeTab] || {};
-        for (const k in ss) { task = (ss[k] || []).find(t => t.id === taskId); if (task) break; }
-    }
     if (!task) return;
     const cats  = config[appState.activeTab].categories;
     const color = cats[catKey]?.color || '#888';
@@ -2900,101 +2791,22 @@ function enterEdit(taskId, catKey) {
             ${Object.entries(cats).map(([k,v]) => `<option value="${k}"${k===catKey?' selected':''}>${v.title}</option>`).join('')}
         </select>
         <div class="edit-actions">
-            ${_pendingNewTaskId === taskId ? '<div></div>' : `<button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>`}
+            <button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>
             <div class="edit-actions-right">
-                <button type="button" class="btn-cancel-edit" onclick="cancelEdit('${taskId}')">취소</button>
+                <button type="button" class="btn-cancel-edit" onclick="renderContent()">취소</button>
                 <button type="button" class="btn-save-edit" style="background:${color}" onclick="saveEdit('${taskId}','${catKey}')">저장</button>
             </div>
         </div>
     </div>`;
     li.style.cursor = 'default';
-    li.classList.add('is-editing');
-    // 편집 폼이 열린 동안 li 클릭으로 toggleCheck 되지 않도록 차단
-    li.dataset.editing = '1';
-}
-function cancelEdit(taskId) {
-    // 방금 addTask로 생성된 신규 항목이면 삭제 (카드 생성 취소)
-    if (_pendingNewTaskId && _pendingNewTaskId === taskId) {
-        _pendingNewTaskId = null;
-        const tab = appState.activeTab, td = appState[tab];
-        const uc = currentUser ? USER_CONFIG[currentUser] : null;
-        // private 유저: _private에서 삭제
-        if (uc && uc.saveMode === 'private' && td._private) {
-            for (const k in td._private) {
-                const arr = td._private[k] || [];
-                const idx = arr.findIndex(t => t.id === taskId);
-                if (idx !== -1) { arr.splice(idx, 1); break; }
-            }
-        // session 유저: soloSession에서 삭제
-        } else if (uc && uc.saveMode === 'session' && soloSessionStructure) {
-            const ss = soloSessionStructure[tab] || {};
-            for (const k in ss) {
-                const arr = ss[k] || [];
-                const idx = arr.findIndex(t => t.id === taskId);
-                if (idx !== -1) { arr.splice(idx, 1); break; }
-            }
-        // 마스터: structure에서 삭제
-        } else {
-            const found = findTaskInStructure(td.structure, taskId);
-            if (found) found.arr.splice(found.idx, 1);
-        }
-        saveAndRender();
-        return;
-    }
-    // 기존 항목 편집 취소: 그냥 재렌더 (변경사항 버림)
-    _pendingNewTaskId = null;
-    renderContent();
 }
 function saveEdit(taskId, oldCat) {
-    _pendingNewTaskId = null; // 저장 완료 → 신규 항목 아님
     const td = appState[appState.activeTab];
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     const title = document.getElementById(`et-${taskId}`)?.value || '';
     const desc  = document.getElementById(`ed-${taskId}`)?.value || '';
     const time  = document.getElementById(`etm-${taskId}`)?.value || '';
     const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
-
-    // private 유저: _private에서 탐색 후 저장
-    if (uc && uc.saveMode === 'private') {
-        if (!td._private) td._private = {};
-        let found = null;
-        for (const k in td._private) {
-            const arr = td._private[k] || [];
-            const idx = arr.findIndex(t => t.id === taskId);
-            if (idx !== -1) { found = { arr, idx, catKey: k }; break; }
-        }
-        if (!found) return;
-        const [task] = found.arr.splice(found.idx, 1);
-        task.title = title; task.desc = desc; task.tips = tips;
-        if (time) task._time = time; else delete task._time;
-        if (!td._private[newCat]) td._private[newCat] = [];
-        td._private[newCat].push(task);
-        saveAndRender();
-        return;
-    }
-
-    // session 유저: soloSessionStructure에서 탐색 후 저장
-    if (uc && uc.saveMode === 'session') {
-        if (!soloSessionStructure) return;
-        const ss = soloSessionStructure[appState.activeTab] || {};
-        let found = null;
-        for (const k in ss) {
-            const arr = ss[k] || [];
-            const idx = arr.findIndex(t => t.id === taskId);
-            if (idx !== -1) { found = { arr, idx }; break; }
-        }
-        if (!found) return;
-        const [task] = found.arr.splice(found.idx, 1);
-        task.title = title; task.desc = desc; task.tips = tips;
-        if (time) task._time = time; else delete task._time;
-        if (!ss[newCat]) ss[newCat] = [];
-        ss[newCat].push(task);
-        saveAndRender();
-        return;
-    }
-
-    // 마스터: structure에서 탐색 후 저장
     const _found = findTaskInStructure(td.structure, taskId);
     if (!_found) return;
     const [task] = _found.arr.splice(_found.idx, 1);
@@ -3007,23 +2819,11 @@ function saveEdit(taskId, oldCat) {
 
 // ── DELETE → TRASH ────────────────────────────────────────
 let _pendingDelId = null;
-let _pendingNewTaskId = null; // addTask로 방금 생성된 신규 항목 ID (취소 시 삭제용)
 function startDelete(taskId) {
     _pendingDelId = taskId;
     const td = appState[appState.activeTab];
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     let title = '';
-    // structure 탐색
     for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
-    // private 탐색
-    if (!title && uc && uc.saveMode === 'private' && td._private) {
-        for (const k in td._private) { const t = (td._private[k]||[]).find(t => t.id===taskId); if (t) { title=t.title; break; } }
-    }
-    // session 탐색
-    if (!title && uc && uc.saveMode === 'session' && soloSessionStructure) {
-        const ss = soloSessionStructure[appState.activeTab] || {};
-        for (const k in ss) { const t = (ss[k]||[]).find(t => t.id===taskId); if (t) { title=t.title; break; } }
-    }
     document.getElementById('dlg-delete-desc').textContent =
         `"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
     openDlg('dlg-delete');
@@ -3032,39 +2832,6 @@ function confirmDeleteNow() {
     if (!_pendingDelId) return;
     const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
     const tab = appState.activeTab, td = appState[tab];
-    const uc = currentUser ? USER_CONFIG[currentUser] : null;
-
-    // private 유저: _private에서 삭제
-    if (uc && uc.saveMode === 'private' && td._private) {
-        for (const k in td._private) {
-            const arr = td._private[k] || [];
-            const idx = arr.findIndex(t => t.id === id);
-            if (idx !== -1) {
-                const [task] = arr.splice(idx, 1);
-                appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
-                delete td.checks[id]; delete td.tickets[id];
-                saveAndRender(); updateTrashFab();
-                return;
-            }
-        }
-    }
-
-    // session 유저: soloSessionStructure에서 삭제
-    if (uc && uc.saveMode === 'session' && soloSessionStructure) {
-        const ss = soloSessionStructure[tab] || {};
-        for (const k in ss) {
-            const arr = ss[k] || [];
-            const idx = arr.findIndex(t => t.id === id);
-            if (idx !== -1) {
-                const [task] = arr.splice(idx, 1);
-                appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
-                saveAndRender(); updateTrashFab();
-                return;
-            }
-        }
-    }
-
-    // 마스터: structure에서 삭제
     const found = findTaskInStructure(td.structure, id);
     if (found) {
         const [task] = found.arr.splice(found.idx, 1);
@@ -3145,7 +2912,6 @@ function addTask(catKey, dk) {
     }
 
     saveAndRender();
-    _pendingNewTaskId = newId;
     setTimeout(() => enterEdit(newId, catKey), 60);
 }
 
@@ -3157,7 +2923,7 @@ function updateProgress() {
         .filter(([k]) => filteredCats[k])
         .flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
         .filter(t => getDK(t) !== '__memo__');
-    const n   = all.filter(t => getChecks(appState.activeTab)[t.id]).length;
+    const n   = all.filter(t => td.checks[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
     document.getElementById('progress-bar').style.width  = pct + '%';
     document.getElementById('progress-pct').textContent  = pct + '%';
