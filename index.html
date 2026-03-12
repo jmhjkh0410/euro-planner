@@ -103,7 +103,7 @@ ul{list-style:none}
 .progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 16px 0;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
 .progress-accent{position:absolute;top:0;left:0;right:0;height:3px;transition:background-color .5s}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
-.progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
+.progress-title-area{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
 .progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
@@ -2356,15 +2356,33 @@ function getDKfromId(id) {
 }
 const DK_LABEL = {
     '__memo__': '📌 숙소 & 교통 핵심 메모',
-    '__plan_a__': '☀️ Plan A — 날씨 맑음',
-    '__plan_b__': '⛅ Plan B — 구름 조금',
-    '__plan_c__': '☁️ Plan C — 흐림/비',
-    '__plan_d__': '🗓️ Plan D',
-    '__plan_e__': '🍻 Plan E — 현지 친구 찬스',
     '__etc__': '📝 기타'
 };
-function getDKLabel(dk, tasks) {
+const DK_LABEL_BY_CAT = {
+    swiss_b: {
+        '__plan_a__': '☀️ Plan A — 융프라우 / 피르스트 (맑음)',
+        '__plan_b__': '⛅ Plan B — 체르마트 / 마테호른 (흐림)',
+        '__plan_c__': '☁️ Plan C — 칸더슈테크 / 외쉬넨 (비/회복)',
+    },
+    nice_b: {
+        '__plan_a__': '🚢 Plan A — 모나코 당일치기',
+        '__plan_b__': '🌊 Plan B — 느긋하게 니스 시내',
+    },
+    london_b: {
+        '__plan_a__': '🎸 Plan A — 해로 스쿨 · 에비 로드 · 프림로즈 힐',
+        '__plan_b__': '🎭 Plan B — 내셔널 갤러리 · 소호 · 웨스트엔드 뮤지컬',
+        '__plan_c__': '🏛️ Plan C — 세인트폴 · 테이트 모던 · 버로우 마켓 · 템즈 야경',
+        '__plan_d__': '🦕 Plan D — 벨그레이비어 · 자연사 박물관 · 사우스뱅크',
+        '__plan_e__': '🍻 Plan E — 친구가 이끄는 비밀 명소',
+    },
+};
+function getDKLabel(dk, tasks, catKey) {
     if (DK_LABEL[dk]) return DK_LABEL[dk];
+    if (catKey && DK_LABEL_BY_CAT[catKey]?.[dk]) return DK_LABEL_BY_CAT[catKey][dk];
+    if (dk && dk.startsWith('__plan_')) {
+        const letter = dk.replace('__plan_','').replace('__','').toUpperCase();
+        return `📋 Plan ${letter}`;
+    }
     const hint = tasks.find(t => { const m = t.id.match(/-(\d+)[a-z]/); return m && m[1] === dk && t.desc?.match(/\d+일차/); });
     if (hint) { const dm = hint.desc.match(/\(([^)]+)\)/); return `📅 ${dk}일차${dm ? ' '+dm[0] : ''}`; }
     return `📅 ${dk}일차`;
@@ -2683,7 +2701,7 @@ function renderContent() {
                 hdr.onclick = () => toggleDay(catKey, dk);
                 hdr.innerHTML = `
                     <div class="day-header-left">
-                        <span class="day-label">${getDKLabel(dk, tasks)}</span>
+                        <span class="day-label">${getDKLabel(dk, tasks, catKey)}</span>
                         ${todayDay ? `<span class="day-count" style="background:#fde68a;color:#92400e">📍 오늘</span>` : ''}
                         ${ddone > 0
                             ? `<span class="day-count done">${ddone}/${gt.length} 완료</span>`
