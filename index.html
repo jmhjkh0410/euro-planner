@@ -105,7 +105,7 @@ ul{list-style:none}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
 .progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
 .progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
-.progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px;padding-bottom:10px}
+.progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
 .today-badge:hover{background:var(--border-light)}
 .trip-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700}
@@ -115,7 +115,7 @@ ul{list-style:none}
 .indicator-badge{display:flex;align-items:center;gap:6px;background:var(--surface-raised);border:1px solid var(--border-light);padding:4px 10px;border-radius:999px;flex-shrink:0}
 .indicator-dot{width:6px;height:6px;border-radius:50%}
 .indicator-text{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
-.progress-row{display:flex;align-items:center;gap:12px}
+.progress-row{display:flex;align-items:center;gap:12px;padding-bottom:10px}
 .progress-track{flex:1;background:var(--border-light);border-radius:999px;height:6px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
 .progress-fill{height:100%;border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1)}
 .progress-pct{font-size:15px;font-weight:800;color:var(--text-primary);min-width:36px;text-align:right}
@@ -703,7 +703,14 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <div class="progress-card">
           <div class="progress-accent" id="theme-bar"></div>
           <div class="progress-header">
-            <span class="progress-title" id="view-title"></span>
+            <div class="progress-title-area">
+              <span class="progress-title" id="view-title"></span>
+              <div class="progress-date-row">
+                <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
+                <span class="trip-badge" id="trip-badge"></span>
+                <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeather()" style="display:none">🌤 날씨</button>
+              </div>
+            </div>
             <div class="indicator-badge">
               <span class="indicator-dot" id="indicator-dot"></span>
               <span class="indicator-text" id="indicator-text">섹션 탐색</span>
@@ -712,11 +719,6 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
           <div class="progress-row">
             <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
             <span class="progress-pct" id="progress-pct">0%</span>
-          </div>
-          <div class="progress-date-row">
-            <span class="today-badge" id="today-badge" onclick="openDateDlg()" title="여행 날짜 설정">📅</span>
-            <span class="trip-badge" id="trip-badge"></span>
-            <button class="weather-pill-btn" id="weather-pill-btn" onclick="toggleWeather()" style="display:none">🌤 날씨</button>
           </div>
           <!-- 날씨 위젯 (일정 탭 전용, 버튼으로 열고 닫힘) -->
           <div class="weather-widget" id="weather-widget">
@@ -1035,8 +1037,9 @@ const USER_CONFIG = {
         checksPath: 'euroPlanner/v33/checks/swiss',
         structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
-        itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london','london_b'],
-        itineraryDayStart: { london: 2, london_b: 2 },  // 런던 2일차까지(런던 1일차=이다은 작별날 제외)
+        itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
+        itineraryDayEnd: { london: 2 },   // london 2일차까지만 표시
+        itineraryDayStart: { london: 2 }, // london 1일차는 표시 안 함
         soloMode: false,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
@@ -1049,8 +1052,7 @@ const USER_CONFIG = {
         checksPath: 'euroPlanner/v33/checks/paris',
         structurePath: 'euroPlanner/v33/structure/paris',
         tabs:  ['reservations','itinerary','packing'],
-        itineraryCats: ['london','london_b','paris2'],
-        itineraryDayStart: { london: 2, london_b: 2 },
+        itineraryCats: ['paris1','london','london_b','paris2'],
         soloMode: false,
         reservationFilter: ['r27e','r4','r20','r21','r26','r28']
     }
@@ -1196,7 +1198,7 @@ function getFilteredCategories(tab) {
 
 // ── SOLO 모드 텍스트 치환 ────────────────────────────────
 function applySoloText(text) {
-    if (currentUser && !USER_CONFIG[currentUser].soloMode) return text;
+    if (!currentUser || !USER_CONFIG[currentUser].soloMode) return text;
     return text
         // ── 태그 제거 ──────────────────────────────────────
         .replace(/👥\s*/g, '')
@@ -1204,9 +1206,9 @@ function applySoloText(text) {
         .replace(/\[혼자\]\s*/g, '')
 
         // ── 친구 합류/작별 이벤트 ──────────────────────────
-        .replace(/취리히[^\n]*친구[^\n]*/g, '취리히 공항 도착')  // 취리히+친구 모든 조합
-        .replace(/[^\n]*(및|&|후)\s*친구\s*(합류|상봉)[^\n]*/g, m => m.replace(/(및|&|후)\s*친구\s*(합류|상봉)[^\n]*/g, ''))
-        .replace(/친구\s*(합류|상봉|픽업)\s*🎉?/g, '')
+        .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
+        .replace(/& 친구 합류\s*🎉?/g, '')
+        .replace(/친구 합류\s*🎉?/g, '')
         .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
         .replace(/친구 작별[^\n]*/g, '공항 배웅')
 
@@ -1270,17 +1272,6 @@ function getFilteredTasks(tab, catKey, tasks) {
     // 예약 탭 친구 필터
     if (tab === 'reservations' && uc.reservationFilter) {
         return tasks.filter(t => uc.reservationFilter.includes(t.id));
-    }
-
-    // 일정 탭 날짜 시작 필터 (특정 도시의 N일차부터만 표시)
-    if (tab === 'itinerary' && uc.itineraryDayStart && uc.itineraryDayStart[catKey] !== undefined) {
-        const startDk = uc.itineraryDayStart[catKey];
-        return tasks.filter(t => {
-            const dk = t._dk !== undefined ? t._dk : null;
-            if (dk === null || dk === '__etc__' || dk === '__memo__') return true;
-            const dkNum = parseInt(dk, 10);
-            return isNaN(dkNum) || dkNum >= startDk;
-        });
     }
     return tasks;
 }
@@ -1777,15 +1768,11 @@ function doSearch(q) {
         for (const [catKey, catInfo] of Object.entries(cats)) {
             const tasks = getStructureArr(td.structure, catKey);
             for (const t of tasks) {
-                const title = applySoloText(t.title || '');
-                const desc  = applySoloText(t.desc  || '');
-                const tips  = applySoloText(t.tips  || '');
-                const titleMatch = title.toLowerCase().includes(kw);
-                const descMatch  = desc.toLowerCase().includes(kw);
-                const tipsMatch  = tips.toLowerCase().includes(kw);
+                const titleMatch = t.title?.toLowerCase().includes(kw);
+                const descMatch  = t.desc?.toLowerCase().includes(kw);
+                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
                 if (titleMatch || descMatch || tipsMatch) {
-                    const filteredTask = { ...t, title, desc, tips };
-                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: filteredTask, titleMatch, descMatch, tipsMatch });
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
                 }
             }
         }
@@ -2355,50 +2342,15 @@ function renderSidebar() {
 }
 
 // ── DAY KEY ───────────────────────────────────────────────
-// Firebase 데이터에 _dk가 잘못 저장된 항목들을 코드 레벨에서 올바른 값으로 교정
-// (Firebase 직접 수정 없이 ID 기반으로 오버라이드)
-const DK_OVERRIDE = {
-    // swiss: 취리히 공항 도착 → 1일차 (잘못된 _dk=0)
-    'swiss-0-1': '1',  'swi-0-1': '1',
-    // swiss: 체크아웃 & 밀라노행 → 5일차 (잘못된 _dk=0)
-    'swiss-0-9': '5',  'swi-0-9': '5',
-    // nice: 니스역 도착 → 1일차 (잘못된 _dk=0)
-    'nice-0-1': '1',
-    // nice: 체크아웃 & 기차역 이동 → 4일차 (잘못된 _dk=0)
-    'nice-0-6': '4',
-    // paris2: 숙소 체크인/저녁 → 1일차 (_dk='move' 특수값)
-    'paris2-move-2': '1',  'paris2-move-3': '1',
-    // london: 도착 → 1일차 (_dk 없음)
-    'london-x-1': '1',
-};
 function getDK(task) {
-    // 1) ID 오버라이드 테이블 우선 적용
-    if (task.id && DK_OVERRIDE[task.id]) return DK_OVERRIDE[task.id];
-    // 2) _dk 값 처리
-    const raw = task._dk;
-    if (raw !== undefined && raw !== null && raw !== '') {
-        // v2 DB: plan_a~e → __plan_a__~ 로 변환 (Apps Script에서 변환 안 된 경우 대비)
-        if (/^plan_[a-e]$/.test(raw)) return `__${raw}__`;
-        // 비정상값 제거
-        if (raw === '0' || raw === 'move' || raw === 'x') {/* fall through to id */}
-        else return raw;
-    }
-    // 3) id 패턴에서 추출
-    const fromId = getDKfromId(task.id);
-    if (fromId && fromId !== '__etc__') return fromId;
-    // 4) 최종 fallback: 1일차
-    return '1';
+    if (task._dk !== undefined) return task._dk;
+    return getDKfromId(task.id);
 }
 function getDKfromId(id) {
-    if (!id) return '__etc__';
     if (/-m$/.test(id)) return '__memo__';
-    // v2 새 ID 형식: {city}-plan_a-{seq} → __plan_a__
-    const pv2 = id.match(/-plan_([a-e])-/i); if (pv2) return `__plan_${pv2[1].toLowerCase()}__`;
-    // 구버전: nice_b-plan_a-0, swiss_b-__plan_b__-2
+    // nice_b-plan_a-0, swiss_b-__plan_b__-2 형식
     const pm2 = id.match(/[_-](?:__)?plan_([a-e])(?:__)?[-_]/i); if (pm2) return `__plan_${pm2[1].toLowerCase()}__`;
     const pm = id.match(/-p([a-e])\d*(?:-|$)/); if (pm) return `__plan_${pm[1]}__`;
-    // v2 새 ID 형식: {city}-{num}-{seq}
-    const dv2 = id.match(/^[a-z0-9_]+-(\d+)-\d+$/); if (dv2) return dv2[1];
     const dm = id.match(/-(\d+)[a-z]/); if (dm) return dm[1];
     return '__etc__';
 }
@@ -2613,7 +2565,8 @@ function renderItem(task, catKey, catInfo, td, dk) {
     }
 
     li.addEventListener('click', e => {
-        if (e.target.closest('button,label,input,a')) return;
+        if (e.target.closest('button,label,input,a,textarea,select')) return;
+        if (li.dataset.editing) return;
         if (editMode) { toggleSelect(task.id); return; }
         if (isMemoTask) return;
         toggleCheck(task.id);
@@ -2651,18 +2604,6 @@ function renderContent() {
                 const dk = getDK(t);
                 return !dk || !dk.startsWith('__plan_');
             });
-        }
-        // swiss: plan 항목이 고정 배열에 섞이지 않도록 필터 (v2: plan_tag로 분리됐지만 혹시 모를 잔재 제거)
-        // swiss: _dk=0 숨김 (구버전 잔재)
-        if (catKey === 'swiss') {
-            baseTasks = baseTasks.filter(t => {
-                const dk = getDK(t);
-                return dk !== '0' && !dk.startsWith('__plan_');
-            });
-        }
-        // nice: plan 항목 고정에서 제거
-        if (catKey === 'nice') {
-            baseTasks = baseTasks.filter(t => !getDK(t).startsWith('__plan_'));
         }
 
         if (uc && uc.saveMode === 'private') {
@@ -2711,7 +2652,6 @@ function renderContent() {
             const startC = new Date(start); startC.setHours(0,0,0,0);
             const endC   = new Date(end);   endC.setHours(0,0,0,0);
             const isToday = (dk) => {
-                if (dk === 'fixed' || String(dk).startsWith('__plan_')) return false;
                 if (today < startC || today > endC) return false;
                 const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
                 return String(dk) === todayDK;
@@ -2721,23 +2661,25 @@ function renderContent() {
             tasks.forEach(t => {
                 const dk = getDK(t);
                 if (dk === '__memo__') return; // 메모 그룹은 도시 메모 블록에서 표시
-                if (dk === '0') return; // 구버전 잔재 _dk=0 완전 숨김
                 if (!groups[dk]) { groups[dk] = []; order.push(dk); }
                 groups[dk].push(t);
             });
-            // dk 정렬: fixed → 숫자 오름차순 → plan_* → 나머지
-            order.sort((a, b) => {
-                const rank = dk => {
-                    if (dk === 'fixed') return 0;
-                    if (/^\d+$/.test(dk)) return 1;
-                    if (dk.startsWith('__plan_')) return 3;
-                    return 2;
-                };
-                const ra = rank(a), rb = rank(b);
-                if (ra !== rb) return ra - rb;
-                if (ra === 1) return Number(a) - Number(b);
-                return a.localeCompare(b);
-            });
+
+            // itineraryDayEnd 필터: 해당 catKey에 최대 일차 제한이 있으면 초과 dk 제거
+            const dayEndLimit = uc?.itineraryDayEnd?.[catKey];
+            const dayStartLimit = uc?.itineraryDayStart?.[catKey];
+            if (dayEndLimit !== undefined || dayStartLimit !== undefined) {
+                order.forEach(dk => {
+                    const dkNum = Number(dk);
+                    if (!isNaN(dkNum)) {
+                        if (dayEndLimit !== undefined && dkNum > dayEndLimit) delete groups[dk];
+                        if (dayStartLimit !== undefined && dkNum < dayStartLimit) delete groups[dk];
+                    }
+                });
+                const limitedOrder = order.filter(dk => groups[dk] !== undefined);
+                order.length = 0;
+                limitedOrder.forEach(d => order.push(d));
+            }
 
             order.forEach(dk => {
                 const gt      = groups[dk];
@@ -2852,8 +2794,19 @@ function enterEdit(taskId, catKey) {
     const li = document.getElementById(`item-${taskId}`);
     if (!li) return;
     const td = appState[appState.activeTab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     let task = null;
+    // structure 먼저 탐색
     for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
+    // private 유저는 _private에서도 탐색
+    if (!task && uc && uc.saveMode === 'private' && td._private) {
+        for (const k in td._private) { task = (td._private[k] || []).find(t => t.id === taskId); if (task) break; }
+    }
+    // session 유저는 soloSessionStructure에서도 탐색
+    if (!task && uc && uc.saveMode === 'session' && soloSessionStructure) {
+        const ss = soloSessionStructure[appState.activeTab] || {};
+        for (const k in ss) { task = (ss[k] || []).find(t => t.id === taskId); if (task) break; }
+    }
     if (!task) return;
     const cats  = config[appState.activeTab].categories;
     const color = cats[catKey]?.color || '#888';
@@ -2874,14 +2827,59 @@ function enterEdit(taskId, catKey) {
         </div>
     </div>`;
     li.style.cursor = 'default';
+    li.classList.add('is-editing');
+    // 편집 폼이 열린 동안 li 클릭으로 toggleCheck 되지 않도록 차단
+    li.dataset.editing = '1';
 }
 function saveEdit(taskId, oldCat) {
     const td = appState[appState.activeTab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     const title = document.getElementById(`et-${taskId}`)?.value || '';
     const desc  = document.getElementById(`ed-${taskId}`)?.value || '';
     const time  = document.getElementById(`etm-${taskId}`)?.value || '';
     const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
+
+    // private 유저: _private에서 탐색 후 저장
+    if (uc && uc.saveMode === 'private') {
+        if (!td._private) td._private = {};
+        let found = null;
+        for (const k in td._private) {
+            const arr = td._private[k] || [];
+            const idx = arr.findIndex(t => t.id === taskId);
+            if (idx !== -1) { found = { arr, idx, catKey: k }; break; }
+        }
+        if (!found) return;
+        const [task] = found.arr.splice(found.idx, 1);
+        task.title = title; task.desc = desc; task.tips = tips;
+        if (time) task._time = time; else delete task._time;
+        if (!td._private[newCat]) td._private[newCat] = [];
+        td._private[newCat].push(task);
+        saveAndRender();
+        return;
+    }
+
+    // session 유저: soloSessionStructure에서 탐색 후 저장
+    if (uc && uc.saveMode === 'session') {
+        if (!soloSessionStructure) return;
+        const ss = soloSessionStructure[appState.activeTab] || {};
+        let found = null;
+        for (const k in ss) {
+            const arr = ss[k] || [];
+            const idx = arr.findIndex(t => t.id === taskId);
+            if (idx !== -1) { found = { arr, idx }; break; }
+        }
+        if (!found) return;
+        const [task] = found.arr.splice(found.idx, 1);
+        task.title = title; task.desc = desc; task.tips = tips;
+        if (time) task._time = time; else delete task._time;
+        if (!ss[newCat]) ss[newCat] = [];
+        ss[newCat].push(task);
+        saveAndRender();
+        return;
+    }
+
+    // 마스터: structure에서 탐색 후 저장
     const _found = findTaskInStructure(td.structure, taskId);
     if (!_found) return;
     const [task] = _found.arr.splice(_found.idx, 1);
@@ -2897,8 +2895,19 @@ let _pendingDelId = null;
 function startDelete(taskId) {
     _pendingDelId = taskId;
     const td = appState[appState.activeTab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     let title = '';
+    // structure 탐색
     for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
+    // private 탐색
+    if (!title && uc && uc.saveMode === 'private' && td._private) {
+        for (const k in td._private) { const t = (td._private[k]||[]).find(t => t.id===taskId); if (t) { title=t.title; break; } }
+    }
+    // session 탐색
+    if (!title && uc && uc.saveMode === 'session' && soloSessionStructure) {
+        const ss = soloSessionStructure[appState.activeTab] || {};
+        for (const k in ss) { const t = (ss[k]||[]).find(t => t.id===taskId); if (t) { title=t.title; break; } }
+    }
     document.getElementById('dlg-delete-desc').textContent =
         `"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
     openDlg('dlg-delete');
@@ -2907,6 +2916,39 @@ function confirmDeleteNow() {
     if (!_pendingDelId) return;
     const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
     const tab = appState.activeTab, td = appState[tab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+
+    // private 유저: _private에서 삭제
+    if (uc && uc.saveMode === 'private' && td._private) {
+        for (const k in td._private) {
+            const arr = td._private[k] || [];
+            const idx = arr.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                const [task] = arr.splice(idx, 1);
+                appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
+                delete td.checks[id]; delete td.tickets[id];
+                saveAndRender(); updateTrashFab();
+                return;
+            }
+        }
+    }
+
+    // session 유저: soloSessionStructure에서 삭제
+    if (uc && uc.saveMode === 'session' && soloSessionStructure) {
+        const ss = soloSessionStructure[tab] || {};
+        for (const k in ss) {
+            const arr = ss[k] || [];
+            const idx = arr.findIndex(t => t.id === id);
+            if (idx !== -1) {
+                const [task] = arr.splice(idx, 1);
+                appState.trash.unshift({ ...task, fromTab:tab, fromCat:k, deletedAt:Date.now() });
+                saveAndRender(); updateTrashFab();
+                return;
+            }
+        }
+    }
+
+    // 마스터: structure에서 삭제
     const found = findTaskInStructure(td.structure, id);
     if (found) {
         const [task] = found.arr.splice(found.idx, 1);
