@@ -1268,9 +1268,12 @@ function getFilteredTasks(tab, catKey, tasks) {
     if (!currentUser) return tasks;
     const uc = USER_CONFIG[currentUser];
 
-    // 예약 탭 친구 필터
+    // 예약 탭 친구 필터 (마스터 항목만 whitelist, 본인 _private 항목은 통과)
     if (tab === 'reservations' && uc.reservationFilter) {
-        return tasks.filter(t => uc.reservationFilter.includes(t.id));
+        const privateIds = new Set(
+            Object.values(appState.reservations._private || {}).flat().map(t => t.id)
+        );
+        return tasks.filter(t => uc.reservationFilter.includes(t.id) || privateIds.has(t.id));
     }
 
     // 솔로모드: 공항 배웅 항목 숨기기
@@ -2747,6 +2750,16 @@ function renderContent() {
                 body.appendChild(wrap); dayDiv.appendChild(hdr); dayDiv.appendChild(body);
                 inner.appendChild(dayDiv);
             });
+
+            // 일정 탭 하단 '+ 항목 추가' 버튼 (마지막 dk에 추가)
+            const lastDk = order.length > 0 ? order[order.length - 1] : undefined;
+            const cityAddBtn = document.createElement('button');
+            cityAddBtn.type = 'button';
+            cityAddBtn.className = 'btn-add-task';
+            cityAddBtn.style.cssText = 'margin-top:8px;';
+            cityAddBtn.textContent = '+ 항목 추가';
+            cityAddBtn.onclick = () => addTask(catKey, lastDk);
+            inner.appendChild(cityAddBtn);
 
         } else {
             // 예약 / 짐싸기
