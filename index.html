@@ -1267,6 +1267,17 @@ function getFilteredTasks(tab, catKey, tasks) {
     if (!currentUser) return tasks;
     const uc = USER_CONFIG[currentUser];
 
+    // 솔로 모드: 공항 배웅 관련 항목 숨기기
+    if (uc.soloMode) {
+        tasks = tasks.filter(t => {
+            const title = t.title || '';
+            return !title.includes('공항 배웅') &&
+                   !title.includes('친구 작별') &&
+                   !title.includes('첫 번째 친구') &&
+                   !title.includes('공항에서 대기');
+        });
+    }
+
     // 예약 탭 친구 필터
     if (tab === 'reservations' && uc.reservationFilter) {
         return tasks.filter(t => uc.reservationFilter.includes(t.id));
@@ -1764,13 +1775,18 @@ function doSearch(q) {
     for (const { tab, label, cats } of TABS) {
         const td = appState[tab];
         for (const [catKey, catInfo] of Object.entries(cats)) {
-            const tasks = getStructureArr(td.structure, catKey);
+            const rawTasks = getStructureArr(td.structure, catKey);
+            const tasks = getFilteredTasks(tab, catKey, rawTasks);
             for (const t of tasks) {
-                const titleMatch = t.title?.toLowerCase().includes(kw);
-                const descMatch  = t.desc?.toLowerCase().includes(kw);
-                const tipsMatch  = t.tips?.toLowerCase().includes(kw);
+                const title = applySoloText(t.title || '');
+                const desc  = applySoloText(t.desc  || '');
+                const tips  = applySoloText(t.tips  || '');
+                const titleMatch = title.toLowerCase().includes(kw);
+                const descMatch  = desc.toLowerCase().includes(kw);
+                const tipsMatch  = tips.toLowerCase().includes(kw);
                 if (titleMatch || descMatch || tipsMatch) {
-                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t, titleMatch, descMatch, tipsMatch });
+                    results.push({ tab, tabLabel: label, catKey, catLabel: catInfo.title, task: t,
+                        titleMatch, descMatch, tipsMatch, _title: title, _desc: desc, _tips: tips });
                 }
             }
         }
@@ -1804,12 +1820,12 @@ function doSearch(q) {
         html += `<div class="search-section-label">${group.label} · ${group.items.length}건</div>`;
         for (const r of group.items) {
             const timeStr = r.task._time ? `${r.task._time} · ` : '';
-            const desc = r.descMatch ? r.task.desc : (r.tipsMatch ? r.task.tips : '');
+            const desc = r.descMatch ? r._desc : (r.tipsMatch ? r._tips : '');
             html += `
             <div class="search-item" onclick="goToSearchResult('${r.tab}','${r.catKey}','${r.task.id}')">
                 <span class="search-item-icon">${r.titleMatch ? '📌' : '📝'}</span>
                 <div class="search-item-body">
-                    <div class="search-item-title">${highlight(r.task.title, kw)}</div>
+                    <div class="search-item-title">${highlight(r._title || r.task.title, kw)}</div>
                     <div class="search-item-meta">${timeStr}${escHtml(r.catLabel)}</div>
                     ${desc ? `<div class="search-item-desc">${highlight(desc, kw)}</div>` : ''}
                 </div>
