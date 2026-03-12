@@ -2832,7 +2832,7 @@ function enterEdit(taskId, catKey) {
             ${Object.entries(cats).map(([k,v]) => `<option value="${k}"${k===catKey?' selected':''}>${v.title}</option>`).join('')}
         </select>
         <div class="edit-actions">
-            <button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>
+            ${_pendingNewTaskId === taskId ? '' : `<button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>`}
             <div class="edit-actions-right">
                 <button type="button" class="btn-cancel-edit" onclick="cancelEdit('${taskId}')">취소</button>
                 <button type="button" class="btn-save-edit" style="background:${color}" onclick="saveEdit('${taskId}','${catKey}')">저장</button>
