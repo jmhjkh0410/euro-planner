@@ -1312,20 +1312,20 @@ const config = {
         title: "유럽 여행 진행도 🗺️",
         theme: "#8e44ad",
         categories: {
-            budapest: { title: "🇭🇺 부다페스트 2박 3일",  short: "부다",   color: "#e74c3c" },
-            wien:     { title: "🇦🇹 빈(Wien) 3박 4일",    short: "빈",     color: "#c0392b" },
-            krakow:   { title: "🇵🇱 크라쿠프 1박 2일",    short: "크라",   color: "#d35400" },
-            berlin:   { title: "🇩🇪 베를린 3박 4일",      short: "베를린", color: "#e67e22" },
-            munich:   { title: "🇩🇪 뮌헨 3박 4일",        short: "뮌헨",   color: "#f39c12" },
-            swiss:    { title: "🇨🇭 스위스 4박 5일",      short: "스위스", color: "#27ae60" },
-            swiss_b:  { title: "🇨🇭 스위스 Plan A/B/C",  short: "스위스유동", color: "#1e8449" },
-            milano:   { title: "🇮🇹 밀라노 1박 2일",      short: "밀라노", color: "#16a085" },
-            nice:     { title: "🇫🇷 니스 3박 4일",        short: "니스",   color: "#2980b9" },
-            nice_b:   { title: "🇫🇷 니스 Plan A/B",       short: "니스유동", color: "#1a5276" },
-            paris1:   { title: "🇫🇷 파리 1차 4박 5일",    short: "파리1",  color: "#8e44ad" },
-            london:   { title: "🇬🇧 런던 11박 12일 고정",  short: "런던",   color: "#2c3e50" },
-            london_b: { title: "🇬🇧 런던 유동 블록 A~E",  short: "런던유동", color: "#1a252f" },
-            paris2:   { title: "🇫🇷 파리 2차 2박 3일",    short: "파리2",  color: "#6c3483" }
+            budapest: { title: "🇭🇺 부다페스트",       short: "부다",      color: "#e74c3c" },
+            wien:     { title: "🇦🇹 빈(Wien)",          short: "빈",        color: "#c0392b" },
+            krakow:   { title: "🇵🇱 크라쿠프",          short: "크라",      color: "#d35400" },
+            berlin:   { title: "🇩🇪 베를린",            short: "베를린",    color: "#e67e22" },
+            munich:   { title: "🇩🇪 뮌헨",              short: "뮌헨",      color: "#f39c12" },
+            swiss:    { title: "🇨🇭 스위스",            short: "스위스",    color: "#27ae60" },
+            swiss_b:  { title: "🇨🇭 스위스 유동",       short: "스위스유동", color: "#1e8449" },
+            milano:   { title: "🇮🇹 밀라노",            short: "밀라노",    color: "#16a085" },
+            nice:     { title: "🇫🇷 니스",              short: "니스",      color: "#2980b9" },
+            nice_b:   { title: "🇫🇷 니스 유동",         short: "니스유동",  color: "#1a5276" },
+            paris1:   { title: "🇫🇷 파리 1차",          short: "파리1",     color: "#8e44ad" },
+            london:   { title: "🇬🇧 런던",              short: "런던",      color: "#2c3e50" },
+            london_b: { title: "🇬🇧 런던 유동",         short: "런던유동",  color: "#1a252f" },
+            paris2:   { title: "🇫🇷 파리 2차",          short: "파리2",     color: "#6c3483" }
         }
     },
     packing: {
@@ -2153,6 +2153,42 @@ function formatMemoText(raw) {
         })
         .join('\n');
 }
+// ── 도시 카드 타이틀 동적 생성 ──────────────────────────
+// 일반 도시: accommodations.nights 기반 "N박 M일"
+// 유동 블록: structure의 __plan_x__ 키 기반 "Plan A/B/C"
+const FLOAT_CATS = { swiss_b: true, nice_b: true, london_b: true };
+const PLAN_LABELS = { __plan_a__:'A', __plan_b__:'B', __plan_c__:'C', __plan_d__:'D', __plan_e__:'E' };
+
+function getCityTitle(catKey) {
+    const base = config.itinerary.categories[catKey]?.title || catKey;
+
+    // 유동 블록: structure에서 plan 키 읽기
+    if (FLOAT_CATS[catKey]) {
+        const data = appState.itinerary.structure[catKey];
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            const plans = Object.keys(data)
+                .filter(k => k.startsWith('__plan_') && Array.isArray(data[k]) && data[k].length > 0)
+                .map(k => PLAN_LABELS[k])
+                .filter(Boolean);
+            if (plans.length > 0) return `${base} Plan ${plans.join('/')}`;
+        }
+        return base;
+    }
+
+    // 일반 도시: accommodations.nights 읽기
+    const accoms = appState.accommodations || {};
+    const keyMap = { swiss_b:'swiss', nice_b:'nice', london_b:'london', paris1:'paris1', paris2:'paris2' };
+    const lookupKey = keyMap[catKey] || catKey;
+    const info = accoms[lookupKey];
+    if (info?.nights) {
+        const n1 = parseInt(info.nights) || 0;
+        const n2 = parseInt(info.nights2) || 0; // london 두 번째 숙소
+        const total = n1 + n2;
+        if (total > 0) return `${base} ${total}박 ${total+1}일`;
+    }
+    return base;
+}
+
 // ── 숙소 주소 칩 렌더링 ─────────────────────────────────
 function renderAccommodation(container, catKey) {
     const accoms = appState.accommodations || {};
@@ -2647,7 +2683,7 @@ function renderContent() {
             section.innerHTML = `
                 <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
                     <div class="city-card-left">
-                        <span class="city-card-title">${catInfo.title}</span>
+                        <span class="city-card-title">${getCityTitle(catKey)}</span>
                         <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
                     </div>
                     <span class="city-chevron${isOpen?' open':''}">▼</span>
