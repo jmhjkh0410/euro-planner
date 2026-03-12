@@ -103,7 +103,7 @@ ul{list-style:none}
 .progress-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 16px 0;box-shadow:var(--shadow-md);position:relative;overflow:hidden}
 .progress-accent{position:absolute;top:0;left:0;right:0;height:3px;transition:background-color .5s}
 .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px}
-.progress-title-area{display:flex;flex-direction:row;align-items:center;gap:8px}
+.progress-title-area{display:flex;flex-direction:column;gap:5px}
 .progress-title{font-size:12px;font-weight:700;color:var(--text-primary)}
 .progress-date-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .today-badge{display:inline-flex;align-items:center;gap:4px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--text-secondary);cursor:pointer;transition:background .15s}
@@ -2751,15 +2751,7 @@ function renderContent() {
                 inner.appendChild(dayDiv);
             });
 
-            // 일정 탭 하단 '+ 항목 추가' 버튼 (마지막 dk에 추가)
-            const lastDk = order.length > 0 ? order[order.length - 1] : undefined;
-            const cityAddBtn = document.createElement('button');
-            cityAddBtn.type = 'button';
-            cityAddBtn.className = 'btn-add-task';
-            cityAddBtn.style.cssText = 'margin-top:8px;';
-            cityAddBtn.textContent = '+ 항목 추가';
-            cityAddBtn.onclick = () => addTask(catKey, lastDk);
-            inner.appendChild(cityAddBtn);
+
 
         } else {
             // 예약 / 짐싸기
@@ -2842,7 +2834,7 @@ function enterEdit(taskId, catKey) {
         <div class="edit-actions">
             <button type="button" class="btn-del-item" onclick="startDelete('${taskId}')">🗑️ 삭제</button>
             <div class="edit-actions-right">
-                <button type="button" class="btn-cancel-edit" onclick="renderContent()">취소</button>
+                <button type="button" class="btn-cancel-edit" onclick="cancelEdit('${taskId}')">취소</button>
                 <button type="button" class="btn-save-edit" style="background:${color}" onclick="saveEdit('${taskId}','${catKey}')">저장</button>
             </div>
         </div>
@@ -2852,7 +2844,41 @@ function enterEdit(taskId, catKey) {
     // 편집 폼이 열린 동안 li 클릭으로 toggleCheck 되지 않도록 차단
     li.dataset.editing = '1';
 }
+function cancelEdit(taskId) {
+    // 방금 addTask로 생성된 신규 항목이면 삭제 (카드 생성 취소)
+    if (_pendingNewTaskId && _pendingNewTaskId === taskId) {
+        _pendingNewTaskId = null;
+        const tab = appState.activeTab, td = appState[tab];
+        const uc = currentUser ? USER_CONFIG[currentUser] : null;
+        // private 유저: _private에서 삭제
+        if (uc && uc.saveMode === 'private' && td._private) {
+            for (const k in td._private) {
+                const arr = td._private[k] || [];
+                const idx = arr.findIndex(t => t.id === taskId);
+                if (idx !== -1) { arr.splice(idx, 1); break; }
+            }
+        // session 유저: soloSession에서 삭제
+        } else if (uc && uc.saveMode === 'session' && soloSessionStructure) {
+            const ss = soloSessionStructure[tab] || {};
+            for (const k in ss) {
+                const arr = ss[k] || [];
+                const idx = arr.findIndex(t => t.id === taskId);
+                if (idx !== -1) { arr.splice(idx, 1); break; }
+            }
+        // 마스터: structure에서 삭제
+        } else {
+            const found = findTaskInStructure(td.structure, taskId);
+            if (found) found.arr.splice(found.idx, 1);
+        }
+        saveAndRender();
+        return;
+    }
+    // 기존 항목 편집 취소: 그냥 재렌더 (변경사항 버림)
+    _pendingNewTaskId = null;
+    renderContent();
+}
 function saveEdit(taskId, oldCat) {
+    _pendingNewTaskId = null; // 저장 완료 → 신규 항목 아님
     const td = appState[appState.activeTab];
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
     const title = document.getElementById(`et-${taskId}`)?.value || '';
@@ -2913,6 +2939,7 @@ function saveEdit(taskId, oldCat) {
 
 // ── DELETE → TRASH ────────────────────────────────────────
 let _pendingDelId = null;
+let _pendingNewTaskId = null; // addTask로 방금 생성된 신규 항목 ID (취소 시 삭제용)
 function startDelete(taskId) {
     _pendingDelId = taskId;
     const td = appState[appState.activeTab];
@@ -3050,6 +3077,7 @@ function addTask(catKey, dk) {
     }
 
     saveAndRender();
+    _pendingNewTaskId = newId;
     setTimeout(() => enterEdit(newId, catKey), 60);
 }
 
