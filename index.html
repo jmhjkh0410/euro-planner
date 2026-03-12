@@ -1205,6 +1205,9 @@ function applySoloText(text) {
 
         // ── 친구 합류/작별 이벤트 ──────────────────────────
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
+        .replace(/취리히 공항 도착 & 친구 상봉/g, '취리히 공항 도착')
+        .replace(/& 친구 상봉/g, '')
+        .replace(/친구 상봉/g, '')
         .replace(/& 친구 합류\s*🎉?/g, '')
         .replace(/친구 합류\s*🎉?/g, '')
         .replace(/첫 번째 친구 작별 인사 \(공항 배웅\)/g, '공항 배웅')
@@ -1228,6 +1231,8 @@ function applySoloText(text) {
         .replace(/런던 친구[^\n]*/g, '')
 
         // ── tips 한 줄 전체 제거 ───────────────────────────
+        .replace(/취리히 도착 후 친구 합류[^\n]*/g, '')
+        .replace(/취리히 도착 후 친구[^\n]*/g, '')
         .replace(/💡 동행 친구의[^\n]*/g, '')
         .replace(/💳 친구에게도[^\n]*/g, '')
         .replace(/🇨🇭 결제 전 친구[^\n]*/g, '')
