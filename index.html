@@ -1217,6 +1217,8 @@ function applySoloText(text) {
         // ── 친구 합류/작별 이벤트 ──────────────────────────
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
         .replace(/취리히 공항 도착 & 친구 상봉/g, '취리히 공항 도착')
+        .replace(/취리히 공항 도착 및 친구 합류/g, '취리히 공항 도착')
+        .replace(/취리히 공항 도착 및 친구 상봉/g, '취리히 공항 도착')
         .replace(/취리히 도착 후 친구 합류/g, '취리히 도착')
         .replace(/도착 후 친구 합류/g, '도착')
         .replace(/& 친구 합류\s*🎉?/g, '')
@@ -3155,7 +3157,7 @@ function updateProgress() {
         .filter(([k]) => filteredCats[k])
         .flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
         .filter(t => getDK(t) !== '__memo__');
-    const n   = all.filter(t => getChecks(tab)[t.id]).length;
+    const n   = all.filter(t => getChecks(appState.activeTab)[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
     document.getElementById('progress-bar').style.width  = pct + '%';
     document.getElementById('progress-pct').textContent  = pct + '%';
