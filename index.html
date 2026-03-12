@@ -825,6 +825,15 @@ const FB_LOCAL_CHECKS  = 'EURO_PLANNER_V33_CHECKS';
 
 // solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
 let soloSessionStructure = null;
+// solo 세션 전용 체크 상태 (메모리만, 저장 안 함)
+let soloSessionChecks = null; // { reservations:{}, itinerary:{}, packing:{} }
+
+// 현재 유저 기준 체크 상태 반환 (솔로면 세션 메모리)
+function getChecks(tab) {
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+    if (uc && uc.saveMode === 'session' && soloSessionChecks) return soloSessionChecks[tab] || {};
+    return appState[tab].checks || {};
+}
 
 let fbReady = false;
 let _unsubContent = null;
@@ -986,8 +995,7 @@ function save() {
         _saveChecksToFirebase();
 
     } else if (uc.saveMode === 'session') {
-        // 솔로: 체크는 full과 공유, structure는 세션 메모리만 (저장 안 함)
-        _saveChecksToFirebase();
+        // 솔로: 모든 변경사항 세션 메모리만 — Firebase 저장 안 함, 앱 끄면 사라짐
         setSyncStatus('ok', '✅ 저장 완료 (세션 전용)');
 
     } else if (uc.saveMode === 'private') {
@@ -1021,7 +1029,7 @@ const USER_CONFIG = {
         color: '#10b981',
         isMaster: false,
         saveMode: 'session',    // 세션 메모리만 — 앱 끄면 삭제
-        checksPath: 'euroPlanner/v33/checks/full',
+        checksPath: null,
         structurePath: null,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
@@ -1088,7 +1096,7 @@ function enterWithCode(code) {
     }
     sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
     currentUser = normalizedCode;
-    if (normalizedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
+    if (normalizedCode === 'solo') { soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} }; soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} }; }
     applyUserMode(normalizedCode);
     hidePinOverlay();
 }
@@ -2014,7 +2022,7 @@ function init() {
         currentUser = savedCode;
         document.getElementById('pin-overlay').classList.add('hidden');
         // 세션 복원 시 스크롤 잠금 불필요 (pin overlay 안 보임)
-        if (savedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
+        if (savedCode === 'solo') { soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} }; soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} }; }
         applyUserMode(savedCode);
     } else {
         _lockBodyScroll();  // 핀 화면 표시 중 iOS Safari 포함 배경 잠금
@@ -2491,7 +2499,7 @@ function doDropTo(targetCat, targetDK, insertBeforeId) {
 
 // ── RENDER ITEM ───────────────────────────────────────────
 function renderItem(task, catKey, catInfo, td, dk) {
-    const done   = !!td.checks[task.id];
+    const done   = !!getChecks(appState.activeTab)[task.id];
     const ticket = td.tickets[task.id];
     const li = document.createElement('li');
     li.className = `task-item${done ? ' completed' : ''}`;
@@ -2634,7 +2642,7 @@ function renderContent() {
 
         if (isIt) {
             const isOpen = !!(appState.itinerary.cityOpen[catKey]);
-            const done   = tasks.filter(t => getDK(t) !== '__memo__' && td.checks[t.id]).length;
+            const done   = tasks.filter(t => getDK(t) !== '__memo__' && getChecks(appState.activeTab)[t.id]).length;
             const total  = tasks.filter(t => getDK(t) !== '__memo__').length;
             section.innerHTML = `
                 <button type="button" onclick="toggleCity('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
@@ -2695,7 +2703,7 @@ function renderContent() {
             order.forEach(dk => {
                 const gt      = groups[dk];
                 const dayOpen = !!(appState.itinerary.dayOpen[`${catKey}__${dk}`]);
-                const ddone   = gt.filter(t => td.checks[t.id]).length;
+                const ddone   = gt.filter(t => getChecks(appState.activeTab)[t.id]).length;
                 const todayDay = isToday(dk);
 
                 const dayDiv = document.createElement('div');
@@ -2796,6 +2804,16 @@ function toggleDay(catKey, dk) {
 
 // ── CHECK ─────────────────────────────────────────────────
 function toggleCheck(id) {
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
+    if (uc && uc.saveMode === 'session') {
+        // 솔로: 세션 메모리 체크
+        if (!soloSessionChecks) soloSessionChecks = { reservations:{}, itinerary:{}, packing:{} };
+        const tab = appState.activeTab;
+        soloSessionChecks[tab][id] = !soloSessionChecks[tab][id];
+        document.getElementById(`item-${id}`)?.classList.toggle('completed', !!soloSessionChecks[tab][id]);
+        updateProgress();
+        return;
+    }
     const td = appState[appState.activeTab];
     td.checks[id] = !td.checks[id];
     document.getElementById(`item-${id}`)?.classList.toggle('completed', !!td.checks[id]);
@@ -3089,7 +3107,7 @@ function updateProgress() {
         .filter(([k]) => filteredCats[k])
         .flatMap(([k]) => getFilteredTasks(appState.activeTab, k, getStructureArr(td.structure, k)))
         .filter(t => getDK(t) !== '__memo__');
-    const n   = all.filter(t => td.checks[t.id]).length;
+    const n   = all.filter(t => getChecks(tab)[t.id]).length;
     const pct = all.length > 0 ? Math.round(n / all.length * 100) : 0;
     document.getElementById('progress-bar').style.width  = pct + '%';
     document.getElementById('progress-pct').textContent  = pct + '%';
