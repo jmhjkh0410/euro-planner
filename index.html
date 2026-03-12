@@ -923,7 +923,7 @@ function _startFirebaseSync() {
                 renderMobileNav();
                 loadWeather();
                 setSyncStatus('ok', '✅ 동기화 완료');
-            } catch(e) { console.error('[content sync error]', e); setSyncStatus('error', '❌ 데이터 오류'); }
+            } catch(e) { console.error('[content sync error]', e); setSyncStatus('error', '❌ ' + (e?.message || e)); }
         } else if (uc && uc.isMaster) {
             _saveContentToFirebase();
         }
@@ -1217,6 +1217,8 @@ function applySoloText(text) {
         // ── 친구 합류/작별 이벤트 ──────────────────────────
         .replace(/취리히 공항 도착 & 친구 합류\s*🎉/g, '취리히 공항 도착')
         .replace(/취리히 공항 도착 & 친구 상봉/g, '취리히 공항 도착')
+        .replace(/취리히 도착 후 친구 합류/g, '취리히 도착')
+        .replace(/도착 후 친구 합류/g, '도착')
         .replace(/& 친구 합류\s*🎉?/g, '')
         .replace(/& 친구 상봉/g, '')
         .replace(/친구 합류\s*🎉?/g, '')
