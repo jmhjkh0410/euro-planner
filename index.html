@@ -1038,8 +1038,7 @@ const USER_CONFIG = {
         structurePath: 'euroPlanner/v33/structure/swiss',
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
-        itineraryDayEnd: { london: 2 },   // london 2일차까지만 표시
-        itineraryDayStart: { london: 2 }, // london 1일차는 표시 안 함
+        itineraryDayEnd: { london: 3 },   // london 3일차까지만 표시
         soloMode: false,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
@@ -1273,6 +1272,15 @@ function getFilteredTasks(tab, catKey, tasks) {
     if (tab === 'reservations' && uc.reservationFilter) {
         return tasks.filter(t => uc.reservationFilter.includes(t.id));
     }
+
+    // 솔로모드: 공항 배웅 항목 숨기기
+    if (tab === 'itinerary' && uc.soloMode) {
+        tasks = tasks.filter(t => {
+            const title = (t.title || '').trim();
+            return !title.includes('공항 배웅') && !title.includes('친구 작별');
+        });
+    }
+
     return tasks;
 }
 
