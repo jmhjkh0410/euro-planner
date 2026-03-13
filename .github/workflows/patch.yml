@@ -1,0 +1,25 @@
+name: Patch index.html
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply patches
+        run: |
+          sed -i "s/sessionStorage\.setItem('EURO_USER_CODE', normalizedCode);/localStorage.setItem('EURO_USER_CODE', normalizedCode);/g" index.html
+          sed -i "s/const savedCode = sessionStorage\.getItem('EURO_USER_CODE');/const savedCode = localStorage.getItem('EURO_USER_CODE');/g" index.html
+          sed -i 's/accept="image\/\*" onchange="handleUpload/accept="image\/*,application\/pdf,.pdf" onchange="handleUpload/g' index.html
+          echo "✅ 패치 완료"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --staged --quiet || git commit -m "fix: sessionStorage→localStorage, PDF 업로드 허용"
+          git push
