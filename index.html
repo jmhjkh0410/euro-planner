@@ -2031,10 +2031,6 @@ function init() {
     // 1) 로컬 캐시로 빠른 초기 렌더링
     const localContent = localStorage.getItem(FB_LOCAL_CONTENT);
     if (localContent) { try { _applyContentState(JSON.parse(localContent)); } catch(e) {} }
-    if (currentUser) {
-        const localChecks = localStorage.getItem(FB_LOCAL_CHECKS + '_' + currentUser);
-        if (localChecks) { try { _applyChecksState(JSON.parse(localChecks)); } catch(e) {} }
-    }
     _ensureAppState();
     switchTab(appState.activeTab || 'reservations');
     renderMobileNav();
