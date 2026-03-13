@@ -2172,7 +2172,13 @@ function renderAccommodation(container, catKey) {
     chip.innerHTML = `
         <span class="accom-icon">🏠</span>
         <div class="accom-info">
-            <span class="accom-city">${info.city || ''} ${info.dates ? '<span class="accom-dates">'+info.dates+'</span>' : ''}</span>
+            <span class="accom-city">${info.city || ''} ${(()=>{
+            const d = info.dates || (info.checkin && info.checkout ? (() => {
+                const fmt = s => { const m=String(s).match(/(\d+)[./-](\d+)/); return m ? m[1]+'/'+String(m[2]).padStart(2,'0') : s; };
+                return fmt(info.checkin)+' ~ '+fmt(info.checkout);
+            })() : '');
+            return d ? '<span class=\"accom-dates\">'+d+'</span>' : '';
+        })()}</span>
             <span class="accom-address">${info.address}</span>
         </div>
         ${info.nights ? `<span class="accom-nights">${info.nights}</span>` : ''}
