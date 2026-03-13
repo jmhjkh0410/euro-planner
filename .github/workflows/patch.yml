@@ -12,18 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apply patches
+      - name: Revert to safe version
         run: |
-          sed -i "s/sessionStorage\.setItem('EURO_USER_CODE', normalizedCode);/localStorage.setItem('EURO_USER_CODE', normalizedCode);/g" index.html
-          sed -i "s/const savedCode = sessionStorage\.getItem('EURO_USER_CODE');/const savedCode = localStorage.getItem('EURO_USER_CODE');/g" index.html
-          sed -i 's/accept="image\/\*" onchange="handleUpload/accept="image\/*,application\/pdf,.pdf" onchange="handleUpload/g' index.html
-          sed -i '/if (currentUser) {/{N;N;N;/localChecks/d}' index.html
-          echo "✅ 패치 완료"
+          git log --oneline -5
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
-          git diff --staged --quiet || git commit -m "fix: checks 로컬캐시 제거로 기기간 진행률 동기화"
+          git revert HEAD --no-edit
           git push
