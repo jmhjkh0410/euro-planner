@@ -1085,7 +1085,7 @@ function enterWithCode(code) {
         shakeInput();
         return;
     }
-    sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
+    localStorage.setItem('EURO_USER_CODE', normalizedCode);
     currentUser = normalizedCode;
     if (normalizedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
     applyUserMode(normalizedCode);
@@ -2017,7 +2017,7 @@ function bulkDelete() {
 // ── INIT ──────────────────────────────────────────────────
 function init() {
     // 0) 세션 복원
-    const savedCode = sessionStorage.getItem('EURO_USER_CODE');
+    const savedCode = localStorage.getItem('EURO_USER_CODE');
     if (savedCode && USER_CONFIG[savedCode]) {
         currentUser = savedCode;
         document.getElementById('pin-overlay').classList.add('hidden');
@@ -2586,7 +2586,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
             ${tipsHtml}
             ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
-                <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
+                <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
 
             </div>`}
