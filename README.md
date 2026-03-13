@@ -1,2 +1,0 @@
-# euro-planner
-euro trip
