@@ -2756,7 +2756,8 @@ function renderItem(task, catKey, catInfo, td, dk) {
     }
 
     li.addEventListener('click', e => {
-        if (e.target.closest('button,label,input,a')) return;
+        if (e.target.closest('button,label,input,a,textarea,select,.edit-form')) return;
+        if (li.querySelector('.edit-form')) return;  // 편집 폼 열려있으면 체크 차단
         if (editMode) { toggleSelect(task.id); return; }
         if (isMemoTask) return;
         toggleCheck(task.id);
@@ -2990,6 +2991,9 @@ function enterEdit(taskId, catKey) {
         </div>
     </div>`;
     li.style.cursor = 'default';
+    // 편집 폼 내부 클릭이 li의 toggleCheck로 버블링되지 않도록 차단
+    li.querySelector('.edit-form').addEventListener('click', e => e.stopPropagation());
+    li.querySelector('.edit-form').addEventListener('mousedown', e => e.stopPropagation());
 }
 function saveEdit(taskId, oldCat) {
     const td = appState[appState.activeTab];
