@@ -955,19 +955,23 @@ function _startFirebaseSync() {
         if (d) {
             try {
                 const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
-                // cityMemos 병합 (기존 __open 키 등 메모리 상태 유지)
                 const prev = appState.cityMemos || {};
                 appState.cityMemos = Object.assign({}, prev, parsed);
-                // __open 키는 parsed에 없으므로 prev에서 복원
                 Object.keys(prev).filter(k => k.endsWith('__open')).forEach(k => {
                     appState.cityMemos[k] = prev[k];
                 });
+                renderContent();
             } catch(e) {}
         }
     });
     onValue(ref(db, FB.META_ACCOMS), (snap) => {
         const d = snap.val();
-        if (d) { try { appState.accommodations = (typeof d === 'string') ? JSON.parse(d) : d; } catch(e) {} }
+        if (d) {
+            try {
+                appState.accommodations = (typeof d === 'string') ? JSON.parse(d) : d;
+                renderContent();
+            } catch(e) {}
+        }
     });
     onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
