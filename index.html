@@ -952,6 +952,7 @@ function _startFirebaseSync() {
     // ── 2) meta 리스너 (메모, 숙소) ──────────────────────────────
     onValue(ref(db, FB.META_MEMOS), (snap) => {
         const d = snap.val();
+        console.log('[META_MEMOS] 수신:', typeof d, d ? Object.keys(d).length + '개 키' : 'null');
         if (d) {
             try {
                 const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
@@ -960,8 +961,9 @@ function _startFirebaseSync() {
                 Object.keys(prev).filter(k => k.endsWith('__open')).forEach(k => {
                     appState.cityMemos[k] = prev[k];
                 });
+                console.log('[META_MEMOS] appState.cityMemos 키:', Object.keys(appState.cityMemos));
                 renderContent();
-            } catch(e) {}
+            } catch(e) { console.error('[META_MEMOS] 에러:', e); }
         }
     });
     onValue(ref(db, FB.META_ACCOMS), (snap) => {
