@@ -931,28 +931,48 @@ function _startFirebaseSync() {
     const { db, ref, onValue } = window._fb;
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
 
-    // ── 1) structure/master 리스너 (모든 유저 공통 읽기) ──────────
+    // 필수 리스너 응답 추적 — 전부 응답해야 첫 renderContent() 실행
+    const _ready = { structure: false, memos: false, accoms: false };
+    let _initialRenderDone = false;
+
+    function _tryRender(source) {
+        _ready[source] = true;
+        if (!_initialRenderDone && _ready.structure && _ready.memos && _ready.accoms) {
+            _initialRenderDone = true;
+            renderContent(); updateProgress(); updateTrashFab();
+            renderMobileNav(); loadWeather();
+            setSyncStatus('ok', '✅ 동기화 완료');
+        } else if (_initialRenderDone) {
+            // 이후 업데이트는 바로 렌더링
+            renderContent(); updateProgress();
+        }
+    }
+
+    // ── 1) structure/master 리스너 ──────────────────────────────
     if (_unsubContent) _unsubContent();
     _unsubContent = onValue(ref(db, FB.STRUCTURE_MASTER), (snap) => {
         const d = snap.val();
         if (d) {
             try {
-                // v4: single JSON.parse (GAS가 single stringify로 저장)
                 const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
                 _applyContentState(parsed);
                 localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(parsed));
-                renderContent(); updateProgress(); updateTrashFab();
-                renderMobileNav();
-                loadWeather();
-                setSyncStatus('ok', '✅ 동기화 완료');
+                if (_initialRenderDone) {
+                    renderContent(); updateProgress(); updateTrashFab();
+                    renderMobileNav(); loadWeather();
+                    setSyncStatus('ok', '✅ 동기화 완료');
+                } else {
+                    _tryRender('structure');
+                }
             } catch(e) { setSyncStatus('error', '❌ 데이터 오류: ' + e.message); }
+        } else {
+            _ready.structure = true; // null이어도 응답은 온 것
         }
     }, (err) => setSyncStatus('error', '❌ ' + err.message));
 
     // ── 2) meta 리스너 (메모, 숙소) ──────────────────────────────
     onValue(ref(db, FB.META_MEMOS), (snap) => {
         const d = snap.val();
-        console.log('[META_MEMOS] 수신:', typeof d, d ? Object.keys(d).length + '개 키' : 'null');
         if (d) {
             try {
                 const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
@@ -961,19 +981,18 @@ function _startFirebaseSync() {
                 Object.keys(prev).filter(k => k.endsWith('__open')).forEach(k => {
                     appState.cityMemos[k] = prev[k];
                 });
-                console.log('[META_MEMOS] appState.cityMemos 키:', Object.keys(appState.cityMemos));
-                renderContent();
             } catch(e) { console.error('[META_MEMOS] 에러:', e); }
         }
+        _tryRender('memos');
     });
     onValue(ref(db, FB.META_ACCOMS), (snap) => {
         const d = snap.val();
         if (d) {
             try {
                 appState.accommodations = (typeof d === 'string') ? JSON.parse(d) : d;
-                renderContent();
             } catch(e) {}
         }
+        _tryRender('accoms');
     });
     onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
