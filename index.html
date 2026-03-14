@@ -892,7 +892,15 @@ function _getContentState() {
 function _applyContentState(d) {
     if (!d) return;
     ['reservations','itinerary','packing'].forEach(t => {
-        if (d[t] && d[t].structure) appState[t].structure = d[t].structure;
+        if (!d[t]) return;
+        if (d[t].structure) {
+            // v33 구조: { reservations: { structure: {...} } }
+            appState[t].structure = d[t].structure;
+        } else {
+            // v4 구조: { reservations: { basic:[...], alarm:[...] } }
+            // structure 키 없이 카테고리가 바로 있음
+            appState[t].structure = d[t];
+        }
     });
     migrateTimeFromStructure(appState);
     if (d.cityMemos) {
