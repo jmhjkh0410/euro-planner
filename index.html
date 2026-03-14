@@ -1061,8 +1061,8 @@ function _saveContentToFirebase() {
         .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
 
     // cityMemos + accommodations → meta 경로에 별도 저장
-    if (contentState.cityMemos) {
-        // __open 키는 Firebase에 저장 안 함 (UI 상태)
+    // ⚠️ cityMemos가 비어있으면 Firebase를 덮어쓰지 않음 (Firebase가 항상 이김)
+    if (contentState.cityMemos && Object.keys(contentState.cityMemos).filter(k => !k.endsWith('__open')).length > 0) {
         const memosToSave = Object.fromEntries(
             Object.entries(contentState.cityMemos).filter(([k]) => !k.endsWith('__open'))
         );
