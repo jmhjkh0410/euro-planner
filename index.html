@@ -848,6 +848,7 @@ const FB_LOCAL_CHECKS    = 'EURO_V4_CHECKS';
 let soloSessionStructure = null;
 
 let fbReady = false;
+let _fbDataReady = false;  // Firebase 초기 데이터 수신 완료 여부 — 이전에는 쓰기 금지
 let _unsubContent = null;
 let _unsubChecks  = null;
 let _unsubStructure = null;
@@ -879,13 +880,14 @@ function _applyChecksState(d) {
 }
 
 function _getContentState() {
+    // v4 형식: structure 키 없이 카테고리 바로 (GAS와 동일)
     return {
-        reservations:   { structure: appState.reservations.structure },
-        itinerary:      { structure: appState.itinerary.structure },
-        packing:        { structure: appState.packing.structure },
-        cityMemos:      appState.cityMemos || {},
-        accommodations: appState.accommodations || {},
-        trash:          appState.trash
+        reservations:   appState.reservations.structure || {},
+        itinerary:      appState.itinerary.structure    || {},
+        packing:        appState.packing.structure      || {},
+        cityMemos:      appState.cityMemos              || {},
+        accommodations: appState.accommodations         || {},
+        trash:          appState.trash                  || [],
     };
 }
 
@@ -939,6 +941,7 @@ function _startFirebaseSync() {
         _ready[source] = true;
         if (!_initialRenderDone && _ready.structure && _ready.memos && _ready.accoms) {
             _initialRenderDone = true;
+            _fbDataReady = true;  // 이제부터 Firebase 쓰기 허용
             renderContent(); updateProgress(); updateTrashFab();
             renderMobileNav(); loadWeather();
             setSyncStatus('ok', '✅ 동기화 완료');
@@ -1036,35 +1039,36 @@ function _startFirebaseSync() {
 function _saveContentToFirebase() {
     if (!currentUser) return;
     const uc = USER_CONFIG[currentUser];
-    // 🔒 solo 및 canWrite=false 유저는 Firebase 쓰기 완전 금지
     if (!uc.canWrite || uc.soloMode) {
         setSyncStatus('ok', '👁 읽기 전용 (데모 모드)');
         return;
     }
-    // 마스터만 structure/master에 씀
     if (!uc.isMaster) return;
 
+    // 🛡️ Firebase 초기 데이터 수신 전엔 절대 쓰지 않음
+    // (수신 전 빈 appState로 덮어쓰면 데이터 날아감)
+    if (!_fbDataReady) {
+        setSyncStatus('loading', '☁️ 동기화 대기중…');
+        return;
+    }
+
     const contentState = _getContentState();
-    // 로컬 캐시 (structure만)
+    // 로컬 캐시
     localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(contentState));
     if (!window._fb) { setSyncStatus('ok', '✅ 로컬 저장 완료 (오프라인)'); return; }
 
     const { db, ref, set } = window._fb;
+    // v4 형식: structure 키 없이 카테고리 바로 (GAS와 동일)
     const masterStructure = {
         reservations: contentState.reservations,
         itinerary:    contentState.itinerary,
         packing:      contentState.packing,
     };
-    // v4 single JSON.stringify (GAS와 동일한 방식)
     set(ref(db, FB.STRUCTURE_MASTER), masterStructure)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
         .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
 
-    // cityMemos는 saveCityMemo()에서만 저장 — 여기서 쓰면 타이밍에 따라 빈 값으로 덮어쓸 위험
-    // accommodations → meta 경로에 별도 저장
-    if (contentState.accommodations) {
-        set(ref(db, FB.META_ACCOMS), contentState.accommodations).catch(e => console.error('[accoms save]', e));
-    }
+    // trash만 앱이 씀. accommodations/cityMemos는 GAS 전용 — 앱이 쓰면 안 됨
     if (contentState.trash !== undefined) {
         set(ref(db, FB.META_TRASH), contentState.trash).catch(e => console.error('[trash save]', e));
     }
@@ -1306,7 +1310,8 @@ function applyUserMode(code) {
         appState.activeTab = uc.tabs[0];
     }
 
-    // 6) Firebase 재연결 (유저별 경로로)
+    // 6) Firebase 재연결 (유저별 경로로) — _fbDataReady 리셋 필수
+    _fbDataReady = false;
     if (window._fb) _startFirebaseSync();
     else window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
 
@@ -1996,7 +2001,7 @@ function goToSearchResult(tab, catKey, taskId) {
     // 탭 전환
     if (appState.activeTab !== tab) {
         appState.activeTab = tab;
-        exitEditMode(); save(); updateTabUI(); renderSidebar();
+        exitEditMode(); if (_fbDataReady) save(); updateTabUI(); renderSidebar();
     }
 
     // 일정 탭: 도시 + 날짜 아코디언 열기
@@ -2233,7 +2238,8 @@ function saveAndRender() {
 function switchTab(tab) {
     appState.activeTab = tab;
     exitEditMode();
-    save();
+    // Firebase 초기 데이터 수신 후에만 save() 실행
+    if (_fbDataReady) save();
     updateTabUI();
     renderSidebar();
     renderContent();
