@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v39 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v40 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -661,7 +661,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v39 🔥</span>
+      <span class="nav-version">v40 🔥</span>
     </div>
   </div>
 </nav>
@@ -811,17 +811,38 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
 <script>
 // ================================================================
-// 🔥 Firebase 경로 구조 (v36)
-//   euroPlanner/v33/content            ← 마스터 일정 (jkhjmh0410)
-//   euroPlanner/v33/checks/full        ← jkhjmh0410/solo 체크
-//   euroPlanner/v33/checks/swiss       ← cat 체크
-//   euroPlanner/v33/checks/paris       ← seo 체크
-//   euroPlanner/v33/structure/swiss    ← cat 개인 추가 항목
-//   euroPlanner/v33/structure/paris    ← seo 개인 추가 항목
+// 🔥 Firebase 경로 구조 (v4 — 경로 완전 분리)
+//   euroPlanner/v4/structure/master      ← GAS → 앱 (읽기 전용)
+//   euroPlanner/v4/structure/private/cat ← 이다은 개인 추가
+//   euroPlanner/v4/structure/private/seo ← 서동주 개인 추가
+//   euroPlanner/v4/checks/master         ← 정경호/solo 읽기 (solo 쓰기 금지)
+//   euroPlanner/v4/checks/cat            ← 이다은 체크
+//   euroPlanner/v4/checks/seo            ← 서동주 체크
+//   euroPlanner/v4/tickets/master        ← 정경호 첨부파일
+//   euroPlanner/v4/tickets/cat           ← 이다은 첨부파일
+//   euroPlanner/v4/tickets/seo           ← 서동주 첨부파일
+//   euroPlanner/v4/meta/cityMemos        ← 도시 메모
+//   euroPlanner/v4/meta/accommodations   ← 숙소 정보
+//   euroPlanner/v4/meta/trash            ← 휴지통
 // ================================================================
-const FB_CONTENT_PATH = 'euroPlanner/v33/content';
-const FB_LOCAL_CONTENT = 'EURO_PLANNER_V33_CONTENT';
-const FB_LOCAL_CHECKS  = 'EURO_PLANNER_V33_CHECKS';
+// v4 경로 상수
+const FB = {
+    STRUCTURE_MASTER:  'euroPlanner/v4/structure/master',
+    STRUCTURE_CAT:     'euroPlanner/v4/structure/private/cat',
+    STRUCTURE_SEO:     'euroPlanner/v4/structure/private/seo',
+    CHECKS_MASTER:     'euroPlanner/v4/checks/master',
+    CHECKS_CAT:        'euroPlanner/v4/checks/cat',
+    CHECKS_SEO:        'euroPlanner/v4/checks/seo',
+    TICKETS_MASTER:    'euroPlanner/v4/tickets/master',
+    TICKETS_CAT:       'euroPlanner/v4/tickets/cat',
+    TICKETS_SEO:       'euroPlanner/v4/tickets/seo',
+    META_MEMOS:        'euroPlanner/v4/meta/cityMemos',
+    META_ACCOMS:       'euroPlanner/v4/meta/accommodations',
+    META_TRASH:        'euroPlanner/v4/meta/trash',
+};
+// 로컬 스토리지 키
+const FB_LOCAL_STRUCTURE = 'EURO_V4_STRUCTURE';
+const FB_LOCAL_CHECKS    = 'EURO_V4_CHECKS';
 
 // solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
 let soloSessionStructure = null;
@@ -832,27 +853,29 @@ let _unsubChecks  = null;
 let _unsubStructure = null;
 
 function _getChecksState() {
+    // v4: checks와 tickets 분리. _saveChecksToFirebase에서 checks만, tickets은 ticketsPath에 별도 저장.
     return {
-        reservations: { checks: appState.reservations.checks, tickets: appState.reservations.tickets },
-        itinerary:    { checks: appState.itinerary.checks,    tickets: appState.itinerary.tickets },
-        // cityOpen/dayOpen은 저장 안 함 (재진입 시 닫힌 상태 유지)
-        packing:      { checks: appState.packing.checks,      tickets: appState.packing.tickets }
+        reservations: { checks: appState.reservations.checks || {} },
+        itinerary:    { checks: appState.itinerary.checks    || {} },
+        packing:      { checks: appState.packing.checks      || {} },
     };
 }
 
 function _applyChecksState(d) {
     if (!d) return;
-    ['reservations','itinerary','packing'].forEach(t => {
-        if (d[t]) {
-            if (d[t].checks)  appState[t].checks  = d[t].checks;
-            if (d[t].tickets) appState[t].tickets  = d[t].tickets;
+    // v4: checks 객체 구조 { reservations:{checks:{}, tickets:{}}, ... }
+    // 또는 직접 { reservations:{id1:true,...}, ... } 형태도 허용
+    ['reservations','itinerary','packing'].forEach(tab => {
+        if (!d[tab]) return;
+        const src = d[tab];
+        if (src.checks  !== undefined) appState[tab].checks  = src.checks;
+        if (src.tickets !== undefined) appState[tab].tickets = src.tickets;
+        // 구버전 flat 구조 호환 (id:true 형태가 직접 있는 경우)
+        if (typeof src === 'object' && !src.checks && !src.tickets) {
+            const hasChecks = Object.values(src).some(v => typeof v === 'boolean');
+            if (hasChecks) appState[tab].checks = src;
         }
     });
-    if (d.itinerary) {
-        // cityOpen/dayOpen은 복원 안 함 → 재진입 시 항상 닫힌 상태 (5번 기능: 당일만 자동 오픈)
-        // if (d.itinerary.cityOpen) appState.itinerary.cityOpen = d.itinerary.cityOpen;
-        // if (d.itinerary.dayOpen)  appState.itinerary.dayOpen  = d.itinerary.dayOpen;
-    }
 }
 
 function _getContentState() {
@@ -900,98 +923,182 @@ function _startFirebaseSync() {
     const { db, ref, onValue } = window._fb;
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
 
-    // 1) 마스터 content 리스너 (모든 유저 공통)
+    // ── 1) structure/master 리스너 (모든 유저 공통 읽기) ──────────
     if (_unsubContent) _unsubContent();
-    _unsubContent = onValue(ref(db, FB_CONTENT_PATH), (snap) => {
+    _unsubContent = onValue(ref(db, FB.STRUCTURE_MASTER), (snap) => {
         const d = snap.val();
         if (d) {
             try {
-                _applyContentState(JSON.parse(d));
-                localStorage.setItem(FB_LOCAL_CONTENT, d);
+                // v4: single JSON.parse (GAS가 single stringify로 저장)
+                const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                _applyContentState(parsed);
+                localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(parsed));
                 renderContent(); updateProgress(); updateTrashFab();
                 renderMobileNav();
                 loadWeather();
                 setSyncStatus('ok', '✅ 동기화 완료');
-            } catch(e) { setSyncStatus('error', '❌ 데이터 오류'); }
-        } else if (uc && uc.isMaster) {
-            _saveContentToFirebase();
+            } catch(e) { setSyncStatus('error', '❌ 데이터 오류: ' + e.message); }
         }
     }, (err) => setSyncStatus('error', '❌ ' + err.message));
 
-    // 2) 체크 리스너
-    if (uc && uc.checksPath) {
+    // ── 2) meta 리스너 (메모, 숙소) ──────────────────────────────
+    onValue(ref(db, FB.META_MEMOS), (snap) => {
+        const d = snap.val();
+        if (d) {
+            try {
+                const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                // cityMemos 병합 (기존 __open 키 등 메모리 상태 유지)
+                const prev = appState.cityMemos || {};
+                appState.cityMemos = Object.assign({}, prev, parsed);
+                // __open 키는 parsed에 없으므로 prev에서 복원
+                Object.keys(prev).filter(k => k.endsWith('__open')).forEach(k => {
+                    appState.cityMemos[k] = prev[k];
+                });
+            } catch(e) {}
+        }
+    });
+    onValue(ref(db, FB.META_ACCOMS), (snap) => {
+        const d = snap.val();
+        if (d) { try { appState.accommodations = (typeof d === 'string') ? JSON.parse(d) : d; } catch(e) {} }
+    });
+    onValue(ref(db, FB.META_TRASH), (snap) => {
+        const d = snap.val();
+        if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) {} updateTrashFab(); }
+    });
+
+    // ── 3) checks 리스너 (solo는 master 읽기 전용, 쓰기 없음) ────
+    const checksReadPath = uc?.soloMode ? FB.CHECKS_MASTER : uc?.checksPath;
+    if (checksReadPath) {
         if (_unsubChecks) _unsubChecks();
-        _unsubChecks = onValue(ref(db, uc.checksPath), (snap) => {
+        _unsubChecks = onValue(ref(db, checksReadPath), (snap) => {
             const d = snap.val();
-            if (d) { try { _applyChecksState(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {} }
+            if (d) {
+                try {
+                    const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                    _applyChecksState(parsed);
+                    // Firebase 수신 → 로컬 캐시 갱신 (solo는 캐시만, 쓰기 없음)
+                    if (currentUser) localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(parsed));
+                    renderContent(); updateProgress();
+                } catch(e) {}
+            }
         });
     }
 
-    // 3) private 구조 리스너 (cat/seo 전용)
-    if (uc && uc.structurePath) {
+    // ── 4) private structure 리스너 (cat/seo 전용) ──────────────
+    if (uc && uc.structurePath && !uc.soloMode) {
         if (_unsubStructure) _unsubStructure();
         _unsubStructure = onValue(ref(db, uc.structurePath), (snap) => {
             const d = snap.val();
-            if (d) { try { _applyPrivateStructure(JSON.parse(d)); renderContent(); updateProgress(); } catch(e) {} }
+            if (d) {
+                try {
+                    const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                    _applyPrivateStructure(parsed);
+                    renderContent(); updateProgress();
+                } catch(e) {}
+            }
         });
     }
 }
 
 function _saveContentToFirebase() {
-    const s = JSON.stringify(_getContentState());
-    // 항상 로컬에 먼저 저장 (오프라인 대비)
-    localStorage.setItem(FB_LOCAL_CONTENT, s);
-    if (!window._fb) {
-        setSyncStatus('ok', '✅ 로컬 저장 완료 (오프라인)');
+    if (!currentUser) return;
+    const uc = USER_CONFIG[currentUser];
+    // 🔒 solo 및 canWrite=false 유저는 Firebase 쓰기 완전 금지
+    if (!uc.canWrite || uc.soloMode) {
+        setSyncStatus('ok', '👁 읽기 전용 (데모 모드)');
         return;
     }
+    // 마스터만 structure/master에 씀
+    if (!uc.isMaster) return;
+
+    const contentState = _getContentState();
+    // 로컬 캐시 (structure만)
+    localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(contentState));
+    if (!window._fb) { setSyncStatus('ok', '✅ 로컬 저장 완료 (오프라인)'); return; }
+
     const { db, ref, set } = window._fb;
-    set(ref(db, FB_CONTENT_PATH), s)
+    const masterStructure = {
+        reservations: contentState.reservations,
+        itinerary:    contentState.itinerary,
+        packing:      contentState.packing,
+    };
+    // v4 single JSON.stringify (GAS와 동일한 방식)
+    set(ref(db, FB.STRUCTURE_MASTER), masterStructure)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
-        .catch(() => {
-            // Firebase 실패해도 로컬엔 이미 저장됨
-            setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)');
-        });
+        .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
+
+    // cityMemos + accommodations → meta 경로에 별도 저장
+    if (contentState.cityMemos) {
+        // __open 키는 Firebase에 저장 안 함 (UI 상태)
+        const memosToSave = Object.fromEntries(
+            Object.entries(contentState.cityMemos).filter(([k]) => !k.endsWith('__open'))
+        );
+        set(ref(db, FB.META_MEMOS), memosToSave).catch(e => console.error('[memos save]', e));
+    }
+    if (contentState.accommodations) {
+        set(ref(db, FB.META_ACCOMS), contentState.accommodations).catch(e => console.error('[accoms save]', e));
+    }
+    if (contentState.trash !== undefined) {
+        set(ref(db, FB.META_TRASH), contentState.trash).catch(e => console.error('[trash save]', e));
+    }
 }
 
 function _saveChecksToFirebase() {
     if (!currentUser) return;
     const uc = USER_CONFIG[currentUser];
-    if (!uc.checksPath) return;
-    const s = JSON.stringify(_getChecksState());
-    // 항상 로컬에 먼저 저장
-    localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, s);
+    // 🔒 solo는 절대 checks 저장 안 함 (master 체크 보호)
+    if (uc.soloMode || !uc.canWrite || !uc.checksPath) return;
+    const checksState = _getChecksState();
+    // 로컬 캐시
+    localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(checksState));
     if (!window._fb) return;
     const { db, ref, set } = window._fb;
-    set(ref(db, uc.checksPath), s).catch(e => console.error('[checks save]', e));
+    // v4: single JSON (object 직접)
+    set(ref(db, uc.checksPath), checksState).catch(e => console.error('[checks save]', e));
+    // tickets도 별도 경로에 저장
+    if (uc.ticketsPath) {
+        const ticketsState = _getTicketsState();
+        set(ref(db, uc.ticketsPath), ticketsState).catch(e => console.error('[tickets save]', e));
+    }
+}
+
+function _getTicketsState() {
+    return {
+        reservations: appState.reservations.tickets || {},
+        itinerary:    appState.itinerary.tickets    || {},
+        packing:      appState.packing.tickets      || {},
+    };
 }
 
 function _savePrivateStructure() {
     if (!window._fb || !currentUser) return;
-    const { db, ref, set } = window._fb;
     const uc = USER_CONFIG[currentUser];
-    if (!uc.structurePath) return;
-    set(ref(db, uc.structurePath), JSON.stringify(_getPrivateStructure()))
+    if (!uc.canWrite || uc.soloMode || !uc.structurePath) return;
+    const { db, ref, set } = window._fb;
+    // v4: single JSON (object 직접)
+    set(ref(db, uc.structurePath), _getPrivateStructure())
         .catch(e => console.error('[structure save]', e));
 }
 
 function save() {
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
     if (!uc) return;
+
+    // 🔒 solo: Firebase 쓰기 완전 금지 — 어떤 데이터도 저장 안 함
+    if (uc.soloMode || !uc.canWrite) {
+        setSyncStatus('ok', '👁 읽기 전용');
+        return;
+    }
+
     setSyncStatus('loading', '☁️ 저장 중…');
 
     if (uc.saveMode === 'master') {
-        // 마스터: content + checks 둘 다
+        // 마스터: structure/master + checks/master + meta
         _saveContentToFirebase();
         _saveChecksToFirebase();
 
-    } else if (uc.saveMode === 'session') {
-        // 솔로: 체크는 full과 공유, structure는 세션 메모리만 (저장 안 함)
-        _saveChecksToFirebase();
-        setSyncStatus('ok', '✅ 저장 완료 (세션 전용)');
-
     } else if (uc.saveMode === 'private') {
-        // 친구: checks + 개인 structure 저장
+        // 친구 (cat/seo): checks/{user} + structure/private/{user}
         _saveChecksToFirebase();
         _savePrivateStructure();
         setSyncStatus('ok', '✅ 저장 완료');
@@ -1007,12 +1114,14 @@ const USER_CONFIG = {
         icon:  '👑',
         color: '#8b5cf6',
         isMaster: true,
-        saveMode: 'master',     // content + checks 저장 → 전체 반영
-        checksPath: 'euroPlanner/v33/checks/full',
-        structurePath: null,    // content 경로 사용 (마스터)
+        saveMode: 'master',     // structure + checks + meta 저장 → 전체 반영
+        checksPath: FB.CHECKS_MASTER,
+        structurePath: null,    // structure/master 경로 사용
+        ticketsPath:   FB.TICKETS_MASTER,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
         soloMode: false,
+        canWrite: true,
         reservationFilter: null
     },
     solo: {
@@ -1020,12 +1129,14 @@ const USER_CONFIG = {
         icon:  '🧳',
         color: '#10b981',
         isMaster: false,
-        saveMode: 'session',    // 세션 메모리만 — 앱 끄면 삭제
-        checksPath: 'euroPlanner/v33/checks/full',
+        saveMode: 'session',    // 🔒 Firebase 쓰기 완전 금지 (데모용)
+        checksPath: null,       // solo는 master checks 읽기만 — 쓰기 금지
         structurePath: null,
+        ticketsPath:   null,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: null,
         soloMode: true,
+        canWrite: false,        // ← 어떤 Firebase 쓰기도 하지 않음
         reservationFilter: null
     },
     cat: {
@@ -1033,12 +1144,14 @@ const USER_CONFIG = {
         icon:  '🐱',
         color: '#ef4444',
         isMaster: false,
-        saveMode: 'private',    // checks + 개인 structure → 본인만 보임
-        checksPath: 'euroPlanner/v33/checks/swiss',
-        structurePath: 'euroPlanner/v33/structure/swiss',
+        saveMode: 'private',    // checks/cat + structure/private/cat 저장
+        checksPath: FB.CHECKS_CAT,
+        structurePath: FB.STRUCTURE_CAT,
+        ticketsPath:   FB.TICKETS_CAT,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
         soloMode: false,
+        canWrite: true,
         reservationFilter: ['r10','r11','r12','r27e','r4','r15','r20','r21','r24','r26','r28','r29']
     },
     seo: {
@@ -1046,12 +1159,14 @@ const USER_CONFIG = {
         icon:  '🇬🇧',
         color: '#f59e0b',
         isMaster: false,
-        saveMode: 'private',    // checks + 개인 structure → 본인만 보임
-        checksPath: 'euroPlanner/v33/checks/paris',
-        structurePath: 'euroPlanner/v33/structure/paris',
+        saveMode: 'private',    // checks/seo + structure/private/seo 저장
+        checksPath: FB.CHECKS_SEO,
+        structurePath: FB.STRUCTURE_SEO,
+        ticketsPath:   FB.TICKETS_SEO,
         tabs:  ['reservations','itinerary','packing'],
         itineraryCats: ['paris1','london','london_b','paris2'],
         soloMode: false,
+        canWrite: true,
         reservationFilter: ['r27e','r4','r20','r21','r26','r28']
     }
 };
@@ -1085,7 +1200,7 @@ function enterWithCode(code) {
         shakeInput();
         return;
     }
-    sessionStorage.setItem('EURO_USER_CODE', normalizedCode);
+    localStorage.setItem('EURO_USER_CODE', normalizedCode);
     currentUser = normalizedCode;
     if (normalizedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
     applyUserMode(normalizedCode);
@@ -2016,25 +2131,23 @@ function bulkDelete() {
 
 // ── INIT ──────────────────────────────────────────────────
 function init() {
-    // 0) 세션 복원
-    const savedCode = sessionStorage.getItem('EURO_USER_CODE');
+    // 0) 로그인 복원 (sessionStorage → localStorage로 변경: 앱 재시작 후에도 유지)
+    const savedCode = localStorage.getItem('EURO_USER_CODE');
     if (savedCode && USER_CONFIG[savedCode]) {
         currentUser = savedCode;
         document.getElementById('pin-overlay').classList.add('hidden');
-        // 세션 복원 시 스크롤 잠금 불필요 (pin overlay 안 보임)
         if (savedCode === 'solo') soloSessionStructure = { reservations:{}, itinerary:{}, packing:{} };
         applyUserMode(savedCode);
     } else {
-        _lockBodyScroll();  // 핀 화면 표시 중 iOS Safari 포함 배경 잠금
+        _lockBodyScroll();
     }
 
-    // 1) 로컬 캐시로 빠른 초기 렌더링
-    const localContent = localStorage.getItem(FB_LOCAL_CONTENT);
-    if (localContent) { try { _applyContentState(JSON.parse(localContent)); } catch(e) {} }
-    if (currentUser) {
-        const localChecks = localStorage.getItem(FB_LOCAL_CHECKS + '_' + currentUser);
-        if (localChecks) { try { _applyChecksState(JSON.parse(localChecks)); } catch(e) {} }
-    }
+    // 1) 로컬 캐시로 빠른 초기 렌더링 (structure만 — checks는 Firebase 수신 후 적용)
+    const localStructure = localStorage.getItem(FB_LOCAL_STRUCTURE);
+    if (localStructure) { try { _applyContentState(JSON.parse(localStructure)); } catch(e) {} }
+    // ⚠️ checks 로컬 캐시 복원 제거 — Firebase 수신 시에만 적용 (기기간 동기화 안정성)
+    // (solo는 Firebase에서 master checks를 읽어오므로 여기서 미리 적용하지 않음)
+
     _ensureAppState();
     switchTab(appState.activeTab || 'reservations');
     renderMobileNav();
@@ -2586,7 +2699,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
             ${tipsHtml}
             ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
-                <input type="file" id="up-${task.id}" style="display:none" accept="image/*" onchange="handleUpload(this,'${task.id}')">
+                <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
 
             </div>`}
