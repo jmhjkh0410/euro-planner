@@ -1060,14 +1060,8 @@ function _saveContentToFirebase() {
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
         .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
 
-    // cityMemos + accommodations → meta 경로에 별도 저장
-    // ⚠️ cityMemos가 비어있으면 Firebase를 덮어쓰지 않음 (Firebase가 항상 이김)
-    if (contentState.cityMemos && Object.keys(contentState.cityMemos).filter(k => !k.endsWith('__open')).length > 0) {
-        const memosToSave = Object.fromEntries(
-            Object.entries(contentState.cityMemos).filter(([k]) => !k.endsWith('__open'))
-        );
-        set(ref(db, FB.META_MEMOS), memosToSave).catch(e => console.error('[memos save]', e));
-    }
+    // cityMemos는 saveCityMemo()에서만 저장 — 여기서 쓰면 타이밍에 따라 빈 값으로 덮어쓸 위험
+    // accommodations → meta 경로에 별도 저장
     if (contentState.accommodations) {
         set(ref(db, FB.META_ACCOMS), contentState.accommodations).catch(e => console.error('[accoms save]', e));
     }
