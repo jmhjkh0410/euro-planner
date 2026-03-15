@@ -2146,10 +2146,11 @@ function bulkDelete() {
     if (!selectedIds.size) return;
     const tab = appState.activeTab, td = appState[tab];
     selectedIds.forEach(id => {
-        const found = findTaskInStructure(td.structure, id);
+        let found = findTaskInStructure(td.structure, id);
+        if (!found && td._private) found = findTaskInStructure(td._private, id);
         if (found) {
             const [task] = found.arr.splice(found.idx, 1);
-            appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, deletedAt:Date.now() });
+            appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now() });
             delete td.checks[id]; delete td.tickets[id];
         }
     });
@@ -2997,18 +2998,31 @@ function enterEdit(taskId, catKey) {
 }
 function saveEdit(taskId, oldCat) {
     const td = appState[appState.activeTab];
+    const uc = currentUser ? USER_CONFIG[currentUser] : null;
     const title = document.getElementById(`et-${taskId}`)?.value || '';
     const desc  = document.getElementById(`ed-${taskId}`)?.value || '';
     const time  = document.getElementById(`etm-${taskId}`)?.value || '';
     const tips  = document.getElementById(`ep-${taskId}`)?.value || '';
     const newCat= document.getElementById(`ec-${taskId}`)?.value || oldCat;
-    const _found = findTaskInStructure(td.structure, taskId);
+
+    // structure와 _private 둘 다 탐색
+    let _found = findTaskInStructure(td.structure, taskId);
+    const isPrivate = !_found && td._private;
+    if (!_found && td._private) _found = findTaskInStructure(td._private, taskId);
     if (!_found) return;
+
     const [task] = _found.arr.splice(_found.idx, 1);
     task.title = title; task.desc = desc; task.tips = tips;
     if (time) task._time = time; else delete task._time;
-    if (!td.structure[newCat]) td.structure[newCat] = [];
-    td.structure[newCat].push(task);
+
+    if (isPrivate) {
+        // private 항목은 _private에 저장
+        if (!td._private[newCat]) td._private[newCat] = [];
+        td._private[newCat].push(task);
+    } else {
+        if (!td.structure[newCat]) td.structure[newCat] = [];
+        td.structure[newCat].push(task);
+    }
     saveAndRender();
 }
 
@@ -3018,7 +3032,16 @@ function startDelete(taskId) {
     _pendingDelId = taskId;
     const td = appState[appState.activeTab];
     let title = '';
-    for (const k in td.structure) { const t = getStructureArr(td.structure, k).find(t => t.id===taskId); if (t) { title=t.title; break; } }
+    for (const k in td.structure) {
+        const t = getStructureArr(td.structure, k).find(t => t.id===taskId);
+        if (t) { title=t.title; break; }
+    }
+    if (!title && td._private) {
+        for (const k in td._private) {
+            const t = (td._private[k] || []).find(t => t.id===taskId);
+            if (t) { title=t.title; break; }
+        }
+    }
     document.getElementById('dlg-delete-desc').textContent =
         `"${title.length>30?title.slice(0,30)+'…':title}" — 휴지통으로 이동합니다.`;
     openDlg('dlg-delete');
@@ -3027,10 +3050,14 @@ function confirmDeleteNow() {
     if (!_pendingDelId) return;
     const id = _pendingDelId; closeDlg('dlg-delete'); _pendingDelId = null;
     const tab = appState.activeTab, td = appState[tab];
-    const found = findTaskInStructure(td.structure, id);
+
+    let found = findTaskInStructure(td.structure, id);
+    if (!found && td._private) found = findTaskInStructure(td._private, id);
+
     if (found) {
         const [task] = found.arr.splice(found.idx, 1);
-        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, deletedAt:Date.now() });
+        // fromIdx: 원래 위치 저장 (복구 시 원위치 복원용)
+        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now() });
         delete td.checks[id]; delete td.tickets[id];
     }
     saveAndRender(); updateTrashFab();
@@ -3424,18 +3451,20 @@ function restoreTrash(idx) {
     const item = appState.trash[idx]; if (!item) return;
     appState.trash.splice(idx, 1);
     trashSelectedIdxs.clear();
-    const { fromTab:ft, fromCat:fc, deletedAt:_, ...task } = item;
+    const { fromTab:ft, fromCat:fc, fromIdx:fi, deletedAt:_, ...task } = item;
     const structure = appState[ft].structure;
     if (!structure[fc]) structure[fc] = [];
     const val = structure[fc];
     if (Array.isArray(val)) {
-        // 일반 배열: 그냥 push
-        val.push(task);
+        // 원래 인덱스로 복원. 현재 배열 길이를 초과하면 맨 끝에.
+        const insertAt = (fi !== undefined) ? Math.min(fi, val.length) : val.length;
+        val.splice(insertAt, 0, task);
     } else if (val && typeof val === 'object') {
-        // 유동 블록: task의 _dk로 맞는 plan에 복구
         const dk = task._dk || '__plan_a__';
         if (!val[dk]) val[dk] = [];
-        val[dk].push(task);
+        const planArr = val[dk];
+        const insertAt = (fi !== undefined) ? Math.min(fi, planArr.length) : planArr.length;
+        planArr.splice(insertAt, 0, task);
     }
     save(); updateTrashFab();
     if (appState.activeTab === ft) { renderContent(); updateProgress(); }
