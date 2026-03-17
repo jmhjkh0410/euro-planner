@@ -855,6 +855,7 @@ let _unsubStructure = null;
 let _unsubMemos   = null;
 let _unsubAccoms  = null;
 let _unsubTrash   = null;
+let _unsubTickets = null;
 
 function _getChecksState() {
     // v4: checks와 tickets 분리. _saveChecksToFirebase에서 checks만, tickets은 ticketsPath에 별도 저장.
@@ -1042,6 +1043,23 @@ function _startFirebaseSync() {
                     const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
                     _applyPrivateStructure(parsed);
                     renderContent(); updateProgress();
+                } catch(e) {}
+            }
+        });
+    }
+
+    // ── 5) tickets 리스너 (첨부파일 — 기기간 동기화) ───────────
+    if (uc && uc.ticketsPath) {
+        if (_unsubTickets) _unsubTickets();
+        _unsubTickets = onValue(ref(db, uc.ticketsPath), (snap) => {
+            const d = snap.val();
+            if (d) {
+                try {
+                    const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                    ['reservations','itinerary','packing'].forEach(tab => {
+                        if (parsed[tab]) appState[tab].tickets = parsed[tab];
+                    });
+                    renderContent();
                 } catch(e) {}
             }
         });
