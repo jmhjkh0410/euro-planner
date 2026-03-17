@@ -920,14 +920,20 @@ function _getPrivateStructure() {
     return {
         reservations: appState.reservations._private || {},
         itinerary:    appState.itinerary._private    || {},
-        packing:      appState.packing._private      || {}
+        packing:      appState.packing._private      || {},
+        _overrides: {
+            reservations: appState.reservations._overrides || {},
+            itinerary:    appState.itinerary._overrides    || {},
+            packing:      appState.packing._overrides      || {},
+        }
     };
 }
 
 function _applyPrivateStructure(d) {
     if (!d) return;
     ['reservations','itinerary','packing'].forEach(t => {
-        appState[t]._private = d[t] || {};
+        appState[t]._private   = d[t] || {};
+        appState[t]._overrides = (d._overrides && d._overrides[t]) || {};
     });
 }
 
@@ -2215,8 +2221,9 @@ function _ensureAppState() {
     if (!appState.itinerary.dayOpen)  appState.itinerary.dayOpen  = {};
     if (!appState.trash) appState.trash = [];
     ['reservations','itinerary','packing'].forEach(tab => {
-        if (!appState[tab].tickets) appState[tab].tickets = {};
-        if (!appState[tab].checks)  appState[tab].checks  = {};
+        if (!appState[tab].tickets)   appState[tab].tickets   = {};
+        if (!appState[tab].checks)    appState[tab].checks    = {};
+        if (!appState[tab]._overrides) appState[tab]._overrides = {};
     });
 }
 
@@ -2297,7 +2304,20 @@ function showTimeInput(taskId, catKey) {
 
     const save = () => {
         const val = input.value;
-        if (val) task._time = val; else delete task._time;
+        const uc = currentUser ? USER_CONFIG[currentUser] : null;
+        const td = appState[appState.activeTab];
+        const tab = appState.activeTab;
+
+        // cat/seo가 마스터 항목 시간 변경 → _overrides에 저장
+        const isInStructure = !!findTaskInStructure(td.structure, taskId);
+        if (uc && uc.saveMode === 'private' && isInStructure) {
+            if (!appState[tab]._overrides) appState[tab]._overrides = {};
+            if (!appState[tab]._overrides[catKey]) appState[tab]._overrides[catKey] = {};
+            const existing = appState[tab]._overrides[catKey][taskId] || {};
+            appState[tab]._overrides[catKey][taskId] = { ...existing, _time: val || '' };
+        } else {
+            if (val) task._time = val; else delete task._time;
+        }
         saveAndRender();
     };
     input.addEventListener('blur', save);
@@ -2836,7 +2856,13 @@ function renderContent() {
         }
 
         if (uc && uc.saveMode === 'private') {
-            // cat/seo: 마스터 항목 + 본인 추가 항목 합치기
+            // cat/seo: 마스터 항목에 오버라이드 적용 + 본인 추가 항목 합치기
+            const overrides = (appState[appState.activeTab]._overrides || {})[catKey] || {};
+            if (Object.keys(overrides).length > 0) {
+                baseTasks = baseTasks.map(task =>
+                    overrides[task.id] ? { ...task, ...overrides[task.id] } : task
+                );
+            }
             const privateTasks = (td._private || {})[catKey] || [];
             baseTasks = [...baseTasks, ...privateTasks];
         } else if (uc && uc.saveMode === 'session') {
@@ -3052,17 +3078,32 @@ function saveEdit(taskId, oldCat) {
     if (!_found && td._private) _found = findTaskInStructure(td._private, taskId);
     if (!_found) return;
 
-    const [task] = _found.arr.splice(_found.idx, 1);
-    task.title = title; task.desc = desc; task.tips = tips;
-    if (time) task._time = time; else delete task._time;
+    const isMasterItem = !isPrivate; // 마스터(시트)에서 온 항목인지 여부
 
-    if (isPrivate) {
-        // private 항목은 _private에 저장
-        if (!td._private[newCat]) td._private[newCat] = [];
-        td._private[newCat].push(task);
+    if (uc && uc.saveMode === 'private' && isMasterItem) {
+        // cat/seo가 마스터 항목 편집 → _overrides에 오버라이드로 저장 (마스터 불변)
+        const tab = appState.activeTab;
+        if (!appState[tab]._overrides) appState[tab]._overrides = {};
+        if (!appState[tab]._overrides[newCat]) appState[tab]._overrides[newCat] = {};
+        const override = {};
+        override.title = title;
+        override.desc  = desc;
+        override.tips  = tips;
+        if (time) override._time = time; else override._time = '';
+        appState[tab]._overrides[newCat][taskId] = override;
     } else {
-        if (!td.structure[newCat]) td.structure[newCat] = [];
-        td.structure[newCat].push(task);
+        // 마스터 계정이거나 _private 항목 편집 → 기존 방식
+        const [task] = _found.arr.splice(_found.idx, 1);
+        task.title = title; task.desc = desc; task.tips = tips;
+        if (time) task._time = time; else delete task._time;
+
+        if (isPrivate) {
+            if (!td._private[newCat]) td._private[newCat] = [];
+            td._private[newCat].push(task);
+        } else {
+            if (!td.structure[newCat]) td.structure[newCat] = [];
+            td.structure[newCat].push(task);
+        }
     }
     saveAndRender();
 }
