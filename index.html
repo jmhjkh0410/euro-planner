@@ -1070,7 +1070,7 @@ function _saveContentToFirebase() {
     if (!currentUser) return;
     const uc = USER_CONFIG[currentUser];
     if (!uc.canWrite || uc.soloMode) {
-        setSyncStatus('ok', '👁 읽기 전용 (데모 모드)');
+        setSyncStatus('ok', '✅ 동기화 완료');
         return;
     }
     if (!uc.isMaster) return;
@@ -1151,7 +1151,7 @@ function save() {
 
     // 🔒 solo: Firebase 쓰기 완전 금지 — 어떤 데이터도 저장 안 함
     if (uc.soloMode || !uc.canWrite) {
-        setSyncStatus('ok', '👁 읽기 전용');
+        setSyncStatus('ok', '✅ 동기화 완료');
         return;
     }
 
@@ -2409,7 +2409,7 @@ function renderCityMemo(container, catKey, catInfo) {
     const FLOAT_PARENT = { swiss_b:'swiss', nice_b:'nice', london_b:'london' };
     const memoKey  = FLOAT_PARENT[catKey] || catKey;
     const isShared = !!FLOAT_PARENT[catKey];
-    const memo = (appState.cityMemos || {})[memoKey] || '';
+    const memo = applySoloText((appState.cityMemos || {})[memoKey] || '');
     const isMaster = !isShared && currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
     const memoId = `city-memo-${catKey}`;
 
