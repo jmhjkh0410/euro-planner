@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v40 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v41 🔥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -661,7 +661,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v40 🔥</span>
+      <span class="nav-version">v41 🔥</span>
     </div>
   </div>
 </nav>
@@ -852,6 +852,9 @@ let _fbDataReady = false;  // Firebase 초기 데이터 수신 완료 여부 —
 let _unsubContent = null;
 let _unsubChecks  = null;
 let _unsubStructure = null;
+let _unsubMemos   = null;
+let _unsubAccoms  = null;
+let _unsubTrash   = null;
 
 function _getChecksState() {
     // v4: checks와 tickets 분리. _saveChecksToFirebase에서 checks만, tickets은 ticketsPath에 별도 저장.
@@ -974,7 +977,10 @@ function _startFirebaseSync() {
     }, (err) => setSyncStatus('error', '❌ ' + err.message));
 
     // ── 2) meta 리스너 (메모, 숙소) ──────────────────────────────
-    onValue(ref(db, FB.META_MEMOS), (snap) => {
+    if (_unsubMemos) _unsubMemos();
+    if (_unsubAccoms) _unsubAccoms();
+    if (_unsubTrash) _unsubTrash();
+    _unsubMemos = onValue(ref(db, FB.META_MEMOS), (snap) => {
         const d = snap.val();
         if (d) {
             try {
@@ -988,7 +994,7 @@ function _startFirebaseSync() {
         }
         _tryRender('memos');
     });
-    onValue(ref(db, FB.META_ACCOMS), (snap) => {
+    _unsubAccoms = onValue(ref(db, FB.META_ACCOMS), (snap) => {
         const d = snap.val();
         if (d) {
             try {
@@ -997,7 +1003,7 @@ function _startFirebaseSync() {
         }
         _tryRender('accoms');
     });
-    onValue(ref(db, FB.META_TRASH), (snap) => {
+    _unsubTrash = onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
         if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) {} updateTrashFab(); }
     });
@@ -1079,6 +1085,8 @@ function _saveChecksToFirebase() {
     const uc = USER_CONFIG[currentUser];
     // 🔒 solo는 절대 checks 저장 안 함 (master 체크 보호)
     if (uc.soloMode || !uc.canWrite || !uc.checksPath) return;
+    // 🛡️ Firebase 초기 데이터 수신 전엔 절대 쓰지 않음 (빈 checks 덮어쓰기 방지)
+    if (!_fbDataReady) return;
     const checksState = _getChecksState();
     // 로컬 캐시
     localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(checksState));
@@ -1105,6 +1113,8 @@ function _savePrivateStructure() {
     if (!window._fb || !currentUser) return;
     const uc = USER_CONFIG[currentUser];
     if (!uc.canWrite || uc.soloMode || !uc.structurePath) return;
+    // 🛡️ Firebase 초기 데이터 수신 전엔 절대 쓰지 않음 (빈 _private 덮어쓰기 방지)
+    if (!_fbDataReady) return;
     const { db, ref, set } = window._fb;
     // v4: single JSON (object 직접)
     set(ref(db, uc.structurePath), _getPrivateStructure())
@@ -2147,10 +2157,14 @@ function bulkDelete() {
     const tab = appState.activeTab, td = appState[tab];
     selectedIds.forEach(id => {
         let found = findTaskInStructure(td.structure, id);
-        if (!found && td._private) found = findTaskInStructure(td._private, id);
+        let isPrivate = false;
+        if (!found && td._private) {
+            found = findTaskInStructure(td._private, id);
+            isPrivate = true;
+        }
         if (found) {
             const [task] = found.arr.splice(found.idx, 1);
-            appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now() });
+            appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now(), fromPrivate:isPrivate });
             delete td.checks[id]; delete td.tickets[id];
         }
     });
@@ -2262,6 +2276,10 @@ function showTimeInput(taskId, catKey) {
     const td = appState[appState.activeTab];
     let task = null;
     for (const k in td.structure) { task = getStructureArr(td.structure, k).find(t => t.id === taskId); if (task) break; }
+    // _private도 탐색 (cat/seo 추가 항목)
+    if (!task && td._private) {
+        for (const k in td._private) { task = (td._private[k] || []).find(t => t.id === taskId); if (task) break; }
+    }
     if (!task) return;
 
     // 뱃지/버튼 자리를 인라인 input으로 교체
@@ -2421,7 +2439,24 @@ function saveCityMemo(catKey) {
     if (!appState.cityMemos) appState.cityMemos = {};
     appState.cityMemos[catKey] = ta.value.trim();
     appState.cityMemos[`${catKey}__open`] = true;
-    saveAndRender();
+
+    // 🔥 Firebase META_MEMOS 경로에 직접 쓰기 (master만)
+    if (window._fb && _fbDataReady && currentUser) {
+        const uc = USER_CONFIG[currentUser];
+        if (uc.isMaster && uc.canWrite) {
+            const { db, ref, set } = window._fb;
+            const memosToSave = {};
+            Object.entries(appState.cityMemos).forEach(([k, v]) => {
+                if (!k.endsWith('__open')) memosToSave[k] = v;
+            });
+            set(ref(db, FB.META_MEMOS), memosToSave)
+                .then(() => setSyncStatus('ok', '✅ 메모 저장 완료'))
+                .catch(e => { console.error('[memos save]', e); setSyncStatus('error', '❌ 메모 저장 실패'); });
+        }
+    }
+
+    renderContent(); updateProgress(); updateTrashFab();
+    setTimeout(initMobileTips, 60);
 }
 
 function openTodayItinerary() {
@@ -2530,7 +2565,9 @@ function getDKfromId(id) {
 }
 const DK_LABEL = {
     '__memo__': '📌 숙소 & 교통 핵심 메모',
-    '__etc__': '📝 기타'
+    '__etc__': '📝 기타',
+    '이동': '🚆 이동일',
+    '귀국': '✈️ 귀국일',
 };
 const DK_LABEL_BY_CAT = {
     swiss_b: {
@@ -3056,12 +3093,16 @@ function confirmDeleteNow() {
     const tab = appState.activeTab, td = appState[tab];
 
     let found = findTaskInStructure(td.structure, id);
-    if (!found && td._private) found = findTaskInStructure(td._private, id);
+    let isPrivate = false;
+    if (!found && td._private) {
+        found = findTaskInStructure(td._private, id);
+        isPrivate = true;
+    }
 
     if (found) {
         const [task] = found.arr.splice(found.idx, 1);
-        // fromIdx: 원래 위치 저장 (복구 시 원위치 복원용)
-        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now() });
+        // fromPrivate: 복구 시 _private vs structure 구분용
+        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now(), fromPrivate:isPrivate });
         delete td.checks[id]; delete td.tickets[id];
     }
     saveAndRender(); updateTrashFab();
@@ -3455,10 +3496,12 @@ function restoreTrash(idx) {
     const item = appState.trash[idx]; if (!item) return;
     appState.trash.splice(idx, 1);
     trashSelectedIdxs.clear();
-    const { fromTab:ft, fromCat:fc, fromIdx:fi, deletedAt:_, ...task } = item;
-    const structure = appState[ft].structure;
-    if (!structure[fc]) structure[fc] = [];
-    const val = structure[fc];
+    const { fromTab:ft, fromCat:fc, fromIdx:fi, deletedAt:_, fromPrivate, ...task } = item;
+
+    // fromPrivate=true → _private에 복구, 아니면 structure에 복구
+    const targetStore = fromPrivate ? (appState[ft]._private || (appState[ft]._private = {})) : appState[ft].structure;
+    if (!targetStore[fc]) targetStore[fc] = [];
+    const val = targetStore[fc];
     if (Array.isArray(val)) {
         // 원래 인덱스로 복원. 현재 배열 길이를 초과하면 맨 끝에.
         const insertAt = (fi !== undefined) ? Math.min(fi, val.length) : val.length;
