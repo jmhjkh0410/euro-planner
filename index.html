@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v41 🔥</title>
+<title>유럽 여행 통합 마스터 플래너 v43 🚆</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -651,6 +651,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <button id="tab-btn-reservations" class="tab-btn" onclick="switchTab('reservations')"><span>📅</span><span>예약</span></button>
         <button id="tab-btn-packing"      class="tab-btn" onclick="switchTab('packing')"><span>🎒</span><span>짐싸기</span></button>
         <button id="tab-btn-itinerary"    class="tab-btn" onclick="switchTab('itinerary')"><span>🗺️</span><span>일정</span></button>
+        <button id="tab-btn-passes"       class="tab-btn" onclick="switchTab('passes')"><span>🎫</span><span>패스</span></button>
       </div>
     </div>
     <div class="nav-right">
@@ -839,6 +840,7 @@ const FB = {
     META_MEMOS:        'euroPlanner/v4/meta/cityMemos',
     META_ACCOMS:       'euroPlanner/v4/meta/accommodations',
     META_TRASH:        'euroPlanner/v4/meta/trash',
+    META_PASSES:       'euroPlanner/v4/meta/passTickets',
 };
 // 로컬 스토리지 키
 const FB_LOCAL_STRUCTURE = 'EURO_V4_STRUCTURE';
@@ -856,6 +858,7 @@ let _unsubMemos   = null;
 let _unsubAccoms  = null;
 let _unsubTrash   = null;
 let _unsubTickets = null;
+let _unsubPasses  = null;
 
 function _getChecksState() {
     // v4: checks와 tickets 분리. _saveChecksToFirebase에서 checks만, tickets은 ticketsPath에 별도 저장.
@@ -863,6 +866,7 @@ function _getChecksState() {
         reservations: { checks: appState.reservations.checks || {} },
         itinerary:    { checks: appState.itinerary.checks    || {} },
         packing:      { checks: appState.packing.checks      || {} },
+        passes:       { checks: appState.passChecks           || {} },
     };
 }
 
@@ -881,6 +885,11 @@ function _applyChecksState(d) {
             if (hasChecks) appState[tab].checks = src;
         }
     });
+    // 🎫 패스 체크
+    if (d.passes) {
+        const src = d.passes;
+        appState.passChecks = src.checks || (typeof src === 'object' && !src.checks ? src : {});
+    }
 }
 
 function _getContentState() {
@@ -1013,6 +1022,15 @@ function _startFirebaseSync() {
     _unsubTrash = onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
         if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) {} updateTrashFab(); }
+    });
+    // 🎫 패스 & 입장권 리스너
+    if (_unsubPasses) _unsubPasses();
+    _unsubPasses = onValue(ref(db, FB.META_PASSES), (snap) => {
+        const d = snap.val();
+        if (d) {
+            try { appState.passes = (typeof d === 'string') ? JSON.parse(d) : d; } catch(e) { appState.passes = {}; }
+        }
+        if (appState.activeTab === 'passes') { renderContent(); updateProgress(); }
     });
 
     // ── 3) checks 리스너 (solo는 master 읽기 전용, 쓰기 없음) ────
@@ -1183,7 +1201,7 @@ const USER_CONFIG = {
         checksPath: FB.CHECKS_MASTER,
         structurePath: null,    // structure/master 경로 사용
         ticketsPath:   FB.TICKETS_MASTER,
-        tabs:  ['reservations','itinerary','packing'],
+        tabs:  ['reservations','itinerary','packing','passes'],
         itineraryCats: null,
         soloMode: false,
         canWrite: true,
@@ -1198,7 +1216,7 @@ const USER_CONFIG = {
         checksPath: null,       // solo는 master checks 읽기만 — 쓰기 금지
         structurePath: null,
         ticketsPath:   null,
-        tabs:  ['reservations','itinerary','packing'],
+        tabs:  ['reservations','itinerary','packing','passes'],
         itineraryCats: null,
         soloMode: true,
         canWrite: false,        // ← 어떤 Firebase 쓰기도 하지 않음
@@ -1213,7 +1231,7 @@ const USER_CONFIG = {
         checksPath: FB.CHECKS_CAT,
         structurePath: FB.STRUCTURE_CAT,
         ticketsPath:   FB.TICKETS_CAT,
-        tabs:  ['reservations','itinerary','packing'],
+        tabs:  ['reservations','itinerary','packing','passes'],
         itineraryCats: ['swiss','swiss_b','milano','nice','nice_b','paris1','london'],
         soloMode: false,
         canWrite: true,
@@ -1228,7 +1246,7 @@ const USER_CONFIG = {
         checksPath: FB.CHECKS_SEO,
         structurePath: FB.STRUCTURE_SEO,
         ticketsPath:   FB.TICKETS_SEO,
-        tabs:  ['reservations','itinerary','packing'],
+        tabs:  ['reservations','itinerary','packing','passes'],
         itineraryCats: ['paris1','london','london_b','paris2'],
         soloMode: false,
         canWrite: true,
@@ -1330,7 +1348,7 @@ function applyUserMode(code) {
     window._currentFbPath = uc.checksPath;
 
     // 3) 탭 표시/숨김
-    ['reservations','itinerary','packing'].forEach(t => {
+    ['reservations','itinerary','packing','passes'].forEach(t => {
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.style.display = uc.tabs.includes(t) ? '' : 'none';
     });
@@ -1527,11 +1545,25 @@ const config = {
             med:   { title: "💊 상비약",        short: "약",   color: "#27ae60" },
             etc:   { title: "🧺 기타 꿀템",     short: "기타", color: "#7f8c8d" }
         }
+    },
+    passes: {
+        title: "패스 & 입장권 🎫",
+        theme: "#6366f1",
+        categories: {
+            budapest: { title: "🇭🇺 부다페스트",  short: "부다",   color: "#e74c3c" },
+            wien:     { title: "🇦🇹 빈(Wien)",    short: "빈",     color: "#c0392b" },
+            krakow:   { title: "🇵🇱 크라쿠프",    short: "크라",   color: "#d35400" },
+            berlin:   { title: "🇩🇪 베를린",      short: "베를린", color: "#e67e22" },
+            munich:   { title: "🇩🇪 뮌헨",        short: "뮌헨",   color: "#f39c12" },
+            swiss:    { title: "🇨🇭 스위스",      short: "스위스", color: "#27ae60" },
+            milano:   { title: "🇮🇹 밀라노",      short: "밀라노", color: "#16a085" },
+            nice:     { title: "🇫🇷 니스",        short: "니스",   color: "#2980b9" },
+            paris1:   { title: "🇫🇷 파리 1차",    short: "파리1",  color: "#8e44ad" },
+            london:   { title: "🇬🇧 런던",        short: "런던",   color: "#2c3e50" },
+            paris2:   { title: "🇫🇷 파리 2차",    short: "파리2",  color: "#6c3483" }
+        }
     }
 };
-
-
-// ── 타이틀에서 시간 파싱 마이그레이션 ────────────────────────
 function migrateTimeFromStructure(data) {
     if (!data) return;
     const TIME_RE = /^\[(\d{1,2}:\d{2})\]\s*/;
@@ -1988,6 +2020,29 @@ function doSearch(q) {
         }
     }
 
+    // 🎫 패스 탭 검색
+    const passCats = config.passes?.categories || {};
+    const passData = appState.passes || {};
+    for (const [catKey, catInfo] of Object.entries(passCats)) {
+        const items = passData[catKey];
+        if (!items || !Array.isArray(items)) continue;
+        for (const t of items) {
+            const title = t.title    || '';
+            const desc  = t.coverage || '';
+            const tips  = t.tips     || '';
+            const cost  = t.cost     || '';
+            const how   = t.howToBuy || '';
+            const all   = [title, desc, tips, cost, how].join(' ').toLowerCase();
+            if (all.includes(kw)) {
+                const titleMatch = title.toLowerCase().includes(kw);
+                const descMatch  = desc.toLowerCase().includes(kw) || cost.toLowerCase().includes(kw) || how.toLowerCase().includes(kw);
+                const tipsMatch  = tips.toLowerCase().includes(kw);
+                results.push({ tab:'passes', tabLabel:'🎫 패스', catKey, catLabel:catInfo.title, task:t,
+                    titleMatch, descMatch, tipsMatch, _title:title, _desc:desc||cost, _tips:tips });
+            }
+        }
+    }
+
     if (!results.length) {
         res.innerHTML = `<div class="search-empty">검색 결과가 없어요 😅</div>`;
         return;
@@ -2060,6 +2115,11 @@ function goToSearchResult(tab, catKey, taskId) {
                 appState.itinerary.dayOpen[`${catKey}__${dk}`] = true;
             }
         }
+    }
+    // 패스 탭: 도시 아코디언 열기
+    if (tab === 'passes') {
+        if (!appState.passes._cityOpen) appState.passes._cityOpen = {};
+        appState.passes._cityOpen[catKey] = true;
     }
 
     renderContent();
@@ -2134,6 +2194,8 @@ let appState = {
     reservations: { structure: {}, checks:{}, tickets:{} },
     itinerary:    { structure: {}, checks:{}, tickets:{}, cityOpen:{}, dayOpen:{} },
     packing:      { structure: {}, checks:{}, tickets:{} },
+    passes:       {},
+    passChecks:   {},
     cityMemos: {},
     accommodations: {},
     trash: []
@@ -2297,6 +2359,9 @@ function switchTab(tab) {
     renderMobileNav();
     loadWeather();
     window.scrollTo(0, 0);
+    // 패스 탭: 편집 FAB 숨김 (읽기 전용)
+    const fabEdit = document.getElementById('fab-edit');
+    if (fabEdit) fabEdit.style.display = tab === 'passes' ? 'none' : '';
     // 일정 탭으로 전환 시 당일 자동 오픈
     if (tab === 'itinerary') setTimeout(openTodayItinerary, 120);
 }
@@ -2561,9 +2626,14 @@ function updateTabUI() {
     document.getElementById('theme-bar').style.backgroundColor = config[tab].theme;
     document.getElementById('view-title').textContent = config[tab].title;
     document.getElementById('progress-bar').style.backgroundColor = config[tab].theme;
-    ['reservations','itinerary','packing'].forEach(t =>
+    ['reservations','itinerary','packing','passes'].forEach(t =>
         document.getElementById(`tab-btn-${t}`).classList.toggle('tab-active', t === tab)
     );
+    // 🎫 패스 탭: 편집/추가 FAB 숨김 (읽기 전용)
+    const fabEdit = document.getElementById('fab-edit');
+    if (fabEdit) fabEdit.style.display = (tab === 'passes') ? 'none' : '';
+    const fabAdd = document.getElementById('fab-add');
+    if (fabAdd) fabAdd.style.display = (tab === 'passes') ? 'none' : '';
     // D-day (모든 탭)
     const {start,end} = getTripDates();
     const today = new Date(); today.setHours(0,0,0,0);
@@ -2811,6 +2881,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 <div class="task-top-row">
                     ${timeBadge}
                     <span class="task-title">${applySoloText(task.title)}</span>
+                    ${appState.activeTab === 'itinerary' ? getTransportBadge(task) : ''}
                 </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
@@ -2853,13 +2924,259 @@ function renderItem(task, catKey, catInfo, td, dk) {
     return li;
 }
 
+// ════════════════════════════════════════════════════════════
+// 🎫 패스 탭 렌더링
+// ════════════════════════════════════════════════════════════
+
+function _getPassChecks() {
+    return appState.passChecks || {};
+}
+
+// ════════════════════════════════════════════════════════════
+// 🚆 이동 대시보드 (예약 탭 상단, 섹션 분리)
+// ════════════════════════════════════════════════════════════
+function renderTransportDashboard(container) {
+    const CONFIRMED = [
+        { date:'6/16', from:'Budapest', to:'Wien',         train:'RJX 60',        time:'07:40→10:20', price:'ÖBB €19'   },
+        { date:'6/20', from:'Wien',     to:'Kraków',       train:'EC 206',        time:'08:10→13:35', price:'ÖBB €30'   },
+        { date:'6/21', from:'Kraków',   to:'Berlin Gesundbr.', train:'EC 58',     time:'11:52→19:15', price:'PKP €45'   },
+        { date:'6/24', from:'Berlin',   to:'München',      train:'ICE 1103',      time:'16:37→20:46', price:'DB €35'    },
+        { date:'6/27', from:'München',  to:'Zürich Flugh.',train:'ECE 194',       time:'10:48→14:17', price:'DB €35'    },
+        { date:'7/5',  from:'Nice',     to:'Paris Lyon',   train:'TGV 6170',      time:'10:56→16:37', price:'SNCF €113' },
+        { date:'7/9',  from:'Paris',    to:'London',       train:'Eurostar 9015', time:'09:02→10:30', price:'Eurostar'  },
+        { date:'7/20', from:'London',   to:'Paris',        train:'Eurostar 9036', time:'15:31→18:59', price:'Eurostar'  },
+    ];
+    const UNBOOKED = [
+        { date:'7/1',  from:'Frutigen', to:'Milano',       train:'Gotthard 우회 (RE80)', time:'09:01→14:17', price:'CHF 5.60/인', note:'당일 SBB 앱 구매' },
+        { date:'7/2',  from:'Milano',   to:'Nice',         train:'IC + TER',             time:'~13:00→18:00',price:'~€25~35/인',  note:'Trenitalia 사전 예매' },
+    ];
+
+    const dash = document.createElement('div');
+    dash.style.cssText = 'margin-bottom:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);overflow:hidden';
+
+    let html = '';
+
+    // ── Section 1: 확정 기차표 ────────────────
+    html += `<div style="padding:12px 16px 8px;border-bottom:1px solid var(--border-light)">
+        <div style="font-size:13px;font-weight:800;color:var(--text-primary)">🎫 확정 기차표</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${CONFIRMED.length}장, PDF 보유 · 변경 불가</div>
+    </div>`;
+    html += `<div style="padding:6px 8px;display:flex;flex-direction:column;gap:3px">`;
+    for (const m of CONFIRMED) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15)">
+            <span style="font-size:11px;font-weight:800;color:#2563eb;min-width:32px">${m.date}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.from} → ${m.to}</span>
+            <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap">${m.train}</span>
+            <span style="font-size:10px;font-weight:700;color:var(--text-muted);white-space:nowrap">${m.time}</span>
+            <span style="font-size:10px;font-weight:800;color:#2563eb;min-width:48px;text-align:right;white-space:nowrap">${m.price}</span>
+        </div>`;
+    }
+    html += `</div>`;
+
+    // ── Section 2: 미예매 구간 ────────────────
+    html += `<div style="padding:12px 16px 6px;border-top:1px solid var(--border-light);margin-top:4px">
+        <div style="font-size:13px;font-weight:800;color:#ea580c">⚠️ 미예매 구간</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">아직 표 없음 · 구매 필요</div>
+    </div>`;
+    html += `<div style="padding:4px 8px 10px;display:flex;flex-direction:column;gap:3px">`;
+    for (const m of UNBOOKED) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(234,88,12,0.08);border:1px solid rgba(234,88,12,0.2)">
+            <span style="font-size:11px;font-weight:800;color:#ea580c;min-width:32px">${m.date}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.from} → ${m.to}</span>
+            <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap">${m.train}</span>
+            <span style="font-size:10px;font-weight:700;color:var(--text-muted);white-space:nowrap">${m.time}</span>
+            <span style="font-size:10px;font-weight:800;color:#ea580c;min-width:60px;text-align:right;white-space:nowrap">${m.price}</span>
+        </div>
+        <div style="padding:0 10px 2px;font-size:9px;color:var(--text-muted);margin-top:-1px">💡 ${m.note}</div>`;
+    }
+    html += `</div>`;
+
+    dash.innerHTML = html;
+    container.appendChild(dash);
+}
+
+function renderPassTab(container) {
+    const passData = appState.passes || {};
+    const cats = config.passes.categories;
+    const checks = _getPassChecks();
+
+    const CAT_COLORS = {
+        '교통':    { bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe', icon:'🚇' },
+        '뮤지엄':  { bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe', icon:'🖼️' },
+        '입장권':  { bg:'#fffbeb', color:'#b45309', border:'#fde68a', icon:'🎟️' },
+        '액티비티':{ bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0', icon:'🏔️' },
+        '기타':    { bg:'#f8fafc', color:'#475569', border:'#e2e8f0', icon:'📎' },
+    };
+
+    for (const [cityKey, catInfo] of Object.entries(cats)) {
+        const items = passData[cityKey];
+        if (!items || !items.length) continue;
+
+        const section = document.createElement('section');
+        section.id = `section-${cityKey}`;
+        section.className = 'cat-section';
+
+        // 도시별 체크 진행률
+        const done = items.filter(it => checks[it.id]).length;
+        const total = items.length;
+
+        // 카테고리 칩 요약
+        const catTypes = [...new Set(items.map(it => it.category))];
+        const chipsHtml = catTypes.map(ct => {
+            const cc = CAT_COLORS[ct] || CAT_COLORS['기타'];
+            const cnt = items.filter(it => it.category === ct).length;
+            return `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:${cc.bg};color:${cc.color};border:1px solid ${cc.border}">${cc.icon} ${ct} ${cnt}</span>`;
+        }).join('');
+
+        // 도시 헤더 (아코디언)
+        const isOpen = appState.passes._cityOpen?.[cityKey] !== false; // 기본 열림
+        section.innerHTML = `
+            <button type="button" onclick="togglePassCity('${cityKey}')" class="city-card" style="border-left-color:${catInfo.color}">
+                <div class="city-card-left">
+                    <span class="city-card-title">${catInfo.title}</span>
+                    <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
+                    <div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">${chipsHtml}</div>
+                </div>
+                <span class="city-chevron${isOpen ? ' open' : ''}">▼</span>
+            </button>
+            <div class="accordion-body${isOpen ? ' open' : ''}" id="pass-body-${cityKey}">
+                <div style="padding:4px 0 8px" id="pass-inner-${cityKey}"></div>
+            </div>`;
+        container.appendChild(section);
+
+        if (!isOpen) continue;
+
+        const inner = section.querySelector(`#pass-inner-${cityKey}`);
+
+        for (const item of items) {
+            const isChecked = checks[item.id] || false;
+            const cc = CAT_COLORS[item.category] || CAT_COLORS['기타'];
+            const hasWarn = (item.coverage || '').includes('⚠️');
+
+            const card = document.createElement('div');
+            card.className = `task-item${isChecked ? ' completed' : ''}`;
+            card.id = `item-${item.id}`;
+            card.style.cssText = 'padding:10px 12px;margin-bottom:6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s';
+            if (isChecked) card.style.opacity = '0.55';
+
+            let cardHtml = `<div style="display:flex;align-items:flex-start;gap:8px">`;
+            // 체크박스
+            cardHtml += `<button class="item-check${isChecked ? ' checked' : ''}" onclick="event.stopPropagation();toggleCheck('${item.id}')" style="margin-top:2px;flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid ${isChecked ? cc.color : '#ccc'};background:${isChecked ? cc.color : 'transparent'};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s">${isChecked ? '✓' : ''}</button>`;
+            cardHtml += `<div style="flex:1;min-width:0">`;
+            // 카테고리 뱃지 + 제목
+            cardHtml += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
+            cardHtml += `<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:${cc.bg};color:${cc.color}">${cc.icon} ${item.category}</span>`;
+            cardHtml += `<span style="font-weight:700;font-size:13px;${isChecked ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${item.title}</span>`;
+            cardHtml += `</div>`;
+
+            // 비용
+            if (item.cost) {
+                cardHtml += `<div style="font-size:12px;font-weight:800;color:#2563eb;margin-top:3px">${item.cost}</div>`;
+            }
+
+            // 구매 방법
+            if (item.howToBuy) {
+                cardHtml += `<div style="font-size:10px;color:var(--text-secondary);margin-top:4px;display:flex;align-items:center;gap:3px">📱 <span>${item.howToBuy.replace(/\n/g, ' · ')}</span></div>`;
+            }
+
+            // 커버 범위
+            if (item.coverage) {
+                const covBg = hasWarn ? '#fff7ed' : 'var(--surface-raised)';
+                const covBorder = hasWarn ? '1px solid #fed7aa' : '1px solid var(--border-light)';
+                cardHtml += `<div style="background:${covBg};border:${covBorder};border-radius:6px;padding:6px 8px;margin-top:6px;font-size:10px;line-height:1.65;color:var(--text-secondary);white-space:pre-wrap">${item.coverage}</div>`;
+            }
+
+            // 팁
+            if (item.tips) {
+                cardHtml += `<div style="font-size:10px;color:var(--text-muted);margin-top:4px">💡 ${item.tips.replace(/\n/g, ' · ')}</div>`;
+            }
+
+            cardHtml += `</div></div>`;
+            card.innerHTML = cardHtml;
+            inner.appendChild(card);
+        }
+    }
+
+    // 데이터 없을 때
+    if (!container.children.length) {
+        container.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text-muted)">
+            <div style="font-size:32px;margin-bottom:12px">🎫</div>
+            <div style="font-size:13px;font-weight:600">패스 데이터를 불러오는 중...</div>
+            <div style="font-size:11px;margin-top:6px">Firebase에 passTickets가 동기화되면 여기에 표시돼요</div>
+        </div>`;
+    }
+}
+
+function togglePassCity(cityKey) {
+    if (!appState.passes._cityOpen) appState.passes._cityOpen = {};
+    const cur = appState.passes._cityOpen[cityKey];
+    appState.passes._cityOpen[cityKey] = cur === false ? true : false;
+    renderContent();
+}
+
+// 일정 탭 기차 이동 항목에 티켓 상태 뱃지 표시
+const _TRANSPORT_KEYWORDS = /출발|탑승|RJX|EC\s|ICE|ECE|TGV|Eurostar|유로스타|기차|열차|Bayern/i;
+const _CONFIRMED_TRAINS = ['RJX 60','EC 206','EC 58','ICE 1103','ECE 194','TGV 6170','TGV Inoui','Eurostar 9015','Eurostar 9036'];
+const _PASS_TRAINS = ['Bayern', 'STP', 'Swiss Travel'];
+const _UNBOOKED_ROUTES = ['Gotthard','Milano→Nice','Milano→Ventimiglia','밀라노행','Ventimiglia'];
+
+function getTransportBadge(task) {
+    const text = (task.title || '') + ' ' + (task.desc || '') + ' ' + (task.tips || '');
+    if (!_TRANSPORT_KEYWORDS.test(text)) return '';
+    // 확정 티켓 여부
+    for (const t of _CONFIRMED_TRAINS) {
+        if (text.includes(t)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(37,99,235,0.12);color:#2563eb;border:1px solid rgba(37,99,235,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">🎫 확정</span>`;
+    }
+    // 패스 커버
+    for (const p of _PASS_TRAINS) {
+        if (text.includes(p)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(22,163,74,0.12);color:#16a34a;border:1px solid rgba(22,163,74,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">🚇 패스</span>`;
+    }
+    // 미예매
+    for (const u of _UNBOOKED_ROUTES) {
+        if (text.includes(u)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(234,88,12,0.12);color:#ea580c;border:1px solid rgba(234,88,12,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">⚠️ 미예매</span>`;
+    }
+    return '';
+}
+
+// 일정 탭 도시 헤더에 패스 요약 칩 (교통+뮤지엄만)
+function getPassChipsHtml(cityKey) {
+    const passData = appState.passes || {};
+    const items = passData[cityKey];
+    if (!items || !items.length) return '';
+    const chips = items
+        .filter(it => it.category === '교통' || it.category === '뮤지엄')
+        .slice(0, 3)
+        .map(it => {
+            const isT = it.category === '교통';
+            const bg = isT ? '#eff6ff' : '#faf5ff';
+            const color = isT ? '#1d4ed8' : '#7c3aed';
+            const icon = isT ? '🚇' : '🖼️';
+            const shortName = (it.title || '').split('\n')[0].replace(/\[.*?\]\s*/, '').slice(0, 12);
+            return `<span style="font-size:8px;font-weight:600;padding:1px 5px;border-radius:999px;background:${bg};color:${color};cursor:pointer;white-space:nowrap" onclick="event.stopPropagation();switchTab('passes');setTimeout(()=>{const el=document.getElementById('section-${cityKey}');if(el)el.scrollIntoView({behavior:'smooth'})},200)">${icon} ${shortName}</span>`;
+        });
+    if (!chips.length) return '';
+    return `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px">${chips.join('')}</div>`;
+}
+
 // ── RENDER CONTENT ────────────────────────────────────────
 function renderContent() {
     const container = document.getElementById('list-container');
     container.innerHTML = '';
+
+    // 🎫 패스 탭은 별도 렌더러
+    if (appState.activeTab === 'passes') {
+        renderPassTab(container);
+        return;
+    }
+
     const td  = appState[appState.activeTab];
     const cfg = config[appState.activeTab];
     const isIt = appState.activeTab === 'itinerary';
+
+    // 🚆 예약 탭 상단: 이동 대시보드 (확정 + 미예매, 섹션 분리)
+    if (appState.activeTab === 'reservations') {
+        renderTransportDashboard(container);
+    }
 
     Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
         const uc = currentUser ? USER_CONFIG[currentUser] : null;
@@ -2913,6 +3230,7 @@ function renderContent() {
                     <div class="city-card-left">
                         <span class="city-card-title">${catInfo.title}</span>
                         <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
+                        ${getPassChipsHtml(catKey)}
                     </div>
                     <span class="city-chevron${isOpen?' open':''}">▼</span>
                 </button>
@@ -3050,9 +3368,13 @@ function toggleDay(catKey, dk) {
 
 // ── CHECK ─────────────────────────────────────────────────
 function toggleCheck(id) {
-    const td = appState[appState.activeTab];
-    td.checks[id] = !td.checks[id];
-    document.getElementById(`item-${id}`)?.classList.toggle('completed', !!td.checks[id]);
+    if (appState.activeTab === 'passes') {
+        appState.passChecks[id] = !appState.passChecks[id];
+    } else {
+        const td = appState[appState.activeTab];
+        td.checks[id] = !td.checks[id];
+    }
+    document.getElementById(`item-${id}`)?.classList.toggle('completed', !!(appState.activeTab === 'passes' ? appState.passChecks[id] : appState[appState.activeTab].checks[id]));
     save(); updateProgress();
 }
 
@@ -3253,6 +3575,21 @@ function addTask(catKey, dk) {
 
 // ── PROGRESS ──────────────────────────────────────────────
 function updateProgress() {
+    // 🎫 패스 탭 별도 처리
+    if (appState.activeTab === 'passes') {
+        const passData = appState.passes || {};
+        const checks = _getPassChecks();
+        let total = 0, done = 0;
+        for (const items of Object.values(passData)) {
+            if (!Array.isArray(items)) continue;
+            total += items.length;
+            items.forEach(it => { if (checks[it.id]) done++; });
+        }
+        const pct = total > 0 ? Math.round(done / total * 100) : 0;
+        document.getElementById('progress-bar').style.width  = pct + '%';
+        document.getElementById('progress-pct').textContent  = pct + '%';
+        return;
+    }
     const td  = appState[appState.activeTab];
     const filteredCats = getFilteredCategories(appState.activeTab);
     const all = Object.entries(td.structure)
