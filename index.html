@@ -15,6 +15,7 @@
   import { initializeApp }               from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, onValue, set }
                                           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, signInAnonymously }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   // ✅ Firebase 설정 완료
   const firebaseConfig = {
@@ -28,12 +29,22 @@
     measurementId:     "G-E237BGXBVL"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+  const app  = initializeApp(firebaseConfig);
+  const db   = getDatabase(app);
+  const auth = getAuth(app);
 
-  // Firebase API를 전역에 노출
-  window._fb = { db, ref, onValue, set };
-  window.dispatchEvent(new Event('firebase-ready'));
+  // 🔐 익명 로그인 후 firebase-ready 발행
+  signInAnonymously(auth)
+    .then(() => {
+      console.log('[Auth] 익명 로그인 성공');
+      window._fb = { db, ref, onValue, set };
+      window.dispatchEvent(new Event('firebase-ready'));
+    })
+    .catch((err) => {
+      console.error('[Auth] 익명 로그인 실패 — 오프라인 모드:', err);
+      // 로그인 실패해도 로컬 모드로 동작하도록 firebase-ready는 발행하지 않음
+      // → init()의 5초 타임아웃이 '클라우드 미연결' 표시
+    });
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1015,13 +1026,13 @@ function _startFirebaseSync() {
         if (d) {
             try {
                 appState.accommodations = (typeof d === 'string') ? JSON.parse(d) : d;
-            } catch(e) {}
+            } catch(e) { console.warn("[parse]", e); }
         }
         _tryRender('accoms');
     });
     _unsubTrash = onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
-        if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) {} updateTrashFab(); }
+        if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) { console.warn("[parse]", e); } updateTrashFab(); }
     });
     // 🎫 패스 & 입장권 리스너
     if (_unsubPasses) _unsubPasses();
@@ -1046,7 +1057,7 @@ function _startFirebaseSync() {
                     // Firebase 수신 → 로컬 캐시 갱신 (solo는 캐시만, 쓰기 없음)
                     if (currentUser) localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(parsed));
                     renderContent(); updateProgress();
-                } catch(e) {}
+                } catch(e) { console.warn("[parse]", e); }
             }
         });
     }
@@ -1061,7 +1072,7 @@ function _startFirebaseSync() {
                     const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
                     _applyPrivateStructure(parsed);
                     renderContent(); updateProgress();
-                } catch(e) {}
+                } catch(e) { console.warn("[parse]", e); }
             }
         });
     }
@@ -1080,7 +1091,7 @@ function _startFirebaseSync() {
                         if (parsed[tab]) appState[tab].tickets = Object.assign({}, parsed[tab], appState[tab].tickets);
                     });
                     renderContent();
-                } catch(e) {}
+                } catch(e) { console.warn("[parse]", e); }
             }
         });
     }
@@ -1165,6 +1176,10 @@ function _savePrivateStructure() {
         .catch(e => console.error('[structure save]', e));
 }
 
+// ── save debounce (Firebase 쓰기 빈도 제한) ──────────────
+let _saveTimer = null;
+const SAVE_DEBOUNCE_MS = 400;
+
 function save() {
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
     if (!uc) return;
@@ -1175,19 +1190,27 @@ function save() {
         return;
     }
 
+    // 즉시: 로컬 캐시 저장 (오프라인 안전)
+    try {
+        localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(_getContentState()));
+        localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(_getChecksState()));
+    } catch(e) { console.warn("[parse]", e); }
+
     setSyncStatus('loading', '☁️ 저장 중…');
 
-    if (uc.saveMode === 'master') {
-        // 마스터: structure/master + checks/master + meta
-        _saveContentToFirebase();
-        _saveChecksToFirebase();
-
-    } else if (uc.saveMode === 'private') {
-        // 친구 (cat/seo): checks/{user} + structure/private/{user}
-        _saveChecksToFirebase();
-        _savePrivateStructure();
-        setSyncStatus('ok', '✅ 저장 완료');
-    }
+    // Firebase 쓰기는 debounce (빠른 연타 시 마지막 한 번만)
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+        _saveTimer = null;
+        if (uc.saveMode === 'master') {
+            _saveContentToFirebase();
+            _saveChecksToFirebase();
+        } else if (uc.saveMode === 'private') {
+            _saveChecksToFirebase();
+            _savePrivateStructure();
+            setSyncStatus('ok', '✅ 저장 완료');
+        }
+    }, SAVE_DEBOUNCE_MS);
 }
 
 // ================================================================
@@ -1471,6 +1494,14 @@ function applySoloText(text) {
         .replace(/^\n|\n$/g, '')
         .trim();
 }
+
+// ── HTML escape (XSS 방지) ──────────────────────────────
+function _escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// applySoloText + HTML escape (innerHTML에 삽입할 때 사용)
+function _safeText(text) { return _escHtml(applySoloText(text || '')); }
 
 // ── 예약 탭 필터 ─────────────────────────────────────────
 // 헤더 행 잔재로 들어온 유령 제목 목록
@@ -2005,7 +2036,11 @@ function doSearch(q) {
     for (const { tab, label, cats } of TABS) {
         const td = appState[tab];
         for (const [catKey, catInfo] of Object.entries(cats)) {
-            const rawTasks = getStructureArr(td.structure, catKey);
+            let rawTasks = getStructureArr(td.structure, catKey);
+            // cat/seo 개인 추가 항목도 검색 대상에 포함
+            if (td._private && td._private[catKey]) {
+                rawTasks = [...rawTasks, ...(td._private[catKey] || [])];
+            }
             const tasks = getFilteredTasks(tab, catKey, rawTasks);
             for (const t of tasks) {
                 const title = applySoloText(t.title || '');
@@ -2258,6 +2293,8 @@ function updateEditBar() {
 function bulkDelete() {
     if (!selectedIds.size) return;
     const tab = appState.activeTab, td = appState[tab];
+    // 먼저 모든 대상을 수집 (splice 전에 인덱스 확보)
+    const targets = [];
     selectedIds.forEach(id => {
         let found = findTaskInStructure(td.structure, id);
         let isPrivate = false;
@@ -2265,11 +2302,17 @@ function bulkDelete() {
             found = findTaskInStructure(td._private, id);
             isPrivate = true;
         }
-        if (found) {
-            const [task] = found.arr.splice(found.idx, 1);
-            appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now(), fromPrivate:isPrivate });
-            delete td.checks[id]; delete td.tickets[id];
-        }
+        if (found) targets.push({ id, found, isPrivate });
+    });
+    // 같은 배열 내에서 뒤쪽 인덱스부터 splice (인덱스 꼬임 방지)
+    targets.sort((a, b) => {
+        if (a.found.arr === b.found.arr) return b.found.idx - a.found.idx;
+        return 0;
+    });
+    targets.forEach(({ id, found, isPrivate }) => {
+        const [task] = found.arr.splice(found.idx, 1);
+        appState.trash.unshift({ ...task, fromTab:tab, fromCat:found.catKey, fromIdx:found.idx, deletedAt:Date.now(), fromPrivate:isPrivate });
+        delete td.checks[id]; delete td.tickets[id];
     });
     selectedIds.clear();
     updateEditBar();
@@ -2294,7 +2337,7 @@ function init() {
 
     // 1) 로컬 캐시로 빠른 초기 렌더링 (structure만 — checks는 Firebase 수신 후 적용)
     const localStructure = localStorage.getItem(FB_LOCAL_STRUCTURE);
-    if (localStructure) { try { _applyContentState(JSON.parse(localStructure)); } catch(e) {} }
+    if (localStructure) { try { _applyContentState(JSON.parse(localStructure)); } catch(e) { console.warn("[parse]", e); } }
     // ⚠️ checks 로컬 캐시 복원 제거 — Firebase 수신 시에만 적용 (기기간 동기화 안정성)
     // (solo는 Firebase에서 master checks를 읽어오므로 여기서 미리 적용하지 않음)
 
@@ -2316,6 +2359,8 @@ function init() {
 function _ensureAppState() {
     if (!appState.itinerary.cityOpen) appState.itinerary.cityOpen = {};
     if (!appState.itinerary.dayOpen)  appState.itinerary.dayOpen  = {};
+    if (!appState.reservations.catOpen) appState.reservations.catOpen = {};
+    if (!appState.packing.catOpen) appState.packing.catOpen = {};
     if (!appState.trash) appState.trash = [];
     ['reservations','itinerary','packing'].forEach(tab => {
         if (!appState[tab].tickets)   appState[tab].tickets   = {};
@@ -2491,7 +2536,7 @@ function renderCityMemo(container, catKey, catInfo) {
     const FLOAT_PARENT = { swiss_b:'swiss', nice_b:'nice', london_b:'london' };
     const memoKey  = FLOAT_PARENT[catKey] || catKey;
     const isShared = !!FLOAT_PARENT[catKey];
-    const memo = applySoloText((appState.cityMemos || {})[memoKey] || '');
+    const memo = _escHtml(applySoloText((appState.cityMemos || {})[memoKey] || ''));
     const isMaster = !isShared && currentUser && USER_CONFIG[currentUser]?.saveMode === 'master';
     const memoId = `city-memo-${catKey}`;
 
@@ -2876,7 +2921,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
         : (dk !== undefined && !isMemoTask ? `<button type="button" class="btn-add-time" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">+ 시간</button>` : '');
 
     const tipsHtml = task.tips
-        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${applySoloText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
+        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${_safeText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
         : '';
     const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
 
@@ -2887,17 +2932,17 @@ function renderItem(task, catKey, catInfo, td, dk) {
             <div class="task-top">
                 <div class="task-top-row">
                     ${timeBadge}
-                    <span class="task-title">${applySoloText(task.title)}</span>
+                    <span class="task-title">${_safeText(task.title)}</span>
                     ${appState.activeTab === 'itinerary' ? getTransportBadge(task) : ''}
                 </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
-            ${task.desc ? `<p class="task-desc">${applySoloText(task.desc)}</p>` : ''}
+            ${task.desc ? `<p class="task-desc">${_safeText(task.desc)}</p>` : ''}
             ${tipsHtml}
             ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
-                ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${ticket.name}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
+                ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${_escHtml(ticket.name)}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
 
             </div>`}
         </div>`;
@@ -3105,7 +3150,7 @@ function getPassChipsHtml(cityKey) {
 // ── 예약/짐싸기 탭 카테고리 키워드 칩 ──────────────────────
 const _CAT_CHIP_RULES = [
     { label:'기차',  icon:'🚆', bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe',
-      re:/➡|기차|열차|Railjet|ICE\b|TGV|유로스타|Eurostar|ÖBB|EC\b|Trainline/i },
+      re:/➡|기차|열차|Railjet|ICE\b|ECE\b|TGV|유로스타|Eurostar|ÖBB|EC\s|Trainline/i },
     { label:'관광지', icon:'🏛', bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe',
       re:/국회의사당|궁전|벨베데레|쉔브룬|노이슈반슈타인|루브르|오랑주리|미술사|알베르티나|박물관|대연회장|도서관/i },
     { label:'체험',  icon:'🎟️', bg:'#fffbeb', color:'#b45309', border:'#fde68a',
@@ -3455,16 +3500,24 @@ function saveEdit(taskId, oldCat) {
         appState[tab]._overrides[newCat][taskId] = override;
     } else {
         // 마스터 계정이거나 _private 항목 편집 → 기존 방식
-        const [task] = _found.arr.splice(_found.idx, 1);
-        task.title = title; task.desc = desc; task.tips = tips;
-        if (time) task._time = time; else delete task._time;
-
-        if (isPrivate) {
-            if (!td._private[newCat]) td._private[newCat] = [];
-            td._private[newCat].push(task);
+        if (oldCat === newCat) {
+            // 같은 카테고리: 제자리에서 수정 (순서 유지)
+            const task = _found.arr[_found.idx];
+            task.title = title; task.desc = desc; task.tips = tips;
+            if (time) task._time = time; else delete task._time;
         } else {
-            if (!td.structure[newCat]) td.structure[newCat] = [];
-            td.structure[newCat].push(task);
+            // 카테고리 이동: 기존 위치에서 제거 → 새 카테고리 끝에 추가
+            const [task] = _found.arr.splice(_found.idx, 1);
+            task.title = title; task.desc = desc; task.tips = tips;
+            if (time) task._time = time; else delete task._time;
+
+            if (isPrivate) {
+                if (!td._private[newCat]) td._private[newCat] = [];
+                td._private[newCat].push(task);
+            } else {
+                if (!td.structure[newCat]) td.structure[newCat] = [];
+                td.structure[newCat].push(task);
+            }
         }
     }
     saveAndRender();
