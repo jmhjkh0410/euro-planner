@@ -2123,6 +2123,11 @@ function goToSearchResult(tab, catKey, taskId) {
         if (!appState.passes._cityOpen) appState.passes._cityOpen = {};
         appState.passes._cityOpen[catKey] = true;
     }
+    // 예약/짐싸기 탭: 카테고리 아코디언 열기
+    if (tab === 'reservations' || tab === 'packing') {
+        if (!appState[tab].catOpen) appState[tab].catOpen = {};
+        appState[tab].catOpen[catKey] = true;
+    }
 
     renderContent();
 
@@ -2193,9 +2198,9 @@ function saveTripDates() {
 // ── APP STATE ─────────────────────────────────────────────
 let appState = {
     activeTab: 'reservations',
-    reservations: { structure: {}, checks:{}, tickets:{} },
+    reservations: { structure: {}, checks:{}, tickets:{}, catOpen:{} },
     itinerary:    { structure: {}, checks:{}, tickets:{}, cityOpen:{}, dayOpen:{} },
-    packing:      { structure: {}, checks:{}, tickets:{} },
+    packing:      { structure: {}, checks:{}, tickets:{}, catOpen:{} },
     passes:       {},
     passChecks:   {},
     cityMemos: {},
@@ -3262,15 +3267,26 @@ function renderContent() {
             });
 
         } else {
-            // 예약 / 짐싸기
+            // 예약 / 짐싸기 — 아코디언 카드 스타일
+            const isOpen = td.catOpen[catKey] !== false; // 기본 열림
+            const done  = tasks.filter(t => td.checks[t.id]).length;
+            const total = tasks.length;
             section.innerHTML = `
-                <div class="cat-header">
-                    <h3 class="cat-title" style="border-left:4px solid ${catInfo.color};padding-left:10px">${catInfo.title}</h3>
-                    <div class="cat-line"></div>
-                </div>
-                <ul class="task-list" id="list-${catKey}"></ul>
-                <button type="button" class="btn-add-task" onclick="addTask('${catKey}')">+ 항목 추가</button>`;
+                <button type="button" onclick="toggleCat('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
+                    <div class="city-card-left">
+                        <span class="city-card-title">${catInfo.title}</span>
+                        <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
+                    </div>
+                    <span class="city-chevron${isOpen ? ' open' : ''}">▼</span>
+                </button>
+                <div class="accordion-body${isOpen ? ' open' : ''}" id="cat-body-${catKey}">
+                    <div style="padding:2px 4px 8px" id="cat-inner-${catKey}">
+                        <ul class="task-list" id="list-${catKey}"></ul>
+                        <button type="button" class="btn-add-task" onclick="addTask('${catKey}')" style="margin-top:4px">+ 항목 추가</button>
+                    </div>
+                </div>`;
             container.appendChild(section);
+            if (!isOpen) return; // 접혀있으면 내부 렌더 스킵
             const ul = section.querySelector('ul');
             ul.appendChild(makeDropZone(catKey, undefined, tasks[0]?.id));
             tasks.forEach((task, ti) => {
@@ -3289,6 +3305,18 @@ function toggleCity(catKey) {
     if (now) renderContent();
     else {
         document.getElementById(`city-body-${catKey}`)?.classList.remove('open');
+        document.querySelector(`#section-${catKey} .city-chevron`)?.classList.remove('open');
+    }
+}
+function toggleCat(catKey) {
+    const td = appState[appState.activeTab];
+    if (!td.catOpen) td.catOpen = {};
+    const now = td.catOpen[catKey] === false ? true : false;
+    td.catOpen[catKey] = now;
+    save();
+    if (now) renderContent();
+    else {
+        document.getElementById(`cat-body-${catKey}`)?.classList.remove('open');
         document.querySelector(`#section-${catKey} .city-chevron`)?.classList.remove('open');
     }
 }
