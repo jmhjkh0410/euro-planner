@@ -3102,6 +3102,52 @@ function getPassChipsHtml(cityKey) {
     return `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px">${chips.join('')}</div>`;
 }
 
+// ── 예약/짐싸기 탭 카테고리 키워드 칩 ──────────────────────
+const _CAT_CHIP_RULES = [
+    { label:'기차',  icon:'🚆', bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe',
+      re:/➡|기차|열차|Railjet|ICE\b|TGV|유로스타|Eurostar|ÖBB|EC\b|Trainline/i },
+    { label:'관광지', icon:'🏛', bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe',
+      re:/국회의사당|궁전|벨베데레|쉔브룬|노이슈반슈타인|루브르|오랑주리|미술사|알베르티나|박물관|대연회장|도서관/i },
+    { label:'체험',  icon:'🎟️', bg:'#fffbeb', color:'#b45309', border:'#fde68a',
+      re:/해리포터|아우슈비츠|최후의 만찬|유람선|투어|스튜디오/i },
+    { label:'준비',  icon:'📋', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0',
+      re:/여권|보험|숙소|유심|eSIM|패스|Railcard|환전|출력|쿠폰/i },
+    { label:'앱',    icon:'📱', bg:'#eef2ff', color:'#4338ca', border:'#c7d2fe',
+      re:/앱 설치|앱$|구글맵|오프라인 지도|BudapestGO|WienMobil|BVG|MVG|SBB|RATP|Citymapper|MeteoSwiss|Bounce|Stasher/i },
+    { label:'금융',  icon:'💳', bg:'#fef3c7', color:'#92400e', border:'#fde68a',
+      re:/트래블월렛|트래블로그|신용카드|현금|환전|카드/i },
+    { label:'보안',  icon:'🔒', bg:'#fee2e2', color:'#991b1b', border:'#fecaca',
+      re:/자물쇠|RFID|방지|복대|소매치기|스프링 줄|S자 고리/i },
+    { label:'전자',  icon:'🔌', bg:'#e0e7ff', color:'#3730a3', border:'#c7d2fe',
+      re:/어댑터|멀티탭|보조배터리|이어폰|충전/i },
+    { label:'의류',  icon:'👕', bg:'#f0fdf4', color:'#166534', border:'#bbf7d0',
+      re:/의류|신발|물놀이|레이어드/i },
+    { label:'위생',  icon:'🧴', bg:'#ecfeff', color:'#155e75', border:'#a5f3fc',
+      re:/샤워|선크림|타월|세제/i },
+    { label:'의약',  icon:'💊', bg:'#fdf2f8', color:'#9d174d', border:'#fbcfe8',
+      re:/다이아막스|상비약|비오킬|약/i },
+    { label:'서류',  icon:'📄', bg:'#f8fafc', color:'#475569', border:'#e2e8f0',
+      re:/여권 사본|학생증|ISIC|사진 2장/i },
+];
+function getCatChipsHtml(tasks) {
+    const counts = {};
+    for (const task of tasks) {
+        const text = (task.title || '') + ' ' + (task.desc || '');
+        for (const rule of _CAT_CHIP_RULES) {
+            if (rule.re.test(text)) {
+                counts[rule.label] = (counts[rule.label] || 0) + 1;
+                break; // 항목당 하나의 칩만
+            }
+        }
+    }
+    if (!Object.keys(counts).length) return '';
+    return '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">' +
+        Object.entries(counts).map(([label, cnt]) => {
+            const r = _CAT_CHIP_RULES.find(x => x.label === label);
+            return `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:${r.bg};color:${r.color};border:1px solid ${r.border}">${r.icon} ${label} ${cnt}</span>`;
+        }).join('') + '</div>';
+}
+
 // ── RENDER CONTENT ────────────────────────────────────────
 function renderContent() {
     const container = document.getElementById('list-container');
@@ -3271,11 +3317,13 @@ function renderContent() {
             const isOpen = td.catOpen[catKey] !== false; // 기본 열림
             const done  = tasks.filter(t => td.checks[t.id]).length;
             const total = tasks.length;
+            const chipsHtml = getCatChipsHtml(tasks);
             section.innerHTML = `
                 <button type="button" onclick="toggleCat('${catKey}')" class="city-card" style="border-left-color:${catInfo.color}">
                     <div class="city-card-left">
                         <span class="city-card-title">${catInfo.title}</span>
                         <span class="city-count-badge" style="background:${catInfo.color}">${done}/${total}</span>
+                        ${chipsHtml}
                     </div>
                     <span class="city-chevron${isOpen ? ' open' : ''}">▼</span>
                 </button>
