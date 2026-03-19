@@ -1056,9 +1056,16 @@ function _startFirebaseSync() {
                     _applyChecksState(parsed);
                     // Firebase 수신 → 로컬 캐시 갱신 (solo는 캐시만, 쓰기 없음)
                     if (currentUser) localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(parsed));
-                    renderContent(); updateProgress();
                 } catch(e) { console.warn("[parse]", e); }
+            } else {
+                // 체크 데이터 없음 (신규 유저) → 빈 상태로 초기화
+                ['reservations','itinerary','packing'].forEach(tab => {
+                    appState[tab].checks  = {};
+                    appState[tab].tickets = {};
+                });
+                appState.passChecks = {};
             }
+            renderContent(); updateProgress();
         });
     }
 
@@ -1389,6 +1396,14 @@ function applyUserMode(code) {
 
     // 6) Firebase 재연결 (유저별 경로로) — _fbDataReady 리셋 필수
     _fbDataReady = false;
+    // 🔒 유저 전환 시 이전 유저의 체크/티켓/private 잔존 방지
+    ['reservations','itinerary','packing'].forEach(tab => {
+        appState[tab].checks   = {};
+        appState[tab].tickets  = {};
+        appState[tab]._private = {};
+        appState[tab]._overrides = {};
+    });
+    appState.passChecks = {};
     if (window._fb) _startFirebaseSync();
     else window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
 
