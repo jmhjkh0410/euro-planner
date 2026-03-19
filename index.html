@@ -3165,47 +3165,50 @@ function getPassChipsHtml(cityKey) {
     return `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px">${chips.join('')}</div>`;
 }
 
-// ── 예약/짐싸기 탭 카테고리 기반 뱃지 ──────────────────────
-// catKey → 뱃지 스타일 (config.categories 기반 — 항목 추가 시 자동 적용)
-const _CAT_BADGE_MAP = {
-    // 예약 탭
-    basic:    { icon:'📑', bg:'#f5f3ff', color:'#6d28d9', border:'#ddd6fe' },
-    priority: { icon:'🔥', bg:'#fef2f2', color:'#dc2626', border:'#fecaca' },
-    alarm:    { icon:'🚨', bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
-    april:    { icon:'📅', bg:'#fefce8', color:'#a16207', border:'#fef08a' },
-    may:      { icon:'🖼️', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
-    prep:     { icon:'🎒', bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
-    // 짐싸기 탭
-    thief:    { icon:'🛡️', bg:'#fee2e2', color:'#991b1b', border:'#fecaca' },
-    life:     { icon:'🎒', bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
-    apps:     { icon:'📱', bg:'#eef2ff', color:'#4338ca', border:'#c7d2fe' },
-    elec:     { icon:'🔌', bg:'#e0e7ff', color:'#3730a3', border:'#c7d2fe' },
-    cloth:    { icon:'👕', bg:'#f0fdf4', color:'#166534', border:'#bbf7d0' },
-    wash:     { icon:'🧴', bg:'#ecfeff', color:'#155e75', border:'#a5f3fc' },
-    med:      { icon:'💊', bg:'#fdf2f8', color:'#9d174d', border:'#fbcfe8' },
-    etc:      { icon:'🧺', bg:'#f8fafc', color:'#475569', border:'#e2e8f0' },
+// ── 예약/짐싸기 탭 유형(task.itemType) 기반 뱃지 ──────────
+// DB의 "유형" 컬럼 값 → 뱃지 스타일 (패스 탭과 동일한 패턴)
+const _TYPE_BADGE_MAP = {
+    // 예약 탭 유형
+    '기차':   { icon:'🚆', bg:'#eff6ff', color:'#1d4ed8', border:'#bfdbfe' },
+    '관광지': { icon:'🏛', bg:'#faf5ff', color:'#7c3aed', border:'#ddd6fe' },
+    '체험':   { icon:'🎟️', bg:'#fffbeb', color:'#b45309', border:'#fde68a' },
+    '준비':   { icon:'📋', bg:'#f0fdf4', color:'#15803d', border:'#bbf7d0' },
+    '서류':   { icon:'📄', bg:'#f8fafc', color:'#475569', border:'#e2e8f0' },
+    '숙소':   { icon:'🏠', bg:'#fefce8', color:'#a16207', border:'#fef08a' },
+    // 짐싸기 탭 유형
+    '보안':   { icon:'🔒', bg:'#fee2e2', color:'#991b1b', border:'#fecaca' },
+    '필수':   { icon:'🎒', bg:'#fff7ed', color:'#c2410c', border:'#fed7aa' },
+    '앱':     { icon:'📱', bg:'#eef2ff', color:'#4338ca', border:'#c7d2fe' },
+    '전자':   { icon:'🔌', bg:'#e0e7ff', color:'#3730a3', border:'#c7d2fe' },
+    '의류':   { icon:'👕', bg:'#f0fdf4', color:'#166534', border:'#bbf7d0' },
+    '위생':   { icon:'🧴', bg:'#ecfeff', color:'#155e75', border:'#a5f3fc' },
+    '의약':   { icon:'💊', bg:'#fdf2f8', color:'#9d174d', border:'#fbcfe8' },
+    '기타':   { icon:'🧺', bg:'#f8fafc', color:'#475569', border:'#e2e8f0' },
 };
 
-// 개별 항목용 타입 뱃지 (카드 안에 표시)
+// 개별 항목용 타입 뱃지 (카드 안에 표시, DB의 task.itemType 사용)
 function _getItemBadge(task, catKey) {
-    const badge = _CAT_BADGE_MAP[catKey];
+    if (!task.itemType) return '';
+    const badge = _TYPE_BADGE_MAP[task.itemType];
     if (!badge) return '';
-    const cfgCat = config[appState.activeTab]?.categories?.[catKey];
-    const label = cfgCat?.short || catKey;
-    return `<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:${badge.bg};color:${badge.color}">${badge.icon} ${label}</span>`;
+    return `<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:${badge.bg};color:${badge.color}">${badge.icon} ${task.itemType}</span>`;
 }
 
-// 카테고리 헤더 요약 칩 (아코디언 헤더에 항목 수 표시)
+// 카테고리 헤더 요약 칩 (아코디언 헤더에 유형별 수 표시)
 function getCatChipsHtml(tasks, catKey) {
-    // 체크 완료/미완료 요약
-    const td = appState[appState.activeTab];
-    const done = tasks.filter(t => td.checks[t.id]).length;
-    const remaining = tasks.length - done;
-    if (!tasks.length) return '';
-    const chips = [];
-    if (done > 0)      chips.push(`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0">✅ ${done}</span>`);
-    if (remaining > 0) chips.push(`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca">⬜ ${remaining}</span>`);
-    return '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">' + chips.join('') + '</div>';
+    // task.itemType 기반으로 유형별 카운트
+    const counts = {};
+    for (const task of tasks) {
+        if (task.itemType) {
+            counts[task.itemType] = (counts[task.itemType] || 0) + 1;
+        }
+    }
+    if (!Object.keys(counts).length) return '';
+    return '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">' +
+        Object.entries(counts).map(([type, cnt]) => {
+            const b = _TYPE_BADGE_MAP[type] || _TYPE_BADGE_MAP['기타'];
+            return `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:999px;background:${b.bg};color:${b.color};border:1px solid ${b.border}">${b.icon} ${type} ${cnt}</span>`;
+        }).join('') + '</div>';
 }
 
 // ── RENDER CONTENT ────────────────────────────────────────
