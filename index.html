@@ -1074,8 +1074,10 @@ function _startFirebaseSync() {
             if (d) {
                 try {
                     const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
+                    // ✅ merge: 로컬에서 방금 업로드한 항목이 Firebase 구버전에 덮어쓰이지 않도록
+                    // Firebase 데이터를 베이스로, 로컬 데이터가 우선(Object.assign 오른쪽이 이김)
                     ['reservations','itinerary','packing'].forEach(tab => {
-                        if (parsed[tab]) appState[tab].tickets = parsed[tab];
+                        if (parsed[tab]) appState[tab].tickets = Object.assign({}, parsed[tab], appState[tab].tickets);
                     });
                     renderContent();
                 } catch(e) {}
@@ -2932,69 +2934,6 @@ function _getPassChecks() {
     return appState.passChecks || {};
 }
 
-// ════════════════════════════════════════════════════════════
-// 🚆 이동 대시보드 (예약 탭 상단, 섹션 분리)
-// ════════════════════════════════════════════════════════════
-function renderTransportDashboard(container) {
-    const CONFIRMED = [
-        { date:'6/16', from:'Budapest', to:'Wien',         train:'RJX 60',        time:'07:40→10:20', price:'ÖBB €19'   },
-        { date:'6/20', from:'Wien',     to:'Kraków',       train:'EC 206',        time:'08:10→13:35', price:'ÖBB €30'   },
-        { date:'6/21', from:'Kraków',   to:'Berlin Gesundbr.', train:'EC 58',     time:'11:52→19:15', price:'PKP €45'   },
-        { date:'6/24', from:'Berlin',   to:'München',      train:'ICE 1103',      time:'16:37→20:46', price:'DB €35'    },
-        { date:'6/27', from:'München',  to:'Zürich Flugh.',train:'ECE 194',       time:'10:48→14:17', price:'DB €35'    },
-        { date:'7/5',  from:'Nice',     to:'Paris Lyon',   train:'TGV 6170',      time:'10:56→16:37', price:'SNCF €113' },
-        { date:'7/9',  from:'Paris',    to:'London',       train:'Eurostar 9015', time:'09:02→10:30', price:'Eurostar'  },
-        { date:'7/20', from:'London',   to:'Paris',        train:'Eurostar 9036', time:'15:31→18:59', price:'Eurostar'  },
-    ];
-    const UNBOOKED = [
-        { date:'7/1',  from:'Frutigen', to:'Milano',       train:'Gotthard 우회 (RE80)', time:'09:01→14:17', price:'CHF 5.60/인', note:'당일 SBB 앱 구매' },
-        { date:'7/2',  from:'Milano',   to:'Nice',         train:'IC + TER',             time:'~13:00→18:00',price:'~€25~35/인',  note:'Trenitalia 사전 예매' },
-    ];
-
-    const dash = document.createElement('div');
-    dash.style.cssText = 'margin-bottom:20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);overflow:hidden';
-
-    let html = '';
-
-    // ── Section 1: 확정 기차표 ────────────────
-    html += `<div style="padding:12px 16px 8px;border-bottom:1px solid var(--border-light)">
-        <div style="font-size:13px;font-weight:800;color:var(--text-primary)">🎫 확정 기차표</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${CONFIRMED.length}장, PDF 보유 · 변경 불가</div>
-    </div>`;
-    html += `<div style="padding:6px 8px;display:flex;flex-direction:column;gap:3px">`;
-    for (const m of CONFIRMED) {
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15)">
-            <span style="font-size:11px;font-weight:800;color:#2563eb;min-width:32px">${m.date}</span>
-            <span style="font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.from} → ${m.to}</span>
-            <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap">${m.train}</span>
-            <span style="font-size:10px;font-weight:700;color:var(--text-muted);white-space:nowrap">${m.time}</span>
-            <span style="font-size:10px;font-weight:800;color:#2563eb;min-width:48px;text-align:right;white-space:nowrap">${m.price}</span>
-        </div>`;
-    }
-    html += `</div>`;
-
-    // ── Section 2: 미예매 구간 ────────────────
-    html += `<div style="padding:12px 16px 6px;border-top:1px solid var(--border-light);margin-top:4px">
-        <div style="font-size:13px;font-weight:800;color:#ea580c">⚠️ 미예매 구간</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">아직 표 없음 · 구매 필요</div>
-    </div>`;
-    html += `<div style="padding:4px 8px 10px;display:flex;flex-direction:column;gap:3px">`;
-    for (const m of UNBOOKED) {
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(234,88,12,0.08);border:1px solid rgba(234,88,12,0.2)">
-            <span style="font-size:11px;font-weight:800;color:#ea580c;min-width:32px">${m.date}</span>
-            <span style="font-size:12px;font-weight:600;color:var(--text-primary);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.from} → ${m.to}</span>
-            <span style="font-size:10px;color:var(--text-secondary);white-space:nowrap">${m.train}</span>
-            <span style="font-size:10px;font-weight:700;color:var(--text-muted);white-space:nowrap">${m.time}</span>
-            <span style="font-size:10px;font-weight:800;color:#ea580c;min-width:60px;text-align:right;white-space:nowrap">${m.price}</span>
-        </div>
-        <div style="padding:0 10px 2px;font-size:9px;color:var(--text-muted);margin-top:-1px">💡 ${m.note}</div>`;
-    }
-    html += `</div>`;
-
-    dash.innerHTML = html;
-    container.appendChild(dash);
-}
-
 function renderPassTab(container) {
     const passData = appState.passes || {};
     const cats = config.passes.categories;
@@ -3173,10 +3112,7 @@ function renderContent() {
     const cfg = config[appState.activeTab];
     const isIt = appState.activeTab === 'itinerary';
 
-    // 🚆 예약 탭 상단: 이동 대시보드 (확정 + 미예매, 섹션 분리)
-    if (appState.activeTab === 'reservations') {
-        renderTransportDashboard(container);
-    }
+
 
     Object.entries(getFilteredCategories(appState.activeTab)).forEach(([catKey, catInfo]) => {
         const uc = currentUser ? USER_CONFIG[currentUser] : null;
