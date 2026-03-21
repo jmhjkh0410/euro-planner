@@ -189,9 +189,8 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-edit-item{pointer-events:auto;flex-shrink:0;padding:6px 9px;font-size:16px;color:var(--text-muted);border-radius:8px;transition:all .15s;margin-top:-3px;line-height:1}
 .btn-edit-item:hover{background:var(--surface-raised);color:var(--text-secondary)}
 .task-desc{font-size:10px;color:var(--text-secondary);margin-top:3px;line-height:1.5;font-weight:500;display:flex;align-items:center;gap:3px}
-.task-tips{margin-top:6px;padding:6px 8px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:6px;font-size:10px;color:var(--text-secondary);line-height:1.65;font-weight:500;white-space:pre-wrap}
-.task-tips.has-warn{background:#fff7ed;border-color:#fed7aa}
-.task-tips-inline{font-size:10px;color:var(--text-muted);margin-top:4px}
+.task-tips{margin-top:6px;padding:6px 8px 6px 10px;background:var(--surface-raised);border:1px solid var(--border-light);border-left:3px solid var(--border);border-radius:0 6px 6px 0;font-size:10px;color:var(--text-secondary);line-height:1.65;font-weight:500;white-space:pre-wrap}
+.task-tips.has-warn{background:#fff7ed;border-color:#fed7aa;border-left-color:#f59e0b}
 .task-tips>div{margin-bottom:2px}
 .task-meta-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
 .ticket-badge{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface);border:1px solid #dbeafe;border-radius:999px;box-shadow:0 1px 3px rgba(59,130,246,.1);animation:ticketFloat 2.5s ease-in-out infinite}
@@ -466,9 +465,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .task-tips{
     font-size:13px!important;
     line-height:1.6;
-    padding:8px 10px;
+    padding:8px 10px 8px 12px;
     margin-top:8px;
-    border-radius:8px;
+    border-radius:0 8px 8px 0;
   }
   .task-tips>div{margin-bottom:4px}
 
@@ -2942,18 +2941,18 @@ function renderItem(task, catKey, catInfo, td, dk) {
     const itemBadge = isRP ? _getItemBadge(task, catKey) : '';
     const hasWarn = (task.tips || '').includes('⚠️');
 
-    // ── 팁: 항상 박스형 (패스 커버범위와 동일 스타일)
+    // ── 팁: 둥근 박스 + 왼쪽 컬러바
     let tipsHtml = '';
     if (task.tips) {
         const safeT = _safeText(task.tips);
         const lines = safeT.split('\n').filter(l => l.trim());
+        const barColor = hasWarn ? '' : `border-left-color:${catInfo.color}88`;
         if (lines.length > 1) {
-            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${lines.map(l=>`<div>${l}</div>`).join('')}</div>`;
+            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}" style="${barColor}">${lines.map(l=>`<div>${l}</div>`).join('')}</div>`;
         } else {
-            // 한 줄이어도 박스형. 이미 이모지로 시작하면 💡 추가 안 함
             const startsWithEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(safeT.trim());
             const prefix = startsWithEmoji ? '' : '💡 ';
-            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${prefix}${safeT}</div>`;
+            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}" style="${barColor}">${prefix}${safeT}</div>`;
         }
     }
 
@@ -3101,12 +3100,14 @@ function renderPassTab(container) {
 
             // 커버 범위
             if (item.coverage) {
-                cardHtml += `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${item.coverage}</div>`;
+                const barStyle = hasWarn ? '' : `border-left-color:${cc.color}88`;
+                cardHtml += `<div class="task-tips${hasWarn ? ' has-warn' : ''}" style="${barStyle}">${item.coverage}</div>`;
             }
 
             // 팁
             if (item.tips) {
-                cardHtml += `<div class="task-tips-inline">💡 ${item.tips.replace(/\n/g, ' · ')}</div>`;
+                const barStyle = `border-left-color:${cc.color}88`;
+                cardHtml += `<div class="task-tips" style="${barStyle}">💡 ${item.tips.replace(/\n/g, ' · ')}</div>`;
             }
 
             cardHtml += `</div>`;
