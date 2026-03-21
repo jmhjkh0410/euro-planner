@@ -2942,7 +2942,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
     const itemBadge = isRP ? _getItemBadge(task, catKey) : '';
     const hasWarn = (task.tips || '').includes('⚠️');
 
-    // ── 팁: 박스형 (여러 줄) vs 인라인 (한 줄)
+    // ── 팁: 항상 박스형 (패스 커버범위와 동일 스타일)
     let tipsHtml = '';
     if (task.tips) {
         const safeT = _safeText(task.tips);
@@ -2950,7 +2950,10 @@ function renderItem(task, catKey, catInfo, td, dk) {
         if (lines.length > 1) {
             tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${lines.map(l=>`<div>${l}</div>`).join('')}</div>`;
         } else {
-            tipsHtml = `<div class="task-tips-inline">💡 ${safeT}</div>`;
+            // 한 줄이어도 박스형. 이미 이모지로 시작하면 💡 추가 안 함
+            const startsWithEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(safeT.trim());
+            const prefix = startsWithEmoji ? '' : '💡 ';
+            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${prefix}${safeT}</div>`;
         }
     }
 
