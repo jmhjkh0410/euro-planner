@@ -151,15 +151,15 @@ ul{list-style:none}
 .cat-title{font-size:15px;font-weight:800;color:var(--text-primary)}
 .cat-line{flex:1;height:1px;background:var(--border)}
 
-/* TASK ITEM */
+/* TASK ITEM — 통일 카드 스타일 */
 .task-list{display:flex;flex-direction:column}
 .task-item{
-  background:var(--surface);border:1px solid var(--border);border-left-width:4px;
-  border-radius:var(--r-md);padding:13px 14px;
-  display:flex;gap:11px;align-items:flex-start;
+  background:var(--surface);border:1px solid var(--border);border-left-width:3px;
+  border-radius:10px;padding:10px 12px;
+  display:flex;gap:8px;align-items:flex-start;
   transition:box-shadow .18s,opacity .18s,background .18s,transform .12s;
   box-shadow:var(--shadow-sm);cursor:pointer;user-select:none;
-  margin-bottom:8px;position:relative;
+  margin-bottom:6px;position:relative;
 }
 .task-item:hover{box-shadow:var(--shadow-md)}
 .task-item.completed{opacity:.45;background:var(--surface-raised)!important}
@@ -188,8 +188,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 /* 편집 버튼 — 크게 */
 .btn-edit-item{pointer-events:auto;flex-shrink:0;padding:6px 9px;font-size:16px;color:var(--text-muted);border-radius:8px;transition:all .15s;margin-top:-3px;line-height:1}
 .btn-edit-item:hover{background:var(--surface-raised);color:var(--text-secondary)}
-.task-desc{font-size:11px;color:var(--text-secondary);margin-top:4px;line-height:1.5;font-weight:500}
-.task-tips{margin-top:10px;padding:10px 12px;background:var(--surface-raised);border-left:3px solid var(--border);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:11px;color:var(--text-secondary);line-height:1.65;font-weight:500}
+.task-desc{font-size:10px;color:var(--text-secondary);margin-top:3px;line-height:1.5;font-weight:500;display:flex;align-items:center;gap:3px}
+.task-tips{margin-top:6px;padding:6px 8px;background:var(--surface-raised);border:1px solid var(--border-light);border-radius:6px;font-size:10px;color:var(--text-secondary);line-height:1.65;font-weight:500;white-space:pre-wrap}
+.task-tips.has-warn{background:#fff7ed;border-color:#fed7aa}
+.task-tips-inline{font-size:10px;color:var(--text-muted);margin-top:4px}
 .task-tips>div{margin-bottom:2px}
 .task-meta-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
 .ticket-badge{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--surface);border:1px solid #dbeafe;border-radius:999px;box-shadow:0 1px 3px rgba(59,130,246,.1);animation:ticketFloat 2.5s ease-in-out infinite}
@@ -450,7 +452,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
     gap:14px;
   }
   .task-title{font-size:15px!important;line-height:1.4}
-  .task-desc{font-size:13px!important;line-height:1.55;margin-top:6px}
+  .task-desc{font-size:11px!important;line-height:1.55;margin-top:4px}
 
   /* ── 체크 원 — 터치 타겟 44px ── */
   .check-circle{
@@ -464,9 +466,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .task-tips{
     font-size:13px!important;
     line-height:1.6;
-    padding:12px 14px;
-    margin-top:12px;
-    border-radius:0 10px 10px 0;
+    padding:8px 10px;
+    margin-top:8px;
+    border-radius:8px;
   }
   .task-tips>div{margin-bottom:4px}
 
@@ -2935,13 +2937,24 @@ function renderItem(task, catKey, catInfo, td, dk) {
         ? `<span class="task-time-badge${isNow ? ' now' : ''}" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">${isNow ? '🔴 지금' : task._time}</span>`
         : (dk !== undefined && !isMemoTask ? `<button type="button" class="btn-add-time" onclick="event.stopPropagation();showTimeInput('${task.id}','${catKey}')">+ 시간</button>` : '');
 
-    const tipsHtml = task.tips
-        ? `<div class="task-tips" style="border-left-color:${catInfo.color}88">${_safeText(task.tips).split('\n').map(l=>`<div>${l}</div>`).join('')}</div>`
-        : '';
-    const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
-
+    const isIt = appState.activeTab === 'itinerary';
     const isRP = appState.activeTab === 'reservations' || appState.activeTab === 'packing';
     const itemBadge = isRP ? _getItemBadge(task, catKey) : '';
+    const hasWarn = (task.tips || '').includes('⚠️');
+
+    // ── 팁: 박스형 (여러 줄) vs 인라인 (한 줄)
+    let tipsHtml = '';
+    if (task.tips) {
+        const safeT = _safeText(task.tips);
+        const lines = safeT.split('\n').filter(l => l.trim());
+        if (lines.length > 1) {
+            tipsHtml = `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${lines.map(l=>`<div>${l}</div>`).join('')}</div>`;
+        } else {
+            tipsHtml = `<div class="task-tips-inline">💡 ${safeT}</div>`;
+        }
+    }
+
+    const chkSvg = `<svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>`;
 
     li.innerHTML = `
         <span class="drag-handle">⠿</span>
@@ -2950,8 +2963,9 @@ function renderItem(task, catKey, catInfo, td, dk) {
             <div class="task-top">
                 <div class="task-top-row">
                     ${timeBadge}
-                    ${itemBadge ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">${itemBadge}<span class="task-title">${_safeText(task.title)}</span></div>` : `<span class="task-title">${_safeText(task.title)}</span>`}
-                    ${appState.activeTab === 'itinerary' ? getTransportBadge(task) : ''}
+                    ${itemBadge}
+                    <span class="task-title">${_safeText(task.title)}</span>
+                    ${isIt ? getTransportBadge(task) : ''}
                 </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
@@ -2961,7 +2975,6 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${_escHtml(ticket.name)}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
-
             </div>`}
         </div>`;
 
@@ -3063,18 +3076,15 @@ function renderPassTab(container) {
             const card = document.createElement('div');
             card.className = `task-item${isChecked ? ' completed' : ''}`;
             card.id = `item-${item.id}`;
-            card.style.cssText = 'padding:10px 12px;margin-bottom:6px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s';
-            if (isChecked) card.style.opacity = '0.55';
+            card.style.borderLeftColor = cc.color;
 
-            let cardHtml = `<div style="display:flex;align-items:flex-start;gap:8px">`;
-            // 체크박스
-            cardHtml += `<button class="item-check${isChecked ? ' checked' : ''}" onclick="event.stopPropagation();toggleCheck('${item.id}')" style="margin-top:2px;flex-shrink:0;width:20px;height:20px;border-radius:50%;border:2px solid ${isChecked ? cc.color : '#ccc'};background:${isChecked ? cc.color : 'transparent'};color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s">${isChecked ? '✓' : ''}</button>`;
-            cardHtml += `<div style="flex:1;min-width:0">`;
-            // 카테고리 뱃지 + 제목
-            cardHtml += `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">`;
-            cardHtml += `<span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:${cc.bg};color:${cc.color}">${cc.icon} ${item.category}</span>`;
-            cardHtml += `<span style="font-weight:700;font-size:13px;${isChecked ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${item.title}</span>`;
-            cardHtml += `</div>`;
+            let cardHtml = `
+                <div class="check-circle"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg></div>
+                <div class="task-body">
+                    <div class="task-top-row">
+                        <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:${cc.bg};color:${cc.color}">${cc.icon} ${item.category}</span>
+                        <span class="task-title">${item.title}</span>
+                    </div>`;
 
             // 비용
             if (item.cost) {
@@ -3083,23 +3093,22 @@ function renderPassTab(container) {
 
             // 구매 방법
             if (item.howToBuy) {
-                cardHtml += `<div style="font-size:10px;color:var(--text-secondary);margin-top:4px;display:flex;align-items:center;gap:3px">📱 <span>${item.howToBuy.replace(/\n/g, ' · ')}</span></div>`;
+                cardHtml += `<p class="task-desc">📱 ${item.howToBuy.replace(/\n/g, ' · ')}</p>`;
             }
 
             // 커버 범위
             if (item.coverage) {
-                const covBg = hasWarn ? '#fff7ed' : 'var(--surface-raised)';
-                const covBorder = hasWarn ? '1px solid #fed7aa' : '1px solid var(--border-light)';
-                cardHtml += `<div style="background:${covBg};border:${covBorder};border-radius:6px;padding:6px 8px;margin-top:6px;font-size:10px;line-height:1.65;color:var(--text-secondary);white-space:pre-wrap">${item.coverage}</div>`;
+                cardHtml += `<div class="task-tips${hasWarn ? ' has-warn' : ''}">${item.coverage}</div>`;
             }
 
             // 팁
             if (item.tips) {
-                cardHtml += `<div style="font-size:10px;color:var(--text-muted);margin-top:4px">💡 ${item.tips.replace(/\n/g, ' · ')}</div>`;
+                cardHtml += `<div class="task-tips-inline">💡 ${item.tips.replace(/\n/g, ' · ')}</div>`;
             }
 
-            cardHtml += `</div></div>`;
+            cardHtml += `</div>`;
             card.innerHTML = cardHtml;
+            card.addEventListener('click', () => toggleCheck(item.id));
             inner.appendChild(card);
         }
     }
