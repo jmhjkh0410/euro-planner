@@ -874,6 +874,7 @@ let soloSessionStructure = null;
 
 let fbReady = false;
 let _fbDataReady = false;  // Firebase 초기 데이터 수신 완료 여부 — 이전에는 쓰기 금지
+let _ticketsLoaded = false; // tickets 리스너 첫 응답 여부 — false이면 tickets 저장 안 함
 let _unsubContent = null;
 let _unsubChecks  = null;
 let _unsubStructure = null;
@@ -1104,14 +1105,18 @@ function _startFirebaseSync() {
             if (d) {
                 try {
                     const parsed = (typeof d === 'string') ? JSON.parse(d) : d;
-                    // ✅ merge: 로컬에서 방금 업로드한 항목이 Firebase 구버전에 덮어쓰이지 않도록
-                    // Firebase 데이터를 베이스로, 로컬 데이터가 우선(Object.assign 오른쪽이 이김)
                     ['reservations','itinerary','packing'].forEach(tab => {
                         if (parsed[tab]) appState[tab].tickets = Object.assign({}, parsed[tab], appState[tab].tickets);
                     });
-                    renderContent();
                 } catch(e) { console.warn("[parse]", e); }
+            } else {
+                // tickets 없음 (신규 유저 등) → 빈 상태
+                ['reservations','itinerary','packing'].forEach(tab => {
+                    appState[tab].tickets = {};
+                });
             }
+            _ticketsLoaded = true;
+            renderContent();
         });
     }
 }
@@ -1168,8 +1173,8 @@ function _saveChecksToFirebase() {
     const { db, ref, set } = window._fb;
     // v4: single JSON (object 직접)
     set(ref(db, uc.checksPath), checksState).catch(e => console.error('[checks save]', e));
-    // tickets도 별도 경로에 저장
-    if (uc.ticketsPath) {
+    // tickets도 별도 경로에 저장 — 리스너 첫 응답 전에는 저장 금지 (빈 tickets 덮어쓰기 방지)
+    if (uc.ticketsPath && _ticketsLoaded) {
         const ticketsState = _getTicketsState();
         set(ref(db, uc.ticketsPath), ticketsState).catch(e => console.error('[tickets save]', e));
     }
@@ -1411,7 +1416,9 @@ function applyUserMode(code) {
 
     // 6) Firebase 재연결 (유저별 경로로) — _fbDataReady 리셋 필수
     _fbDataReady = false;
+    _ticketsLoaded = false;
     // 🔒 유저 전환 시 이전 유저의 체크/티켓/private 잔존 방지
+    // tickets도 리셋하되, _ticketsLoaded 가드가 빈 tickets의 Firebase 저장을 방지
     ['reservations','itinerary','packing'].forEach(tab => {
         appState[tab].checks   = {};
         appState[tab].tickets  = {};
