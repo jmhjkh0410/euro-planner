@@ -348,9 +348,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 /* FAB BUTTONS */
 .fab-stack{position:fixed;bottom:24px;right:20px;z-index:7000;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 
-/* 📱 하단 탭 바 (모바일 전용) */
+/* 📱 하단 탭 바 (모바일+태블릿) */
 .bottom-tab-bar{display:none}
-@media(max-width:768px){
+@media(max-width:1024px){
   .bottom-tab-bar{
     display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;
     background:rgba(255,255,253,.97);backdrop-filter:blur(20px);
@@ -363,6 +363,28 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .btab-label{font-size:9px;font-weight:700}
   .btab.btab-active{color:var(--text-primary)}
   .btab.btab-active .btab-label{color:#3b82f6}
+  /* 상단 탭 바 숨김 */
+  .nav-center{display:none}
+  .page-wrap{padding-bottom:140px}
+  /* 하단 섹션 네비 (1024px 이하에서도 표시) */
+  .mobile-section-nav{
+    position:fixed;bottom:56px;left:0;right:0;z-index:200;
+    background:rgba(255,255,253,.97);backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);
+    padding:6px 10px;overflow-x:auto;gap:4px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .mobile-section-nav::-webkit-scrollbar{display:none}
+  .mobile-sec-btn{
+    flex-shrink:0;display:flex;align-items:center;gap:4px;
+    padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;
+    background:var(--surface-raised);border:1px solid var(--border);
+    color:var(--text-muted);white-space:nowrap;transition:all .18s;cursor:pointer;font-family:inherit;
+  }
+  .mobile-sec-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+  .mobile-sec-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0}
+  .mobile-sec-btn.active .mobile-sec-dot{opacity:1}
+  .fab-stack{bottom:120px}
 }
 .fab-btn{width:48px;height:48px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;cursor:pointer;position:relative}
 .fab-btn:hover{box-shadow:0 6px 20px rgba(0,0,0,.16);transform:translateY(-2px)}
@@ -1418,9 +1440,6 @@ function applyUserMode(code) {
     if (appState.activeTab === 'itinerary') {
         setTimeout(openTodayItinerary, 150);
     }
-
-    // 8) 모바일 팁 토글 버튼 (renderContent 직후 항상 실행)
-    setTimeout(initMobileTips, 60);
 }
 
 // ── 유저 필터 적용된 카테고리 반환 ───────────────────────
@@ -2640,7 +2659,6 @@ function saveCityMemo(catKey) {
     }
 
     renderContent(); updateProgress(); updateTrashFab();
-    setTimeout(initMobileTips, 60);
 }
 
 function openTodayItinerary() {
@@ -3738,7 +3756,7 @@ function handleScroll() {
 function renderMobileNav() {
     const nav = document.getElementById('mobile-section-nav');
     if (!nav) return;
-    const isMobile = window.innerWidth <= 768;
+    const isMobile = window.innerWidth <= 1024;
     nav.style.display = isMobile ? 'flex' : 'none';
     if (!isMobile) return;
 
@@ -3776,34 +3794,8 @@ function _doScrollToSection(catKey) {
 }
 
 // ── 모바일 Tips 토글 ──────────────────────────────────────
-function initMobileTips() {
-    if (window.innerWidth > 768) return;
-    document.querySelectorAll('.task-tips').forEach(tipsEl => {
-        // 이미 버튼이 삽입된 경우 중복 방지
-        if (tipsEl.previousElementSibling?.classList.contains('tips-toggle')) return;
-        tipsEl.classList.add('tips-collapsed');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'tips-toggle';
-        btn.innerHTML = `<span class="tips-label">💡 팁 보기</span><span class="tips-toggle-icon">▼</span>`;
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            const collapsed = tipsEl.classList.toggle('tips-collapsed');
-            btn.classList.toggle('open', !collapsed);
-            btn.querySelector('.tips-label').textContent = collapsed ? '💡 팁 보기' : '💡 팁 접기';
-        });
-        tipsEl.parentElement.insertBefore(btn, tipsEl);
-    });
-}
-
 window.addEventListener('resize', () => {
     renderMobileNav();
-    if (window.innerWidth > 768) {
-        // 데스크탑: tips 항상 표시
-        document.querySelectorAll('.task-tips').forEach(el => {
-            el.classList.remove('tips-collapsed');
-        });
-    }
 });
 
 // ── FILE / TICKET (Base64 방식 — Firebase Storage 불필요) ──
