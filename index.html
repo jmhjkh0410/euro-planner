@@ -490,40 +490,63 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 
   /* ── 카테고리 제목 ── */
   .cat-title{font-size:16px!important;font-weight:800}
-  .cat-section{margin-bottom:20px}
+  .cat-section{margin-bottom:14px}
 
-  /* ── 태스크 카드 체크원 ── */
-  .check-circle{
-    width:22px;height:22px;
-    border-width:2px;
-    margin-top:1px;
-  }
-  .check-circle svg{width:12px;height:12px;stroke-width:2.5}
+  /* ── 태스크 카드 — 타이트 패딩 ── */
+  .task-item{padding:8px 10px;margin-bottom:4px;gap:8px;border-radius:8px}
+  .task-title{font-size:13px}
+  .task-desc{font-size:10px;margin-top:2px}
 
-  /* ── Tips ── */
+  /* ── 체크원 ── */
+  .check-circle{width:20px;height:20px;border-width:2px;margin-top:1px}
+  .check-circle svg{width:11px;height:11px;stroke-width:2.5}
+
+  /* ── 팁 박스: 기본 접힘 (탭하면 펼침) ── */
   .task-tips{
-    font-size:11px!important;
-    line-height:1.5;
-    padding:6px 8px 6px 10px;
-    margin-top:6px;
+    font-size:10px!important;line-height:1.5;
+    padding:5px 7px 5px 9px;margin-top:4px;
     border-radius:4px 6px 6px 4px;
   }
-  .task-tips>div{margin-bottom:2px}
+  .task-tips>div{margin-bottom:1px}
+  .task-tips.m-collapsed{display:none}
+  .m-tips-toggle{
+    display:flex;align-items:center;gap:4px;margin-top:4px;
+    font-size:10px;font-weight:700;color:var(--text-muted);
+    padding:2px 0;cursor:pointer;border:none;background:none;
+    font-family:inherit;pointer-events:auto;
+  }
+  .m-tips-chevron{font-size:8px;transition:transform .2s}
+  .m-tips-toggle.open .m-tips-chevron{transform:rotate(180deg)}
+
+  /* ── 완료 항목: 한 줄 미니화 ── */
+  .task-item.completed{padding:6px 10px;margin-bottom:2px;opacity:.45}
+  .task-item.completed .task-desc,
+  .task-item.completed .task-tips,
+  .task-item.completed .m-tips-toggle,
+  .task-item.completed .task-meta-row{display:none!important}
+  .task-item.completed .btn-edit-item{display:none}
+  .task-item.completed .task-title{font-size:12px}
+
+  /* ── 첨부 영역 컴팩트 ── */
+  .task-meta-row{margin-top:6px}
+  .btn-attach-label{font-size:9px;padding:3px 8px}
 
   /* ── 편집 버튼 ── */
-  .btn-edit-item{padding:6px 8px;font-size:16px}
+  .btn-edit-item{padding:4px 6px;font-size:14px}
 
   /* ── 항목 추가 버튼 ── */
   .btn-add-task{
-    padding:12px;font-size:12px;
-    border-radius:10px;margin-top:4px;
+    padding:10px;font-size:11px;
+    border-radius:8px;margin-top:2px;
     border-width:1.5px;
   }
 
   /* ── 도시/날짜 아코디언 — 컴팩트 ── */
-  .city-card{padding:12px 14px;border-radius:12px;margin-bottom:6px}
-  .city-card-title{font-size:14px!important}
-  .day-header{padding:10px 12px}
+  .city-card{padding:10px 12px;border-radius:10px;margin-bottom:4px}
+  .city-card-title{font-size:13px!important}
+  .city-count-badge{font-size:9px;padding:1px 6px}
+  .day-header{padding:8px 12px}
+  .day-label{font-size:10px}
 
   /* 처음으로 버튼 — 하단 탭 바 위로 */
   .btn-back-home{bottom:120px;left:12px;font-size:11px;padding:6px 12px}
@@ -3241,6 +3264,7 @@ function renderContent() {
     // 🎫 패스 탭은 별도 렌더러
     if (appState.activeTab === 'passes') {
         renderPassTab(container);
+        _initMobileTipsToggle();
         return;
     }
 
@@ -3428,9 +3452,30 @@ function renderContent() {
             });
         }
     });
+    // 📱 모바일: 팁 접기/펼치기 버튼 삽입
+    _initMobileTipsToggle();
 }
 
-// ── ACCORDION ─────────────────────────────────────────────
+function _initMobileTipsToggle() {
+    if (window.innerWidth > 768) return;
+    document.querySelectorAll('.task-item:not(.completed) .task-tips').forEach(tipsEl => {
+        if (tipsEl.previousElementSibling?.classList.contains('m-tips-toggle')) return;
+        tipsEl.classList.add('m-collapsed');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'm-tips-toggle';
+        btn.innerHTML = '💡 팁 보기 <span class="m-tips-chevron">▼</span>';
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const hidden = tipsEl.classList.toggle('m-collapsed');
+            btn.classList.toggle('open', !hidden);
+            btn.innerHTML = hidden
+                ? '💡 팁 보기 <span class="m-tips-chevron">▼</span>'
+                : '💡 팁 접기 <span class="m-tips-chevron open">▲</span>';
+        });
+        tipsEl.parentElement.insertBefore(btn, tipsEl);
+    });
+}
 function toggleCity(catKey) {
     const now = !appState.itinerary.cityOpen[catKey];
     appState.itinerary.cityOpen[catKey] = now;
