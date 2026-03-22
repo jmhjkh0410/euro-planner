@@ -348,9 +348,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 /* FAB BUTTONS */
 .fab-stack{position:fixed;bottom:24px;right:20px;z-index:7000;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 
-/* 📱 하단 탭 바 (모바일+태블릿) */
+/* 📱 하단 탭 바 (폰 전용, 768px 이하) */
 .bottom-tab-bar{display:none}
-@media(max-width:1024px){
+@media(max-width:768px){
   .bottom-tab-bar{
     display:flex;position:fixed;bottom:0;left:0;right:0;z-index:300;
     background:rgba(255,255,253,.97);backdrop-filter:blur(20px);
@@ -363,12 +363,22 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .btab-label{font-size:9px;font-weight:700}
   .btab.btab-active{color:var(--text-primary)}
   .btab.btab-active .btab-label{color:#3b82f6}
-  /* 상단 탭 바 숨김 */
-  .nav-center{display:none}
+  /* 폰에서만 상단 탭 숨김 */
+  .nav-center{display:none!important}
+}
+
+/* 📱 태블릿+폰 공통 (1024px 이하) — 네비 경량화 */
+@media(max-width:1024px){
+  .nav{height:48px!important}
+  .nav-inner{grid-template-columns:auto 1fr auto!important}
+  .sync-status{display:none!important}
+  .nav-version{display:none!important}
   .page-wrap{padding-bottom:140px}
-  /* 하단 섹션 네비 (1024px 이하에서도 표시) */
+  .progress-sticky{top:48px!important}
+  .sidebar{display:none!important}
+  /* 하단 섹션 네비 */
   .mobile-section-nav{
-    position:fixed;bottom:56px;left:0;right:0;z-index:200;
+    position:fixed;bottom:0;left:0;right:0;z-index:200;
     background:rgba(255,255,253,.97);backdrop-filter:blur(20px);
     border-top:1px solid var(--border);
     padding:6px 10px;overflow-x:auto;gap:4px;
@@ -384,7 +394,14 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .mobile-sec-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
   .mobile-sec-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0}
   .mobile-sec-btn.active .mobile-sec-dot{opacity:1}
+  .fab-stack{bottom:60px}
+}
+/* 폰: 섹션 네비를 탭 바 위에 배치 */
+@media(max-width:768px){
+  .mobile-section-nav{bottom:56px}
   .fab-stack{bottom:120px}
+  .user-badge-name{display:none!important}
+  .user-badge-icon{font-size:16px;line-height:1;display:inline!important}
 }
 .fab-btn{width:48px;height:48px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);box-shadow:0 4px 16px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;cursor:pointer;position:relative}
 .fab-btn:hover{box-shadow:0 6px 20px rgba(0,0,0,.16);transform:translateY(-2px)}
@@ -453,17 +470,11 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   /* ── 기본 여백/패딩 ── */
   .page-wrap{padding:56px 12px 140px}
 
-  /* ── 네비바 — 탭을 하단으로 이동, 상단은 로고+검색+유저만 ── */
-  .nav{height:48px}
-  .nav-inner{padding:0 12px;gap:4px;grid-template-columns:auto 1fr auto}
+  /* ── 네비바 추가 조정 ── */
+  .nav-inner{padding:0 12px;gap:4px}
   .nav-logo{font-size:13px}
-  .nav-center{display:none}  /* 상단 탭 바 숨김 — 하단 탭으로 이동 */
-  .sync-status{display:none}
   .user-badge{max-width:none;padding:5px 10px 5px 7px}
   .user-badge-dot{width:6px;height:6px}
-  .user-badge-name{display:none}
-  .user-badge-icon{font-size:16px;line-height:1;display:inline!important}
-  .nav-version{display:none}
 
   /* ── 진행 카드 — 컴팩트 ── */
   .progress-sticky{margin-bottom:16px;top:48px}
@@ -513,33 +524,6 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .city-card{padding:12px 14px;border-radius:12px;margin-bottom:6px}
   .city-card-title{font-size:14px!important}
   .day-header{padding:10px 12px}
-
-  /* ── 하단 섹션 네비게이터 (탭 바 위에) ── */
-  .mobile-section-nav{
-    display:flex;
-    position:fixed;bottom:56px;left:0;right:0;z-index:200;
-    background:rgba(255,255,253,.97);
-    backdrop-filter:blur(20px);
-    border-top:1px solid var(--border);
-    padding:6px 10px;
-    overflow-x:auto;gap:4px;
-    scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-  }
-  .mobile-section-nav::-webkit-scrollbar{display:none}
-  .mobile-sec-btn{
-    flex-shrink:0;display:flex;align-items:center;gap:4px;
-    padding:6px 12px;border-radius:999px;
-    font-size:11px;font-weight:700;
-    background:var(--surface-raised);border:1px solid var(--border);
-    color:var(--text-muted);white-space:nowrap;
-    transition:all .18s;cursor:pointer;font-family:inherit;
-  }
-  .mobile-sec-btn.active{
-    background:#1a1a18;color:#fff;border-color:#1a1a18;
-  }
-  .mobile-sec-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0}
-  .mobile-sec-btn.active .mobile-sec-dot{opacity:1}
 
   /* 처음으로 버튼 — 하단 탭 바 위로 */
   .btn-back-home{bottom:120px;left:12px;font-size:11px;padding:6px 12px}
@@ -616,7 +600,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .search-item-title mark{background:#ede9fe;color:#6d28d9;border-radius:3px;padding:0 2px}
 .search-item-meta{font-size:10px;color:var(--text-muted);margin-top:1px}
 .search-item-desc{font-size:11px;color:var(--text-secondary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:768px){
+@media(max-width:1024px){
   .search-panel{top:48px}
   .search-panel.open{max-height:420px}
 }
