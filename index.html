@@ -459,26 +459,6 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   .cat-title{font-size:16px!important;font-weight:800}
   .cat-section{margin-bottom:20px}
 
-  /* ── 카드 컴팩트 모드 (모바일) ── */
-  .task-item{padding:8px 10px;margin-bottom:4px;gap:6px;border-radius:8px}
-  .task-item .task-title{font-size:13px}
-  .task-item .task-desc,
-  .task-item .task-tips,
-  .task-item .task-meta-row{display:none}  /* 기본 숨김 */
-  .task-item .btn-edit-item{display:none}  /* 기본 숨김 */
-
-  /* 펼친 상태 */
-  .task-item.expanded .task-desc,
-  .task-item.expanded .task-tips,
-  .task-item.expanded .task-meta-row{display:block}
-  .task-item.expanded .task-meta-row{display:flex}
-  .task-item.expanded .btn-edit-item{display:block}
-  .task-item.expanded{padding:10px 12px;margin-bottom:6px}
-
-  /* 완료 항목 미니화 */
-  .task-item.completed{padding:6px 10px;margin-bottom:2px;opacity:.5}
-  .task-item.completed .task-title{font-size:12px}
-
   /* ── 태스크 카드 체크원 ── */
   .check-circle{
     width:22px;height:22px;
@@ -3029,16 +3009,6 @@ function renderItem(task, catKey, catInfo, td, dk) {
         if (li.querySelector('.edit-form')) return;
         if (editMode) { toggleSelect(task.id); return; }
         if (isMemoTask) return;
-        // 📱 모바일: 접힌 상태면 펼치기, 펼친 상태면 체크 토글
-        const isMobile = window.innerWidth <= 768;
-        if (isMobile && !li.classList.contains('expanded') && !done) {
-            // 다른 펼쳐진 카드 접기
-            document.querySelectorAll('.task-item.expanded').forEach(el => {
-                if (el !== li) el.classList.remove('expanded');
-            });
-            li.classList.add('expanded');
-            return;
-        }
         toggleCheck(task.id);
     });
     li.addEventListener('dragstart', onDragStart);
