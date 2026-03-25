@@ -3213,7 +3213,7 @@ function getPassChipsHtml(cityKey) {
             const color = isT ? '#1d4ed8' : '#7c3aed';
             const icon = isT ? '🚇' : '🖼️';
             const shortName = (it.title || '').split('\n')[0].replace(/\[.*?\]\s*/, '').slice(0, 12);
-            return `<span style="font-size:8px;font-weight:600;padding:1px 5px;border-radius:999px;background:${bg};color:${color};cursor:pointer;white-space:nowrap" onclick="event.stopPropagation();switchTab('passes');setTimeout(()=>{const el=document.getElementById('section-${cityKey}');if(el)el.scrollIntoView({behavior:'smooth'})},200)">${icon} ${shortName}</span>`;
+            return `<span style="font-size:8px;font-weight:600;padding:1px 5px;border-radius:999px;background:${bg};color:${color};white-space:nowrap">${icon} ${shortName}</span>`;
         });
     if (!chips.length) return '';
     return `<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px">${chips.join('')}</div>`;
