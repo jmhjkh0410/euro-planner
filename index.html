@@ -1073,10 +1073,9 @@ function _startFirebaseSync() {
                     if (currentUser) localStorage.setItem(FB_LOCAL_CHECKS + '_' + currentUser, JSON.stringify(parsed));
                 } catch(e) { console.warn("[parse]", e); }
             } else {
-                // 체크 데이터 없음 (신규 유저) → 빈 상태로 초기화
+                // 체크 데이터 없음 (신규 유저) → checks만 초기화 (tickets는 별도 리스너)
                 ['reservations','itinerary','packing'].forEach(tab => {
                     appState[tab].checks  = {};
-                    appState[tab].tickets = {};
                 });
                 appState.passChecks = {};
             }
@@ -1111,8 +1110,8 @@ function _startFirebaseSync() {
                         if (parsed[tab]) appState[tab].tickets = Object.assign({}, parsed[tab], appState[tab].tickets);
                     });
                 } catch(e) { console.warn("[parse]", e); }
-            } else {
-                // tickets 없음 (신규 유저 등) → 빈 상태
+            } else if (!_ticketsLoaded) {
+                // 첫 로드에서 null인 경우만 초기화 (업로드 후 null 덮어쓰기 방지)
                 ['reservations','itinerary','packing'].forEach(tab => {
                     appState[tab].tickets = {};
                 });
