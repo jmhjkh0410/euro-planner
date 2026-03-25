@@ -2796,15 +2796,34 @@ const DK_LABEL_BY_CAT = {
     },
 };
 function getDKLabel(dk, tasks, catKey) {
-    if (DK_LABEL[dk]) return DK_LABEL[dk];
-    if (catKey && DK_LABEL_BY_CAT[catKey]?.[dk]) return DK_LABEL_BY_CAT[catKey][dk];
-    if (dk && dk.startsWith('__plan_')) {
+    let label = '';
+    if (DK_LABEL[dk]) label = DK_LABEL[dk];
+    else if (catKey && DK_LABEL_BY_CAT[catKey]?.[dk]) label = DK_LABEL_BY_CAT[catKey][dk];
+    else if (dk && dk.startsWith('__plan_')) {
         const letter = dk.replace('__plan_','').replace('__','').toUpperCase();
-        return `📋 Plan ${letter}`;
+        label = `📋 Plan ${letter}`;
+    } else {
+        label = `📅 ${dk}일차`;
     }
-    const hint = tasks.find(t => { const m = t.id.match(/-(\d+)[a-z]/); return m && m[1] === dk && t.desc?.match(/\d+일차/); });
-    if (hint) { const dm = hint.desc.match(/\(([^)]+)\)/); return `📅 ${dk}일차${dm ? ' '+dm[0] : ''}`; }
-    return `📅 ${dk}일차`;
+
+    // 실제 날짜 추출 (tasks의 _date 필드에서)
+    if (tasks && tasks.length > 0) {
+        const dateTask = tasks.find(t => t._date);
+        if (dateTask && dateTask._date) {
+            try {
+                const d = new Date(dateTask._date);
+                if (!isNaN(d.getTime())) {
+                    const wd = ['일','월','화','수','목','금','토'];
+                    const dateStr = `${d.getMonth()+1}/${d.getDate()}(${wd[d.getDay()]})`;
+                    // 이미 날짜 정보가 label에 있으면 중복 방지
+                    if (!label.includes('/') && !label.includes('월')) {
+                        label += ` · ${dateStr}`;
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+    return label;
 }
 
 // ── DRAG AND DROP ─────────────────────────────────────────
