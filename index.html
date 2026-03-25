@@ -2806,21 +2806,24 @@ function getDKLabel(dk, tasks, catKey) {
         label = `📅 ${dk}일차`;
     }
 
-    // 실제 날짜 추출 (tasks의 _date 필드에서)
-    if (tasks && tasks.length > 0) {
-        const dateTask = tasks.find(t => t._date);
-        if (dateTask && dateTask._date) {
-            try {
-                const d = new Date(dateTask._date);
+    // 실제 날짜 계산: 도시 시작일(최소 _date) + (dk - 1)일
+    const dkNum = parseInt(dk, 10);
+    if (!isNaN(dkNum) && tasks && tasks.length > 0) {
+        let minDate = null;
+        for (const t of tasks) {
+            if (t._date) {
+                const d = new Date(t._date);
                 if (!isNaN(d.getTime())) {
-                    const wd = ['일','월','화','수','목','금','토'];
-                    const dateStr = `${d.getMonth()+1}/${d.getDate()}(${wd[d.getDay()]})`;
-                    // 이미 날짜 정보가 label에 있으면 중복 방지
-                    if (!label.includes('/') && !label.includes('월')) {
-                        label += ` · ${dateStr}`;
-                    }
+                    d.setHours(0,0,0,0);
+                    if (!minDate || d < minDate) minDate = d;
                 }
-            } catch(e) {}
+            }
+        }
+        if (minDate) {
+            const actual = new Date(minDate);
+            actual.setDate(actual.getDate() + dkNum - 1);
+            const wd = ['일','월','화','수','목','금','토'];
+            label += ` · ${actual.getMonth()+1}/${actual.getDate()}(${wd[actual.getDay()]})`;
         }
     }
     return label;
