@@ -9,12 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <!-- ================================================================
-  🗺 LEAFLET.JS (일일 동선 지도)
-================================================================ -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
-
-<!-- ================================================================
   🔥 FIREBASE SDK
 ================================================================ -->
 <script type="module">
@@ -2419,14 +2413,28 @@ function getMapLink(title, desc) {
 // ── 일일 동선 지도 (Leaflet.js) ──────────────────────────────
 let _dayMapInstance = null;
 
+// ── Leaflet 동적 로딩 ──
+let _leafletLoaded = false;
+let _leafletLoading = false;
+function _loadLeaflet(cb) {
+    if (_leafletLoaded && typeof L !== 'undefined') { cb(); return; }
+    if (_leafletLoading) { setTimeout(() => _loadLeaflet(cb), 200); return; }
+    _leafletLoading = true;
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
+    const js = document.createElement('script');
+    js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    js.onload = () => { _leafletLoaded = true; _leafletLoading = false; cb(); };
+    js.onerror = () => { _leafletLoading = false; alert('지도 라이브러리 로딩 실패. 네트워크를 확인해주세요.'); };
+    document.head.appendChild(js);
+}
+
 function openDayMap(catKey, dk) {
-    // Leaflet 로드 체크
-    if (typeof L === 'undefined') {
-        alert('지도 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
-        return;
-    }
     const td = appState.itinerary;
-    const tasks = (td.items[catKey] || []).filter(t => {
+    const allTasks = getStructureArr(td.structure, catKey);
+    const tasks = allTasks.filter(t => {
         const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
         return String(raw) === String(dk);
     });
@@ -2443,7 +2451,7 @@ function openDayMap(catKey, dk) {
         return;
     }
 
-    // 숙소 좌표 찾기
+    // 숙소 키 매핑
     const accomKeyMap = {
         budapest:'budapest', wien:'wien', krakow:'krakow', berlin:'berlin',
         munich:'munich', swiss:'swiss', swiss_b:'swiss', milano:'milano',
@@ -2452,21 +2460,20 @@ function openDayMap(catKey, dk) {
     };
     const accomKey = accomKeyMap[catKey] || catKey;
     const accom = appState.accommodations?.[accomKey];
+    const label = getDKLabel(dk, allTasks, catKey);
 
-    // 모달 생성
+    // 모달 먼저 표시 (로딩 상태)
     const overlay = document.createElement('div');
     overlay.className = 'map-modal-overlay';
     overlay.id = 'day-map-overlay';
     overlay.onclick = e => { if (e.target === overlay) closeDayMap(); };
-
-    const label = getDKLabel(dk, tasks, catKey);
     overlay.innerHTML = `
         <div class="map-modal">
             <div class="map-modal-header">
                 <span class="map-modal-title">🗺 ${label} 동선</span>
                 <button class="map-modal-close" onclick="closeDayMap()">✕</button>
             </div>
-            <div id="map-container"></div>
+            <div id="map-container" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:14px">지도 로딩 중...</div>
             <div class="map-modal-legend">
                 <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6"></span> 일정 순서</span>
                 ${accom ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#f59e0b"></span> 숙소</span>' : ''}
@@ -2476,60 +2483,56 @@ function openDayMap(catKey, dk) {
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
 
-    // Leaflet 지도 초기화
-    setTimeout(() => {
-        const map = L.map('map-container', { zoomControl: true, attributionControl: false });
-        _dayMapInstance = map;
+    // Leaflet 로드 후 지도 초기화
+    _loadLeaflet(() => {
+        const container = document.getElementById('map-container');
+        if (!container) return;
+        container.textContent = '';
+        container.style = '';
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-        }).addTo(map);
+        try {
+            const map = L.map(container, { zoomControl: true, attributionControl: false });
+            _dayMapInstance = map;
 
-        const allLatLngs = [];
-        const BLUE = '#3b82f6';
-        const AMBER = '#f59e0b';
-
-        // 숙소 마커 (있으면)
-        // Note: 숙소는 좌표가 없으므로 스킵 — 향후 추가 가능
-
-        // 일정 마커 (번호 부여)
-        pts.forEach((p, i) => {
-            const icon = L.divIcon({
-                className: 'leaflet-numbered-icon',
-                html: `<div style="background:${BLUE};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">${p.idx}</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14],
-            });
-            const latlng = [p.lat, p.lng];
-            allLatLngs.push(latlng);
-
-            const timeLabel = p.time ? `<b>${p.time}</b> · ` : '';
-            const marker = L.marker(latlng, { icon }).addTo(map);
-            marker.bindPopup(`
-                <div style="font-size:13px;min-width:160px">
-                    <div style="font-weight:700;margin-bottom:4px">${p.idx}. ${p.title}</div>
-                    <div style="color:#666;font-size:11px;margin-bottom:6px">${timeLabel}${p.en}</div>
-                    <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" style="font-size:11px;color:#3b82f6">Google Maps에서 보기 →</a>
-                </div>
-            `, { closeButton: false, maxWidth: 240 });
-        });
-
-        // 동선 라인 (점선)
-        if (allLatLngs.length > 1) {
-            L.polyline(allLatLngs, {
-                color: BLUE,
-                weight: 2.5,
-                opacity: 0.6,
-                dashArray: '8 6',
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18
             }).addTo(map);
-        }
 
-        // 지도 범위 자동 조정
-        if (allLatLngs.length > 0) {
-            const bounds = L.latLngBounds(allLatLngs);
-            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+            const allLatLngs = [];
+            const BLUE = '#3b82f6';
+
+            pts.forEach(p => {
+                const icon = L.divIcon({
+                    className: 'leaflet-numbered-icon',
+                    html: '<div style="background:'+BLUE+';width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">'+p.idx+'</div>',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14],
+                });
+                const latlng = [p.lat, p.lng];
+                allLatLngs.push(latlng);
+
+                const timeLabel = p.time ? '<b>'+p.time+'</b> · ' : '';
+                L.marker(latlng, { icon }).addTo(map).bindPopup(
+                    '<div style="font-size:13px;min-width:160px">' +
+                    '<div style="font-weight:700;margin-bottom:4px">'+p.idx+'. '+p.title+'</div>' +
+                    '<div style="color:#666;font-size:11px;margin-bottom:6px">'+timeLabel+p.en+'</div>' +
+                    '<a href="https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+'" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6">Google Maps에서 보기 →</a>' +
+                    '</div>',
+                    { closeButton: false, maxWidth: 240 }
+                );
+            });
+
+            if (allLatLngs.length > 1) {
+                L.polyline(allLatLngs, { color: BLUE, weight: 2.5, opacity: 0.6, dashArray: '8 6' }).addTo(map);
+            }
+            if (allLatLngs.length > 0) {
+                map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 15 });
+            }
+        } catch (err) {
+            container.textContent = '지도 초기화 실패: ' + err.message;
+            console.error('[DayMap]', err);
         }
-    }, 100);
+    });
 }
 
 function closeDayMap() {
