@@ -3548,10 +3548,13 @@ function renderContent() {
 
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'day-group';
-                dayDiv.style.position = 'relative';
                 // 빈 날짜로 드롭 지원
                 dayDiv.addEventListener('dragover', e => e.preventDefault());
                 dayDiv.addEventListener('drop', e => { e.stopPropagation(); if (_dragId) doDropTo(catKey, dk, null); });
+
+                // 헤더 wrapper (동선 버튼 위치 고정용)
+                const hdrWrap = document.createElement('div');
+                hdrWrap.style.cssText = 'position:relative';
 
                 const hdr = document.createElement('button');
                 hdr.type = 'button';
@@ -3572,9 +3575,9 @@ function renderContent() {
                     </div>
                     <span class="day-chevron${dayOpen?' open':''}" id="dc-${catKey}-${dk}">▼</span>`;
 
-                dayDiv.appendChild(hdr);
+                hdrWrap.appendChild(hdr);
 
-                // 🗺 동선 지도 버튼 — header 밖 dayDiv에 absolute 배치
+                // 🗺 동선 지도 버튼 — hdrWrap에 absolute (헤더 높이 기준 고정)
                 if (hasCoordsCount >= 2) {
                     const routeBtn = document.createElement('button');
                     routeBtn.type = 'button';
@@ -3586,8 +3589,10 @@ function renderContent() {
                         e.preventDefault();
                         openDayMap(catKey, dk);
                     });
-                    dayDiv.appendChild(routeBtn);
+                    hdrWrap.appendChild(routeBtn);
                 }
+
+                dayDiv.appendChild(hdrWrap);
 
                 const body = document.createElement('div');
                 body.className = `day-accordion-body${dayOpen?' open':''}`;
