@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v43 🚆</title>
+<title>유럽 여행 통합 마스터 플래너 v44 🗺</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- ================================================================
+  🗺 LEAFLET.JS (일일 동선 지도)
+================================================================ -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 
 <!-- ================================================================
   🔥 FIREBASE SDK
@@ -623,6 +629,24 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 /* ── 구글 지도 링크 ── */
 .btn-map{position:absolute;bottom:10px;right:10px;font-size:11px;padding:3px 9px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;z-index:10;pointer-events:auto!important;touch-action:manipulation}
 .btn-map:hover{background:#dcfce7;border-color:#86efac}
+/* ── 일일 동선 지도 모달 ── */
+.map-modal-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.map-modal{width:94vw;max-width:680px;height:78vh;max-height:700px;background:var(--surface);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+.map-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-raised)}
+.map-modal-title{font-weight:700;font-size:15px;color:var(--text-primary)}
+.map-modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;border-radius:8px;transition:all .15s}
+.map-modal-close:hover{background:var(--surface);color:var(--text-primary)}
+#map-container{flex:1;min-height:0}
+.map-modal-legend{padding:8px 16px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.map-legend-item{display:flex;align-items:center;gap:4px}
+.map-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.btn-day-map{font-size:11px;padding:2px 8px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0}
+.btn-day-map:hover{background:#dbeafe;border-color:#93c5fd}
+.leaflet-numbered-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+@media(max-width:768px){
+  .map-modal{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}
+  .map-modal-header{padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}
+}
 </style>
 </head>
 <body>
@@ -2217,8 +2241,137 @@ function goToSearchResult(tab, catKey, taskId) {
 
 
 // ════════════════════════════════════════════════════════════
-// 🗺 구글 지도 링크
+// 🗺 구글 지도 링크 + 일일 동선 지도
 // ════════════════════════════════════════════════════════════
+
+// ── 좌표 + 영문 장소명 룩업 테이블 ──
+const PLACE_COORDS = {
+"budapest-1-1":{lat:47.4369,lng:19.2556,en:"Budapest Airport"},
+"budapest-1-4":{lat:47.4979,lng:19.0448,en:"Széchenyi Chain Bridge"},
+"budapest-2-1":{lat:47.5073,lng:19.0455,en:"Hungarian Parliament Building"},
+"budapest-2-3":{lat:47.4960,lng:19.0399,en:"Hungarian National Gallery"},
+"budapest-2-4":{lat:47.4969,lng:19.0395,en:"Buda Castle Garden"},
+"budapest-2-5":{lat:47.5024,lng:19.0345,en:"Ruszwurm Confectionery"},
+"budapest-2-6":{lat:47.5019,lng:19.0346,en:"Matthias Church"},
+"budapest-2-7":{lat:47.5020,lng:19.0349,en:"Fisherman's Bastion"},
+"budapest-2-8":{lat:47.4982,lng:19.0636,en:"Szimpla Kert Ruin Bar"},
+"budapest-3-1":{lat:47.5182,lng:19.0823,en:"Széchenyi Thermal Bath"},
+"budapest-3-2":{lat:47.5087,lng:19.0654,en:"Andrássy Avenue"},
+"budapest-3-3":{lat:47.5011,lng:19.0539,en:"St. Stephen's Basilica"},
+"budapest-3-6":{lat:47.4979,lng:19.0448,en:"Danube River Cruise Budapest"},
+"wien-1-3":{lat:48.1914,lng:16.3808,en:"Belvedere Palace Upper"},
+"wien-1-4":{lat:48.2084,lng:16.3731,en:"St. Stephen's Cathedral Vienna"},
+"wien-1-5":{lat:48.2166,lng:16.3964,en:"Prater Amusement Park Vienna"},
+"wien-2-1":{lat:48.2034,lng:16.3614,en:"Kunsthistorisches Museum Vienna"},
+"wien-2-2":{lat:48.2005,lng:16.3605,en:"Vienna Secession Building"},
+"wien-2-3":{lat:48.2020,lng:16.3557,en:"Café Sperl Vienna"},
+"wien-2-4":{lat:48.2034,lng:16.3582,en:"Leopold Museum Vienna"},
+"wien-3-1":{lat:48.2049,lng:16.3682,en:"Albertina Museum Vienna"},
+"wien-3-2":{lat:48.2000,lng:16.3590,en:"Albertina Modern Vienna"},
+"wien-3-3":{lat:48.2028,lng:16.3689,en:"Vienna State Opera"},
+"wien-4-1":{lat:48.1845,lng:16.3122,en:"Schönbrunn Palace"},
+"wien-4-3":{lat:48.1845,lng:16.3122,en:"Schönbrunn Palace"},
+"wien-4-4":{lat:48.1845,lng:16.3122,en:"Schönbrunn Summer Night Concert"},
+"krakow-1-1":{lat:50.0680,lng:19.9465,en:"Kraków Główny Station"},
+"krakow-1-3":{lat:50.0274,lng:19.2036,en:"Oświęcim Station"},
+"krakow-1-4":{lat:50.0343,lng:19.1784,en:"Auschwitz I Memorial"},
+"krakow-1-5":{lat:50.0343,lng:19.1784,en:"Auschwitz Memorial and Museum"},
+"krakow-1-6":{lat:50.0343,lng:19.1784,en:"Rudolf Höss House Auschwitz"},
+"krakow-2-1":{lat:50.0614,lng:19.9372,en:"Kraków Old Town Main Square"},
+"berlin-1-1":{lat:52.5491,lng:13.3883,en:"Berlin Gesundbrunnen Station"},
+"berlin-1-3":{lat:52.5351,lng:13.3901,en:"Berlin Wall Memorial"},
+"berlin-2-1":{lat:52.5024,lng:13.3955,en:"Jewish Museum Berlin"},
+"berlin-2-2":{lat:52.5075,lng:13.3904,en:"Checkpoint Charlie Berlin"},
+"berlin-2-3":{lat:52.5139,lng:13.3787,en:"Memorial to the Murdered Jews of Europe"},
+"berlin-2-4":{lat:52.5096,lng:13.3745,en:"Potsdamer Platz Berlin"},
+"berlin-2-5":{lat:52.5104,lng:13.3698,en:"Berlin Philharmonie"},
+"berlin-2-6":{lat:52.5186,lng:13.3762,en:"Reichstag Building Berlin"},
+"berlin-3-1":{lat:52.5207,lng:13.3984,en:"Neues Museum Berlin"},
+"berlin-3-2":{lat:52.5192,lng:13.3987,en:"Altes Museum Berlin"},
+"berlin-3-3":{lat:52.5212,lng:13.3968,en:"Pergamon Museum Panorama"},
+"berlin-3-4":{lat:52.5191,lng:13.4010,en:"Berlin Cathedral"},
+"berlin-3-5":{lat:52.5050,lng:13.4397,en:"East Side Gallery Berlin"},
+"berlin-4-2":{lat:52.5215,lng:13.3945,en:"Bode Museum Berlin"},
+"berlin-4-3":{lat:52.5283,lng:13.3728,en:"Hamburger Bahnhof Museum"},
+"munich-1-1":{lat:48.1403,lng:11.5600,en:"Munich Central Station"},
+"munich-2-2":{lat:48.2108,lng:11.8957,en:"Therme Erding"},
+"munich-2-3":{lat:48.1375,lng:11.5798,en:"Hofbräuhaus München"},
+"munich-3-1":{lat:47.5576,lng:10.7498,en:"Neuschwanstein Castle"},
+"munich-3-2":{lat:47.5565,lng:10.7505,en:"Marienbrücke Neuschwanstein"},
+"munich-3-3":{lat:48.1462,lng:11.5561,en:"Augustiner-Keller München"},
+"swiss-fixed-1":{lat:47.4503,lng:8.5618,en:"Zurich Airport"},
+"swiss-1-1":{lat:47.4503,lng:8.5618,en:"Zurich Airport Station"},
+"swiss-1-2":{lat:47.0502,lng:8.3093,en:"Lucerne Station"},
+"swiss-1-3":{lat:47.0585,lng:8.3105,en:"Lion Monument Lucerne"},
+"swiss-1-5":{lat:46.5896,lng:7.6626,en:"Frutigen Station"},
+"swiss-plan_a-2":{lat:46.6592,lng:8.0842,en:"First Gondola Grindelwald"},
+"swiss-plan_a-4":{lat:46.5472,lng:7.9847,en:"Jungfraujoch Top of Europe"},
+"swiss-plan_b-1":{lat:46.3044,lng:7.7519,en:"Zermatt Station"},
+"swiss-plan_b-3":{lat:46.0207,lng:7.7709,en:"Sunnegga Paradise Zermatt"},
+"swiss-plan_b-4":{lat:46.0194,lng:7.7710,en:"Leisee Lake Zermatt"},
+"swiss-plan_b-5":{lat:46.5328,lng:7.6645,en:"Blausee Nature Park"},
+"swiss-plan_c-2":{lat:46.4995,lng:7.7254,en:"Oeschinensee Lake"},
+"swiss-plan_c-4":{lat:46.7400,lng:7.9700,en:"Lake Brienz Cruise"},
+"milano-1-3":{lat:45.4847,lng:9.2043,en:"Milano Centrale Station"},
+"milano-1-5":{lat:45.4706,lng:9.1794,en:"Sforza Castle Milan"},
+"milano-1-6":{lat:45.4660,lng:9.1711,en:"Santa Maria delle Grazie Milan"},
+"milano-1-7":{lat:45.4660,lng:9.1711,en:"The Last Supper Milan"},
+"milano-1-8":{lat:45.4500,lng:9.1774,en:"Navigli District Milan"},
+"milano-2-2":{lat:45.4642,lng:9.1900,en:"Milan Cathedral Duomo"},
+"milano-2-3":{lat:45.4658,lng:9.1903,en:"Galleria Vittorio Emanuele II"},
+"milano-2-4":{lat:45.4695,lng:9.1936,en:"Starbucks Reserve Roastery Milan"},
+"nice-fixed-1":{lat:43.7045,lng:7.2619,en:"Nice-Ville Station"},
+"nice-1-4":{lat:43.6953,lng:7.2606,en:"Promenade des Anglais Nice"},
+"nice-plan_a-3":{lat:43.7288,lng:7.3048,en:"Jardin Exotique Èze"},
+"nice-plan_a-5":{lat:43.6957,lng:7.2764,en:"Fenocchio Gelato Nice"},
+"nice-plan_a-6":{lat:43.6958,lng:7.2811,en:"Castle Hill Nice"},
+"nice-plan_b-1":{lat:43.6953,lng:7.2759,en:"Cours Saleya Market Nice"},
+"nice-plan_b-4":{lat:43.6919,lng:7.2563,en:"Blue Beach Nice"},
+"paris1-1-2":{lat:48.8448,lng:2.3735,en:"Gare de Lyon Paris"},
+"paris1-1-4":{lat:48.8738,lng:2.2950,en:"Arc de Triomphe Paris"},
+"paris1-1-5":{lat:48.8584,lng:2.2945,en:"Eiffel Tower Paris"},
+"paris1-2-1":{lat:48.8606,lng:2.3376,en:"Louvre Museum Paris"},
+"paris1-2-2":{lat:48.8634,lng:2.3275,en:"Tuileries Garden Paris"},
+"paris1-2-3":{lat:48.8599,lng:2.3226,en:"Musée de l'Orangerie Paris"},
+"paris1-3-1":{lat:48.8600,lng:2.3266,en:"Musée d'Orsay Paris"},
+"paris1-3-3":{lat:48.8530,lng:2.3499,en:"Notre-Dame Cathedral Paris"},
+"paris1-3-4":{lat:48.8564,lng:2.3456,en:"Conciergerie Paris"},
+"paris1-3-5":{lat:48.8462,lng:2.3464,en:"Panthéon Paris"},
+"paris1-3-6":{lat:48.8539,lng:2.3338,en:"Saint-Germain-des-Prés Paris"},
+"london-fixed-1":{lat:51.5320,lng:-0.1260,en:"St Pancras International London"},
+"london-1-1":{lat:51.5237,lng:-0.1585,en:"Speedy's Cafe London"},
+"london-1-2":{lat:51.5194,lng:-0.1270,en:"British Museum London"},
+"london-1-3":{lat:51.5128,lng:-0.1228,en:"Covent Garden London"},
+"london-1-4":{lat:51.5322,lng:-0.1240,en:"Platform 9¾ King's Cross London"},
+"london-fixed-2":{lat:50.7460,lng:0.1505,en:"Seven Sisters Cliffs"},
+"london-fixed-3":{lat:51.5227,lng:-0.1580,en:"Baker Street Station London"},
+"london-3-1":{lat:51.5269,lng:-0.0723,en:"Alfies Antique Market London"},
+"london-3-4":{lat:51.5177,lng:-0.1017,en:"St Bartholomew's Hospital London"},
+"london-fixed-4":{lat:51.5225,lng:-0.1828,en:"Maida Vale London"},
+"london-4-1":{lat:51.5237,lng:-0.0720,en:"Shoreditch Brick Lane Market London"},
+"london-4-2":{lat:51.5055,lng:-0.0754,en:"Tower Bridge London"},
+"london-fixed-5":{lat:51.7520,lng:-1.2577,en:"Oxford University"},
+"london-10-1":{lat:51.7514,lng:-1.2555,en:"Christ Church College Oxford"},
+"london-11-1":{lat:51.2151,lng:-0.7990,en:"Farnham Surrey"},
+"london-plan_a-1":{lat:51.6906,lng:-0.4200,en:"Warner Bros. Studio Tour London"},
+"london-plan_a-2":{lat:51.5728,lng:-0.3370,en:"Harrow School London"},
+"london-plan_a-3":{lat:51.5320,lng:-0.1780,en:"Abbey Road Crossing London"},
+"london-plan_a-4":{lat:51.5394,lng:-0.1607,en:"Primrose Hill London"},
+"london-plan_b-1":{lat:51.5114,lng:-0.1170,en:"Courtauld Gallery London"},
+"london-plan_b-2":{lat:51.5089,lng:-0.1283,en:"National Gallery London"},
+"london-plan_b-3":{lat:51.5133,lng:-0.1350,en:"Soho London"},
+"london-plan_b-4":{lat:51.5100,lng:-0.1340,en:"Piccadilly Circus London"},
+"london-plan_c-1":{lat:51.5203,lng:-0.0938,en:"Barbican Centre London"},
+"london-plan_c-2":{lat:51.5138,lng:-0.0984,en:"St Paul's Cathedral London"},
+"london-plan_c-3":{lat:51.5076,lng:-0.0994,en:"Tate Modern London"},
+"london-plan_c-4":{lat:51.5055,lng:-0.0910,en:"Borough Market London"},
+"london-plan_c-6":{lat:51.4910,lng:-0.1279,en:"Tate Britain London"},
+"london-plan_c-7":{lat:51.5007,lng:-0.1246,en:"Big Ben London Eye"},
+"london-plan_d-1":{lat:51.5014,lng:-0.1419,en:"Buckingham Palace London"},
+"london-plan_d-2":{lat:51.4988,lng:-0.1557,en:"Belgravia London"},
+"london-plan_d-3":{lat:51.4967,lng:-0.1764,en:"Natural History Museum London"},
+"paris2-귀국-1":{lat:49.0097,lng:2.5479,en:"Charles de Gaulle Airport CDG"},
+};
 
 // 장소명으로 보기에 적합한 키워드인지 판단
 // 교통수단, 숙소복귀, 식사 등 애매한 건 제외
@@ -2229,7 +2382,9 @@ const MAP_EXCLUDE_PATTERNS = [
     /^준비/, /^정리/, /^팁:/, /^\d+일차/,
 ];
 
-function shouldShowMap(title) {
+function shouldShowMap(title, taskId) {
+    // 좌표가 있는 항목은 항상 지도 표시
+    if (taskId && PLACE_COORDS[taskId]) return true;
     if (!title || title.trim().length < 3) return false;
     const t = title.trim();
     for (const p of MAP_EXCLUDE_PATTERNS) {
@@ -2237,10 +2392,145 @@ function shouldShowMap(title) {
     }
     return true;
 }
+
+function getMapQuery(taskId, title) {
+    // 좌표 데이터가 있으면 영문 장소명 사용
+    const c = PLACE_COORDS[taskId];
+    if (c && c.en) return c.en;
+    return title.trim();
+}
+
+function getMapUrl(taskId, title) {
+    const c = PLACE_COORDS[taskId];
+    if (c) {
+        // 좌표가 있으면 좌표 + 영문명으로 정확한 위치 지정
+        return `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}&query_place_id=`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getMapQuery(taskId, title))}`;
+}
+
 function getMapLink(title, desc) {
     // innerHTML에 넣지 않음 - 빈 placeholder만 반환
     // 실제 버튼은 makeTaskEl에서 DOM으로 직접 추가
     return shouldShowMap(title) ? '<span class="map-btn-placeholder"></span>' : '';
+}
+
+// ── 일일 동선 지도 (Leaflet.js) ──────────────────────────────
+let _dayMapInstance = null;
+
+function openDayMap(catKey, dk) {
+    const td = appState.itinerary;
+    const tasks = (td.items[catKey] || []).filter(t => {
+        const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
+        return String(raw) === String(dk);
+    });
+
+    // 좌표 있는 항목만 필터
+    const pts = [];
+    tasks.forEach((t, i) => {
+        const c = PLACE_COORDS[t.id];
+        if (c) pts.push({ lat: c.lat, lng: c.lng, en: c.en, title: t.title, time: t._time || '', idx: pts.length + 1 });
+    });
+
+    if (pts.length === 0) {
+        alert('이 날의 좌표 데이터가 없습니다.');
+        return;
+    }
+
+    // 숙소 좌표 찾기
+    const accomKeyMap = {
+        budapest:'budapest', wien:'wien', krakow:'krakow', berlin:'berlin',
+        munich:'munich', swiss:'swiss', swiss_b:'swiss', milano:'milano',
+        nice:'nice', nice_b:'nice', paris1:'paris1', paris2:'paris2',
+        london:'london', london_b:'london'
+    };
+    const accomKey = accomKeyMap[catKey] || catKey;
+    const accom = appState.accommodations?.[accomKey];
+
+    // 모달 생성
+    const overlay = document.createElement('div');
+    overlay.className = 'map-modal-overlay';
+    overlay.id = 'day-map-overlay';
+    overlay.onclick = e => { if (e.target === overlay) closeDayMap(); };
+
+    const label = getDKLabel(dk, tasks, catKey);
+    overlay.innerHTML = `
+        <div class="map-modal">
+            <div class="map-modal-header">
+                <span class="map-modal-title">🗺 ${label} 동선</span>
+                <button class="map-modal-close" onclick="closeDayMap()">✕</button>
+            </div>
+            <div id="map-container"></div>
+            <div class="map-modal-legend">
+                <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6"></span> 일정 순서</span>
+                ${accom ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#f59e0b"></span> 숙소</span>' : ''}
+                <span class="map-legend-item" style="margin-left:auto;font-size:10px;opacity:.7">마커 클릭 → Google Maps</span>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    // Leaflet 지도 초기화
+    setTimeout(() => {
+        const map = L.map('map-container', { zoomControl: true, attributionControl: false });
+        _dayMapInstance = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        const allLatLngs = [];
+        const BLUE = '#3b82f6';
+        const AMBER = '#f59e0b';
+
+        // 숙소 마커 (있으면)
+        // Note: 숙소는 좌표가 없으므로 스킵 — 향후 추가 가능
+
+        // 일정 마커 (번호 부여)
+        pts.forEach((p, i) => {
+            const icon = L.divIcon({
+                className: 'leaflet-numbered-icon',
+                html: `<div style="background:${BLUE};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">${p.idx}</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14],
+            });
+            const latlng = [p.lat, p.lng];
+            allLatLngs.push(latlng);
+
+            const timeLabel = p.time ? `<b>${p.time}</b> · ` : '';
+            const marker = L.marker(latlng, { icon }).addTo(map);
+            marker.bindPopup(`
+                <div style="font-size:13px;min-width:160px">
+                    <div style="font-weight:700;margin-bottom:4px">${p.idx}. ${p.title}</div>
+                    <div style="color:#666;font-size:11px;margin-bottom:6px">${timeLabel}${p.en}</div>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" style="font-size:11px;color:#3b82f6">Google Maps에서 보기 →</a>
+                </div>
+            `, { closeButton: false, maxWidth: 240 });
+        });
+
+        // 동선 라인 (점선)
+        if (allLatLngs.length > 1) {
+            L.polyline(allLatLngs, {
+                color: BLUE,
+                weight: 2.5,
+                opacity: 0.6,
+                dashArray: '8 6',
+            }).addTo(map);
+        }
+
+        // 지도 범위 자동 조정
+        if (allLatLngs.length > 0) {
+            const bounds = L.latLngBounds(allLatLngs);
+            map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        }
+    }, 100);
+}
+
+function closeDayMap() {
+    if (_dayMapInstance) { _dayMapInstance.remove(); _dayMapInstance = null; }
+    const ov = document.getElementById('day-map-overlay');
+    if (ov) ov.remove();
+    document.body.style.overflow = '';
 }
 
 // ── TRIP DATES ────────────────────────────────────────────
@@ -3025,13 +3315,13 @@ function renderItem(task, catKey, catInfo, td, dk) {
         </div>`;
 
     // 지도 버튼: task-body 밖 li에 직접 추가 (pointer-events:none 상속 우회)
-    if (appState.activeTab === 'itinerary' && shouldShowMap(task.title)) {
+    if (appState.activeTab === 'itinerary' && shouldShowMap(task.title, task.id)) {
         const mapBtn = document.createElement('button');
         mapBtn.type = 'button';
         mapBtn.className = 'btn-map';
-        mapBtn.textContent = '🗺 지도';
-        const query = encodeURIComponent(task.title.trim());
-        const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + query;
+        const coord = PLACE_COORDS[task.id];
+        mapBtn.textContent = coord ? '📍 지도' : '🗺 지도';
+        const mapUrl = getMapUrl(task.id, task.title);
         mapBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
@@ -3390,6 +3680,10 @@ function renderContent() {
                 hdr.className = `day-header${todayDay ? ' today-day' : ''}`;
                 if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
                 hdr.onclick = () => toggleDay(catKey, dk);
+
+                // 이 날 좌표 데이터가 있는 항목 수 체크
+                const hasCoordsCount = gt.filter(t => PLACE_COORDS[t.id]).length;
+
                 hdr.innerHTML = `
                     <div class="day-header-left">
                         <span class="day-label">${getDKLabel(dk, tasks, catKey)}</span>
@@ -3399,6 +3693,19 @@ function renderContent() {
                             : `<span class="day-count pending">${gt.length}개</span>`}
                     </div>
                     <span class="day-chevron${dayOpen?' open':''}" id="dc-${catKey}-${dk}">▼</span>`;
+
+                // 🗺 동선 지도 버튼 (좌표 2개 이상이면 표시)
+                if (hasCoordsCount >= 2) {
+                    const routeBtn = document.createElement('button');
+                    routeBtn.type = 'button';
+                    routeBtn.className = 'btn-day-map';
+                    routeBtn.textContent = `🗺 동선 (${hasCoordsCount})`;
+                    routeBtn.onclick = (e) => { e.stopPropagation(); openDayMap(catKey, dk); };
+                    // chevron 앞에 삽입
+                    const chevron = hdr.querySelector('.day-chevron');
+                    if (chevron) hdr.insertBefore(routeBtn, chevron);
+                    else hdr.appendChild(routeBtn);
+                }
 
                 const body = document.createElement('div');
                 body.className = `day-accordion-body${dayOpen?' open':''}`;
