@@ -640,8 +640,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .map-modal-legend{padding:8px 16px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .map-legend-item{display:flex;align-items:center;gap:4px}
 .map-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.btn-day-map{font-size:11px;padding:2px 8px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0}
+.btn-day-map{font-size:11px;padding:2px 8px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-day-map:hover{background:#dbeafe;border-color:#93c5fd}
+.btn-day-map:active{background:#bfdbfe}
 .leaflet-numbered-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 @media(max-width:768px){
   .map-modal{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}
@@ -2419,6 +2420,11 @@ function getMapLink(title, desc) {
 let _dayMapInstance = null;
 
 function openDayMap(catKey, dk) {
+    // Leaflet 로드 체크
+    if (typeof L === 'undefined') {
+        alert('지도 라이브러리를 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
     const td = appState.itinerary;
     const tasks = (td.items[catKey] || []).filter(t => {
         const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
@@ -3671,6 +3677,7 @@ function renderContent() {
 
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'day-group';
+                dayDiv.style.position = 'relative';
                 // 빈 날짜로 드롭 지원
                 dayDiv.addEventListener('dragover', e => e.preventDefault());
                 dayDiv.addEventListener('drop', e => { e.stopPropagation(); if (_dragId) doDropTo(catKey, dk, null); });
@@ -3694,17 +3701,21 @@ function renderContent() {
                     </div>
                     <span class="day-chevron${dayOpen?' open':''}" id="dc-${catKey}-${dk}">▼</span>`;
 
-                // 🗺 동선 지도 버튼 (좌표 2개 이상이면 표시)
+                dayDiv.appendChild(hdr);
+
+                // 🗺 동선 지도 버튼 — header 밖 dayDiv에 absolute 배치
                 if (hasCoordsCount >= 2) {
                     const routeBtn = document.createElement('button');
                     routeBtn.type = 'button';
                     routeBtn.className = 'btn-day-map';
                     routeBtn.textContent = `🗺 동선 (${hasCoordsCount})`;
-                    routeBtn.onclick = (e) => { e.stopPropagation(); openDayMap(catKey, dk); };
-                    // chevron 앞에 삽입
-                    const chevron = hdr.querySelector('.day-chevron');
-                    if (chevron) hdr.insertBefore(routeBtn, chevron);
-                    else hdr.appendChild(routeBtn);
+                    routeBtn.style.cssText = 'position:absolute;top:50%;right:36px;transform:translateY(-50%);z-index:2';
+                    routeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        openDayMap(catKey, dk);
+                    });
+                    dayDiv.appendChild(routeBtn);
                 }
 
                 const body = document.createElement('div');
@@ -3735,7 +3746,7 @@ function renderContent() {
                 addBtn.onclick = () => addTask(catKey, dk);
                 wrap.appendChild(addBtn);
 
-                body.appendChild(wrap); dayDiv.appendChild(hdr); dayDiv.appendChild(body);
+                body.appendChild(wrap); dayDiv.appendChild(body);
                 inner.appendChild(dayDiv);
             });
 
