@@ -2292,11 +2292,21 @@ function _loadLeaflet(cb) {
 
 function openDayMap(catKey, dk) {
     const td = appState.itinerary;
-    const allTasks = getStructureArr(td.structure, catKey);
-    const tasks = allTasks.filter(t => {
-        const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
-        return String(raw) === String(dk);
-    });
+    const catData = td.structure[catKey];
+    let tasks, allTasks;
+
+    // 유동 블록 (plan key): 객체에서 직접 접근
+    if (catData && !Array.isArray(catData) && typeof catData === 'object') {
+        tasks = catData[dk] || [];
+        allTasks = Object.values(catData).flat();
+    } else {
+        // 고정 블록: 평탄화 후 _dk로 필터
+        allTasks = getStructureArr(td.structure, catKey);
+        tasks = allTasks.filter(t => {
+            const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
+            return String(raw) === String(dk);
+        });
+    }
 
     // 좌표 있는 항목만 필터
     const pts = [];
