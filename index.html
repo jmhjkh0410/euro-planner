@@ -623,27 +623,9 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 /* ── 구글 지도 링크 ── */
 .btn-map{position:absolute;bottom:10px;right:10px;font-size:11px;padding:3px 9px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;z-index:10;pointer-events:auto!important;touch-action:manipulation}
 .btn-map:hover{background:#dcfce7;border-color:#86efac}
-/* ── 일일 동선 지도 모달 ── */
-.map-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s;overflow:hidden}
-.map-modal{width:94vw;max-width:680px;height:78vh;max-height:700px;background:var(--surface);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)}
-.map-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-raised)}
-.map-modal-title{font-weight:700;font-size:15px;color:var(--text-primary)}
-.map-modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;border-radius:8px;transition:all .15s}
-.map-modal-close:hover{background:var(--surface);color:var(--text-primary)}
-#map-container{flex:1;min-height:0}
-.map-modal-legend{padding:8px 16px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.map-legend-item{display:flex;align-items:center;gap:4px}
-.map-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .btn-day-map{font-size:11px;padding:2px 8px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:2px;margin-left:6px;flex-shrink:0;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn-day-map:hover{background:#dbeafe;border-color:#93c5fd}
 .btn-day-map:active{background:#bfdbfe}
-.leaflet-numbered-icon{background:none!important;border:none!important;box-shadow:none!important}
-@media(max-width:768px){
-  .map-modal{width:100vw;height:100dvh;height:100vh;max-width:none;max-height:none;border-radius:0}
-  .map-modal-header{padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}
-  .map-modal-legend{padding-bottom:max(8px,env(safe-area-inset-bottom))}
-  #map-container{min-height:0;flex:1}
-}
 </style>
 </head>
 <body>
@@ -894,8 +876,6 @@ const FB_LOCAL_STRUCTURE = 'EURO_V4_STRUCTURE';
 // ── 타이밍 & 임계값 상수 ──────────────────────────────────
 const IS_NOW_WINDOW_MIN   = 90;   // "지금" 판정 — 시작 시간 이후 N분 이내
 const OFFLINE_TIMEOUT_MS  = 5000; // Firebase 미연결 판정 타임아웃
-const LEAFLET_RETRY_MS    = 200;  // Leaflet 로딩 재시도 간격
-const MAP_INVALIDATE_MS   = 200;  // 지도 사이즈 재계산 딜레이
 const FB_LOCAL_CHECKS    = 'EURO_V4_CHECKS';
 
 // solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
@@ -2238,15 +2218,9 @@ const MAP_EXCLUDE_PATTERNS = [
     /^준비/, /^정리/, /^팁:/, /^\d+일차/,
 ];
 
-// 숙소 좌표 추론 패턴 — 좌표 없는 항목이 이 패턴에 매치하면 숙소 좌표로 대체
-const ACCOM_INFER_PATTERNS = [
-    /숙소/, /체크인/, /체크아웃/, /짐\s*풀/, /복귀/, /호텔/,
-    /레지드홈/, /낮잠/, /늦잠/, /조식/, /숙소\s*근처/,
-];
-
 function shouldShowMap(title, task) {
-    // 좌표가 있는 항목은 항상 지도 표시
-    if (task && task.lat && task.lng) return true;
+    // place_name_en이 있으면 항상 표시
+    if (task && task.place_name_en) return true;
     if (!title || title.trim().length < 3) return false;
     const t = title.trim();
     for (const p of MAP_EXCLUDE_PATTERNS) { if (p.test(t)) return false; }
@@ -2254,192 +2228,49 @@ function shouldShowMap(title, task) {
 }
 
 function getMapUrl(task) {
-    if (task.lat && task.lng) {
-        return `https://www.google.com/maps/search/?api=1&query=${task.lat},${task.lng}`;
-    }
-    // 영문명 있으면 영문명, 없으면 한국어 제목
     const q = task.place_name_en || task.title || '';
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}`;
+    if (q.trim()) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}`;
+    return '';
 }
 
-// ── 일일 동선 지도 (Leaflet.js) ──────────────────────────────
-let _dayMapInstance = null;
+// ── 일일 동선 지도 (Google Maps Directions) ──────────────────
 
-// Leaflet lazy loader
-let _leafletLoaded = false;
-let _leafletLoading = false;
-function _loadLeaflet(cb) {
-    if (_leafletLoaded && typeof L !== 'undefined') { cb(); return; }
-    if (_leafletLoading) { setTimeout(() => _loadLeaflet(cb), LEAFLET_RETRY_MS); return; }
-    _leafletLoading = true;
-    const css = document.createElement('link');
-    css.rel = 'stylesheet';
-    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-    document.head.appendChild(css);
-    const js = document.createElement('script');
-    js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    js.onload = () => { _leafletLoaded = true; _leafletLoading = false; cb(); };
-    js.onerror = () => { _leafletLoading = false; alert('지도 라이브러리 로딩 실패. 네트워크를 확인해주세요.'); };
-    document.head.appendChild(js);
+function _getPlaceName(task) {
+    return task.place_name_en || task.title || '';
 }
 
 function openDayMap(catKey, dk) {
     const td = appState.itinerary;
     const catData = td.structure[catKey];
-    let tasks, allTasks;
+    let tasks;
 
-    // 유동 블록 (plan key): 객체에서 직접 접근
     if (catData && !Array.isArray(catData) && typeof catData === 'object') {
         tasks = catData[dk] || [];
-        allTasks = Object.values(catData).flat();
     } else {
-        // 고정 블록: 평탄화 후 _dk로 필터
-        allTasks = getStructureArr(td.structure, catKey);
+        const allTasks = getStructureArr(td.structure, catKey);
         tasks = allTasks.filter(t => {
             const raw = t._dk !== undefined ? t._dk : getDKfromId(t.id);
             return String(raw) === String(dk);
         });
     }
 
-    // 숙소 좌표 찾기 (런던: 3일차부터 + 유동 → Farnham) — pts 빌드 전에 계산
-    const accomKey = ACCOM_KEY_MAP[catKey] || catKey;
-    const accom = appState.accommodations?.[accomKey];
-
-    let accomLat, accomLng, accomAddr;
-    if (accom) {
-        const useFarnham = catKey === 'london_b' ||
-            (catKey === 'london' && !isNaN(parseInt(dk)) && parseInt(dk) >= 3);
-        if (useFarnham && accom.lat2 && accom.lng2) {
-            accomLat = accom.lat2; accomLng = accom.lng2; accomAddr = accom.address2 || '';
-        } else {
-            accomLat = accom.lat; accomLng = accom.lng; accomAddr = accom.address || '';
-        }
-    }
-    const hasAccomCoords = !!(accomLat && accomLng);
-
-    // 좌표 빌드: 실제 좌표 + 숙소 패턴 추론
-    const pts = [];
+    // 지도에 표시할 장소명 수집 (MAP_EXCLUDE_PATTERNS 제외)
+    const stops = [];
     tasks.forEach(t => {
-        if (t.lat && t.lng) {
-            pts.push({ lat: t.lat, lng: t.lng, en: t.place_name_en || t.title, title: t.title, time: t._time || '', idx: pts.length + 1, inferred: false });
-        } else if (hasAccomCoords && ACCOM_INFER_PATTERNS.some(p => p.test(t.title || ''))) {
-            pts.push({ lat: accomLat, lng: accomLng, en: accomAddr, title: t.title, time: t._time || '', idx: pts.length + 1, inferred: true });
-        }
+        const name = _getPlaceName(t);
+        if (!name.trim()) return;
+        if (MAP_EXCLUDE_PATTERNS.some(p => p.test(t.title || ''))) return;
+        stops.push(name.trim());
     });
 
-    if (pts.length === 0) { alert('이 날의 좌표 데이터가 없습니다.'); return; }
+    if (stops.length === 0) {
+        alert('이 날 표시할 장소가 없습니다.');
+        return;
+    }
 
-    const label = getDKLabel(dk, allTasks, catKey);
-
-    // 모달 생성
-    const overlay = document.createElement('div');
-    overlay.className = 'map-modal-overlay';
-    overlay.id = 'day-map-overlay';
-    overlay.onclick = e => { if (e.target === overlay) closeDayMap(); };
-    overlay.innerHTML = `
-        <div class="map-modal">
-            <div class="map-modal-header">
-                <span class="map-modal-title">🗺 ${label} 동선</span>
-                <button class="map-modal-close" onclick="closeDayMap()">✕</button>
-            </div>
-            <div id="map-container" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:14px">지도 로딩 중...</div>
-            <div class="map-modal-legend">
-                <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6"></span> 일정</span>
-                ${hasAccomCoords ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#f59e0b"></span> 숙소</span>' : ''}
-                ${pts.some(p => p.inferred) ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#94a3b8"></span> 숙소 근처</span>' : ''}
-                <span class="map-legend-item" style="margin-left:auto;font-size:10px;opacity:.7">마커 클릭 → Google Maps</span>
-            </div>
-        </div>`;
-    document.body.appendChild(overlay);
-    // iOS Safari scroll lock
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.top = `-${window.scrollY}px`;
-    document.body.dataset.mapScrollY = window.scrollY;
-
-    _loadLeaflet(() => {
-        const container = document.getElementById('map-container');
-        if (!container) return;
-        container.textContent = '';
-        container.style = '';
-
-        try {
-            const map = L.map(container, { zoomControl: true, attributionControl: false });
-            _dayMapInstance = map;
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
-
-            const allLatLngs = [];
-            const BLUE = '#3b82f6';
-            const AMBER = '#f59e0b';
-
-            // 🏠 숙소 마커 (Firebase에서 읽은 좌표)
-            if (hasAccomCoords) {
-                const accomIcon = L.divIcon({
-                    className: 'leaflet-numbered-icon',
-                    html: '<div style="background:'+AMBER+';width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">🏠</div>',
-                    iconSize: [30, 30], iconAnchor: [15, 15],
-                });
-                const accomLL = [accomLat, accomLng];
-                allLatLngs.push(accomLL);
-                L.marker(accomLL, { icon: accomIcon, zIndexOffset: -100 }).addTo(map).bindPopup(
-                    '<div style="font-size:13px;min-width:140px"><div style="font-weight:700;margin-bottom:4px">🏠 숙소</div>' +
-                    '<div style="color:#666;font-size:11px;margin-bottom:6px">'+accomAddr+'</div>' +
-                    '<a href="https://www.google.com/maps/search/?api=1&query='+accomLat+','+accomLng+'" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6">Google Maps →</a></div>',
-                    { closeButton: false, maxWidth: 240 }
-                );
-            }
-
-            // 일정 마커 (번호) — 추론 항목은 회색 마커
-            const MUTED = '#94a3b8';
-            pts.forEach(p => {
-                const color = p.inferred ? MUTED : BLUE;
-                const size  = p.inferred ? 24 : 28;
-                const font  = p.inferred ? 10 : 12;
-                const icon = L.divIcon({
-                    className: 'leaflet-numbered-icon',
-                    html: '<div style="background:'+color+';width:'+size+'px;height:'+size+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:'+font+'px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">'+p.idx+'</div>',
-                    iconSize: [size, size], iconAnchor: [size/2, size/2],
-                });
-                const latlng = [p.lat, p.lng];
-                allLatLngs.push(latlng);
-                const timeLabel = p.time ? '<b>'+p.time+'</b> · ' : '';
-                const inferTag = p.inferred ? ' <span style="color:#94a3b8;font-size:9px">(숙소 근처)</span>' : '';
-                L.marker(latlng, { icon }).addTo(map).bindPopup(
-                    '<div style="font-size:13px;min-width:160px"><div style="font-weight:700;margin-bottom:4px">'+p.idx+'. '+p.title+inferTag+'</div>' +
-                    '<div style="color:#666;font-size:11px;margin-bottom:6px">'+timeLabel+p.en+'</div>' +
-                    '<a href="https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+'" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6">Google Maps →</a></div>',
-                    { closeButton: false, maxWidth: 240 }
-                );
-            });
-
-            // 동선 라인 (점선)
-            if (allLatLngs.length > 1) {
-                L.polyline(allLatLngs, { color: BLUE, weight: 2.5, opacity: 0.6, dashArray: '8 6' }).addTo(map);
-            }
-            if (allLatLngs.length > 0) {
-                map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 15 });
-            }
-            // 모바일에서 컨테이너 사이즈 재계산
-            setTimeout(() => { map.invalidateSize(); }, MAP_INVALIDATE_MS);
-        } catch (err) {
-            container.textContent = '지도 초기화 실패: ' + err.message;
-            console.error('[DayMap]', err);
-        }
-    });
-}
-
-function closeDayMap() {
-    if (_dayMapInstance) { _dayMapInstance.remove(); _dayMapInstance = null; }
-    const ov = document.getElementById('day-map-overlay');
-    if (ov) ov.remove();
-    // iOS Safari scroll restore
-    const scrollY = parseInt(document.body.dataset.mapScrollY || '0');
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.top = '';
-    window.scrollTo(0, scrollY);
+    // Google Maps Directions URL: /dir/장소1/장소2/장소3/...
+    const dirUrl = 'https://www.google.com/maps/dir/' + stops.map(s => encodeURIComponent(s)).join('/');
+    window.open(dirUrl, '_blank');
 }
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
@@ -2744,10 +2575,8 @@ function renderAccommodation(container, catKey) {
     accomMapBtn.type = 'button';
     accomMapBtn.className = 'btn-map';
     accomMapBtn.style.cssText = 'position:static;margin-left:4px;flex-shrink:0';
-    accomMapBtn.textContent = (info.lat && info.lng) ? '📍 지도' : '🗺 지도';
-    const accomUrl = (info.lat && info.lng)
-        ? `https://www.google.com/maps/search/?api=1&query=${info.lat},${info.lng}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((info.address || info.city || '').trim())}`;
+    accomMapBtn.textContent = '📍 지도';
+    const accomUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((info.address || info.city || '').trim())}`;
     accomMapBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         e.preventDefault();
@@ -3221,7 +3050,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
         const mapBtn = document.createElement('button');
         mapBtn.type = 'button';
         mapBtn.className = 'btn-map';
-        mapBtn.textContent = (task.lat && task.lng) ? '📍 지도' : '🗺 지도';
+        mapBtn.textContent = '📍 지도';
         const mapUrl = getMapUrl(task);
         mapBtn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -3586,14 +3415,12 @@ function renderContent() {
                 if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
                 hdr.onclick = () => toggleDay(catKey, dk);
 
-                // 이 날 좌표 데이터가 있는 항목 수 체크 (추론 포함)
-                const _accomLookup = ACCOM_KEY_MAP[catKey] || catKey;
-                const _accomInfo = (appState.accommodations || {})[_accomLookup];
-                const _hasAccom = !!(_accomInfo && _accomInfo.lat && _accomInfo.lng);
-                const hasCoordsCount = gt.filter(t =>
-                    (t.lat && t.lng) ||
-                    (_hasAccom && ACCOM_INFER_PATTERNS.some(p => p.test(t.title || '')))
-                ).length;
+                // 이 날 지도에 표시할 장소 수 체크
+                const hasPlaceCount = gt.filter(t => {
+                    const name = t.place_name_en || t.title || '';
+                    if (!name.trim() || name.trim().length < 3) return false;
+                    return !MAP_EXCLUDE_PATTERNS.some(p => p.test(t.title || ''));
+                }).length;
 
                 hdr.innerHTML = `
                     <div class="day-header-left">
@@ -3607,12 +3434,12 @@ function renderContent() {
 
                 hdrWrap.appendChild(hdr);
 
-                // 🗺 동선 지도 버튼 — hdrWrap에 absolute (헤더 높이 기준 고정)
-                if (hasCoordsCount >= 1) {
+                // 🗺 동선 버튼 → Google Maps Directions
+                if (hasPlaceCount >= 2) {
                     const routeBtn = document.createElement('button');
                     routeBtn.type = 'button';
                     routeBtn.className = 'btn-day-map';
-                    routeBtn.textContent = `🗺 동선 (${hasCoordsCount})`;
+                    routeBtn.textContent = `🗺 동선 (${hasPlaceCount})`;
                     routeBtn.style.cssText = 'position:absolute;top:50%;right:36px;transform:translateY(-50%);z-index:2';
                     routeBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
