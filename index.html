@@ -2403,11 +2403,12 @@ async function openDayMap(catKey, dk) {
             </div>
         </div>`;
     document.body.appendChild(overlay);
+    const _savedScrollY = window.scrollY;
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.width = '100%';
-    document.body.style.top = `-${window.scrollY}px`;
-    document.body.dataset.mapScrollY = window.scrollY;
+    document.body.style.top = `-${_savedScrollY}px`;
+    document.body.dataset.mapScrollY = _savedScrollY;
 
     // 지오코딩 (캐시 우선 → Nominatim)
     const queries = stops.map(s => s.query);
