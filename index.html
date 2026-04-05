@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v44 🗺</title>
+<title>유럽 여행 통합 마스터 플래너 v45 🗺</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -708,7 +708,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v41 🔥</span>
+      <span class="nav-version">v45 🗺</span>
     </div>
   </div>
 </nav>
@@ -890,6 +890,12 @@ const FB = {
 };
 // 로컬 스토리지 키
 const FB_LOCAL_STRUCTURE = 'EURO_V4_STRUCTURE';
+
+// ── 타이밍 & 임계값 상수 ──────────────────────────────────
+const IS_NOW_WINDOW_MIN   = 90;   // "지금" 판정 — 시작 시간 이후 N분 이내
+const OFFLINE_TIMEOUT_MS  = 5000; // Firebase 미연결 판정 타임아웃
+const LEAFLET_RETRY_MS    = 200;  // Leaflet 로딩 재시도 간격
+const MAP_INVALIDATE_MS   = 200;  // 지도 사이즈 재계산 딜레이
 const FB_LOCAL_CHECKS    = 'EURO_V4_CHECKS';
 
 // solo 세션 전용 추가 항목 (메모리만, 저장 안 함)
@@ -1329,18 +1335,6 @@ const USER_CONFIG = {
 let currentUser = null;
 
 // ── PIN 화면 로직 ─────────────────────────────────────────
-let selectedCard = null;
-
-function selectUserCard(code) {
-    selectedCard = code;
-    document.querySelectorAll('.pin-card').forEach(el => el.classList.remove('active'));
-    document.getElementById(`card-${code}`)?.classList.add('active');
-    document.getElementById('pin-input').value = '';
-    document.getElementById('pin-error').textContent = '';
-    // 카드 클릭 시 바로 입장
-    enterWithCode(code);
-}
-
 function doPinEnter() {
     const val = document.getElementById('pin-input').value.trim().toLowerCase();
     if (!val) { shakeInput(); return; }
@@ -1394,7 +1388,6 @@ function showPinOverlay() {
     // 이미 로그인 상태면 뒤로가기 버튼 표시
     const backBtn = document.getElementById('pin-back-btn');
     if (backBtn) backBtn.style.display = currentUser ? 'block' : 'none';
-    selectedCard = null;
     document.querySelectorAll('.pin-card').forEach(el => el.classList.remove('active'));
     document.getElementById('pin-input').value = '';
     document.getElementById('pin-error').textContent = '';
@@ -1702,18 +1695,6 @@ function findTaskInStructure(structure, taskId) {
         }
     }
     return null;
-}
-function getStructureAllFlat(structure) {
-    // 모든 catKey를 순회하며 태스크 배열 반환 (유동 블록 포함)
-    const result = [];
-    for (const k in structure) {
-        const val = structure[k];
-        if (Array.isArray(val)) val.forEach(t => result.push({k, t}));
-        else if (val && typeof val === 'object') {
-            Object.values(val).flat().forEach(t => result.push({k, t}));
-        }
-    }
-    return result;
 }
 
 
@@ -2242,6 +2223,14 @@ function goToSearchResult(tab, catKey, taskId) {
 // ════════════════════════════════════════════════════════════
 
 // 장소명으로 지도 표시에 적합한지 판단
+// 숙소 catKey → 실제 accommodations 키 매핑 (유동 블록 → 부모 도시)
+const ACCOM_KEY_MAP = {
+    budapest:'budapest', wien:'wien', krakow:'krakow', berlin:'berlin',
+    munich:'munich', swiss:'swiss', swiss_b:'swiss', milano:'milano',
+    nice:'nice', nice_b:'nice', paris1:'paris1', paris2:'paris2',
+    london:'london', london_b:'london'
+};
+
 const MAP_EXCLUDE_PATTERNS = [
     /^숙소/, /복귀$/, /^호텔/, /^체크/, /^이동/, /^출발/, /^도착/,
     /^기차/, /^버스/, /^비행/, /^공항/, /^환승/, /^짐/,
@@ -2267,10 +2256,6 @@ function getMapUrl(task) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}`;
 }
 
-function getMapLink(title, desc) {
-    return shouldShowMap(title) ? '<span class="map-btn-placeholder"></span>' : '';
-}
-
 // ── 일일 동선 지도 (Leaflet.js) ──────────────────────────────
 let _dayMapInstance = null;
 
@@ -2279,7 +2264,7 @@ let _leafletLoaded = false;
 let _leafletLoading = false;
 function _loadLeaflet(cb) {
     if (_leafletLoaded && typeof L !== 'undefined') { cb(); return; }
-    if (_leafletLoading) { setTimeout(() => _loadLeaflet(cb), 200); return; }
+    if (_leafletLoading) { setTimeout(() => _loadLeaflet(cb), LEAFLET_RETRY_MS); return; }
     _leafletLoading = true;
     const css = document.createElement('link');
     css.rel = 'stylesheet';
@@ -2321,13 +2306,7 @@ function openDayMap(catKey, dk) {
     if (pts.length === 0) { alert('이 날의 좌표 데이터가 없습니다.'); return; }
 
     // 숙소 좌표 찾기 (런던: 3일차부터 + 유동 → Farnham)
-    const accomKeyMap = {
-        budapest:'budapest', wien:'wien', krakow:'krakow', berlin:'berlin',
-        munich:'munich', swiss:'swiss', swiss_b:'swiss', milano:'milano',
-        nice:'nice', nice_b:'nice', paris1:'paris1', paris2:'paris2',
-        london:'london', london_b:'london'
-    };
-    const accomKey = accomKeyMap[catKey] || catKey;
+    const accomKey = ACCOM_KEY_MAP[catKey] || catKey;
     const accom = appState.accommodations?.[accomKey];
 
     // 런던 숙소 분기: Day 1~2 = Chalton St, Day 3+ & london_b = Farnham
@@ -2428,7 +2407,7 @@ function openDayMap(catKey, dk) {
                 map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 15 });
             }
             // 모바일에서 컨테이너 사이즈 재계산
-            setTimeout(() => { map.invalidateSize(); }, 200);
+            setTimeout(() => { map.invalidateSize(); }, MAP_INVALIDATE_MS);
         } catch (err) {
             container.textContent = '지도 초기화 실패: ' + err.message;
             console.error('[DayMap]', err);
@@ -2592,7 +2571,7 @@ function init() {
         window.addEventListener('firebase-ready', _startFirebaseSync, { once: true });
         setTimeout(() => {
             if (!fbReady) setSyncStatus('error', '⚠️ 클라우드 미연결 (로컬 모드)');
-        }, 5000);
+        }, OFFLINE_TIMEOUT_MS);
     }
 }
 
@@ -2726,14 +2705,7 @@ function formatMemoText(raw) {
 // ── 숙소 주소 칩 렌더링 ─────────────────────────────────
 function renderAccommodation(container, catKey) {
     const accoms = appState.accommodations || {};
-    // catKey 매핑 (swiss/swiss_b → frutigen, london/london_b → london 등)
-    const keyMap = {
-        swiss: 'swiss', swiss_b: 'swiss',
-        london: 'london', london_b: 'london',
-        paris1: 'paris1', paris2: 'paris2',
-        nice_b: 'nice'
-    };
-    const lookupKey = keyMap[catKey] || catKey;
+    const lookupKey = ACCOM_KEY_MAP[catKey] || catKey;
     const info = accoms[lookupKey];
     if (!info || !info.address) return;
 
@@ -2758,9 +2730,10 @@ function renderAccommodation(container, catKey) {
     accomMapBtn.type = 'button';
     accomMapBtn.className = 'btn-map';
     accomMapBtn.style.cssText = 'position:static;margin-left:4px;flex-shrink:0';
-    accomMapBtn.textContent = '🗺 지도';
-    const accomQuery = encodeURIComponent((info.address || info.city || '').trim());
-    const accomUrl = 'https://www.google.com/maps/search/?api=1&query=' + accomQuery;
+    accomMapBtn.textContent = (info.lat && info.lng) ? '📍 지도' : '🗺 지도';
+    const accomUrl = (info.lat && info.lng)
+        ? `https://www.google.com/maps/search/?api=1&query=${info.lat},${info.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((info.address || info.city || '').trim())}`;
     accomMapBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         e.preventDefault();
@@ -3169,7 +3142,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
                 const [h, m] = task._time.split(':').map(Number);
                 const taskMin = h * 60 + m;
                 const nowMin  = now.getHours() * 60 + now.getMinutes();
-                isNow = nowMin >= taskMin && nowMin < taskMin + 90;
+                isNow = nowMin >= taskMin && nowMin < taskMin + IS_NOW_WINDOW_MIN;
             }
         }
     }
@@ -4178,9 +4151,6 @@ function bulkTrashDelete() {
     document.getElementById('btn-trash-sel-del').disabled = true;
     save(); updateTrashFab();
 }
-
-// alias - v28 코드 호환
-function bulkDeleteTrash() { bulkTrashDelete(); }
 
 function renderTrashDrawer() {
     document.getElementById('trash-pill').textContent = appState.trash.length;
