@@ -2230,10 +2230,14 @@ const ACCOM_KEY_MAP = {
 };
 
 const MAP_EXCLUDE_PATTERNS = [
-    /^숙소/, /복귀$/, /^호텔/, /^체크/, /^이동/, /^출발/, /^도착/,
-    /^기차/, /^버스/, /^비행/, /^공항/, /^환승/, /^짐/,
-    /^아침/, /^점심/, /^저녁/, /^식사/, /^휴식/, /^자유/,
-    /^준비/, /^정리/, /^팁:/, /^\d+일차/,
+    // 앵커(^) — 제목 시작 기준
+    /^숙소/, /^호텔/, /^이동/, /^출발/, /^도착/,
+    /^기차/, /^버스/, /^비행/, /^환승/, /^짐/,
+    /^아침/, /^준비/, /^정리/, /^팁:/, /^\d+일차/,
+    // 비앵커 — 제목 어디에 있어도 제외 (place_name_en이 있으면 무시됨)
+    /복귀/, /휴식/, /늦잠/, /기상/, /시내/, /조식/,
+    /라운지/, /레지드홈/, /점심/, /저녁/, /식사/,
+    /자유\s*일정/, /발길\s*닿는/,
 ];
 
 // 제목에 실제 장소가 포함돼 있으면 exclude 패턴을 무시
@@ -2251,8 +2255,14 @@ function _isMapWorthy(title, task) {
 
 function shouldShowMap(title, task) { return _isMapWorthy(title, task); }
 
-function getMapUrl(task) {
-    const q = task.place_name_en || task.title || '';
+function getMapUrl(task, catKey) {
+    // place_name_en 우선
+    if (task.place_name_en) {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.place_name_en)}`;
+    }
+    // 괄호 안 영문명 추출 + 도시명
+    const cityEn = CITY_EN[catKey] || CITY_EN[ACCOM_KEY_MAP[catKey]] || '';
+    const q = _extractPlaceName(task, cityEn);
     if (q.trim()) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}`;
     return '';
 }
@@ -3267,7 +3277,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
         mapBtn.type = 'button';
         mapBtn.className = 'btn-map';
         mapBtn.textContent = '📍 지도';
-        const mapUrl = getMapUrl(task);
+        const mapUrl = getMapUrl(task, catKey);
         mapBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
