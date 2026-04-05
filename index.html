@@ -624,7 +624,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-map{position:absolute;bottom:10px;right:10px;font-size:11px;padding:3px 9px;border-radius:12px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;z-index:10;pointer-events:auto!important;touch-action:manipulation}
 .btn-map:hover{background:#dcfce7;border-color:#86efac}
 /* ── 일일 동선 지도 모달 ── */
-.map-modal-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.map-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;animation:fadeIn .2s;overflow:hidden}
 .map-modal{width:94vw;max-width:680px;height:78vh;max-height:700px;background:var(--surface);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.3)}
 .map-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface-raised)}
 .map-modal-title{font-weight:700;font-size:15px;color:var(--text-primary)}
@@ -639,8 +639,10 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-day-map:active{background:#bfdbfe}
 .leaflet-numbered-icon{background:none!important;border:none!important;box-shadow:none!important}
 @media(max-width:768px){
-  .map-modal{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0}
+  .map-modal{width:100vw;height:100dvh;height:100vh;max-width:none;max-height:none;border-radius:0}
   .map-modal-header{padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}
+  .map-modal-legend{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  #map-container{min-height:0;flex:1}
 }
 </style>
 </head>
@@ -2361,7 +2363,12 @@ function openDayMap(catKey, dk) {
             </div>
         </div>`;
     document.body.appendChild(overlay);
+    // iOS Safari scroll lock
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.top = `-${window.scrollY}px`;
+    document.body.dataset.mapScrollY = window.scrollY;
 
     _loadLeaflet(() => {
         const container = document.getElementById('map-container');
@@ -2420,6 +2427,8 @@ function openDayMap(catKey, dk) {
             if (allLatLngs.length > 0) {
                 map.fitBounds(L.latLngBounds(allLatLngs), { padding: [40, 40], maxZoom: 15 });
             }
+            // 모바일에서 컨테이너 사이즈 재계산
+            setTimeout(() => { map.invalidateSize(); }, 200);
         } catch (err) {
             container.textContent = '지도 초기화 실패: ' + err.message;
             console.error('[DayMap]', err);
@@ -2431,7 +2440,13 @@ function closeDayMap() {
     if (_dayMapInstance) { _dayMapInstance.remove(); _dayMapInstance = null; }
     const ov = document.getElementById('day-map-overlay');
     if (ov) ov.remove();
+    // iOS Safari scroll restore
+    const scrollY = parseInt(document.body.dataset.mapScrollY || '0');
     document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.top = '';
+    window.scrollTo(0, scrollY);
 }
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
