@@ -2238,6 +2238,12 @@ const MAP_EXCLUDE_PATTERNS = [
     /^준비/, /^정리/, /^팁:/, /^\d+일차/,
 ];
 
+// 숙소 좌표 추론 패턴 — 좌표 없는 항목이 이 패턴에 매치하면 숙소 좌표로 대체
+const ACCOM_INFER_PATTERNS = [
+    /숙소/, /체크인/, /체크아웃/, /짐\s*풀/, /복귀/, /호텔/,
+    /레지드홈/, /낮잠/, /늦잠/, /조식/, /숙소\s*근처/,
+];
+
 function shouldShowMap(title, task) {
     // 좌표가 있는 항목은 항상 지도 표시
     if (task && task.lat && task.lng) return true;
@@ -2295,21 +2301,10 @@ function openDayMap(catKey, dk) {
         });
     }
 
-    // 좌표 있는 항목만 필터
-    const pts = [];
-    tasks.forEach(t => {
-        if (t.lat && t.lng) {
-            pts.push({ lat: t.lat, lng: t.lng, en: t.place_name_en || t.title, title: t.title, time: t._time || '', idx: pts.length + 1 });
-        }
-    });
-
-    if (pts.length === 0) { alert('이 날의 좌표 데이터가 없습니다.'); return; }
-
-    // 숙소 좌표 찾기 (런던: 3일차부터 + 유동 → Farnham)
+    // 숙소 좌표 찾기 (런던: 3일차부터 + 유동 → Farnham) — pts 빌드 전에 계산
     const accomKey = ACCOM_KEY_MAP[catKey] || catKey;
     const accom = appState.accommodations?.[accomKey];
 
-    // 런던 숙소 분기: Day 1~2 = Chalton St, Day 3+ & london_b = Farnham
     let accomLat, accomLng, accomAddr;
     if (accom) {
         const useFarnham = catKey === 'london_b' ||
@@ -2321,6 +2316,19 @@ function openDayMap(catKey, dk) {
         }
     }
     const hasAccomCoords = !!(accomLat && accomLng);
+
+    // 좌표 빌드: 실제 좌표 + 숙소 패턴 추론
+    const pts = [];
+    tasks.forEach(t => {
+        if (t.lat && t.lng) {
+            pts.push({ lat: t.lat, lng: t.lng, en: t.place_name_en || t.title, title: t.title, time: t._time || '', idx: pts.length + 1, inferred: false });
+        } else if (hasAccomCoords && ACCOM_INFER_PATTERNS.some(p => p.test(t.title || ''))) {
+            pts.push({ lat: accomLat, lng: accomLng, en: accomAddr, title: t.title, time: t._time || '', idx: pts.length + 1, inferred: true });
+        }
+    });
+
+    if (pts.length === 0) { alert('이 날의 좌표 데이터가 없습니다.'); return; }
+
     const label = getDKLabel(dk, allTasks, catKey);
 
     // 모달 생성
@@ -2336,8 +2344,9 @@ function openDayMap(catKey, dk) {
             </div>
             <div id="map-container" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:14px">지도 로딩 중...</div>
             <div class="map-modal-legend">
-                <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6"></span> 일정 순서</span>
+                <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6"></span> 일정</span>
                 ${hasAccomCoords ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#f59e0b"></span> 숙소</span>' : ''}
+                ${pts.some(p => p.inferred) ? '<span class="map-legend-item"><span class="map-legend-dot" style="background:#94a3b8"></span> 숙소 근처</span>' : ''}
                 <span class="map-legend-item" style="margin-left:auto;font-size:10px;opacity:.7">마커 클릭 → Google Maps</span>
             </div>
         </div>`;
@@ -2381,18 +2390,23 @@ function openDayMap(catKey, dk) {
                 );
             }
 
-            // 일정 마커 (번호)
+            // 일정 마커 (번호) — 추론 항목은 회색 마커
+            const MUTED = '#94a3b8';
             pts.forEach(p => {
+                const color = p.inferred ? MUTED : BLUE;
+                const size  = p.inferred ? 24 : 28;
+                const font  = p.inferred ? 10 : 12;
                 const icon = L.divIcon({
                     className: 'leaflet-numbered-icon',
-                    html: '<div style="background:'+BLUE+';width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">'+p.idx+'</div>',
-                    iconSize: [28, 28], iconAnchor: [14, 14],
+                    html: '<div style="background:'+color+';width:'+size+'px;height:'+size+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:'+font+'px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">'+p.idx+'</div>',
+                    iconSize: [size, size], iconAnchor: [size/2, size/2],
                 });
                 const latlng = [p.lat, p.lng];
                 allLatLngs.push(latlng);
                 const timeLabel = p.time ? '<b>'+p.time+'</b> · ' : '';
+                const inferTag = p.inferred ? ' <span style="color:#94a3b8;font-size:9px">(숙소 근처)</span>' : '';
                 L.marker(latlng, { icon }).addTo(map).bindPopup(
-                    '<div style="font-size:13px;min-width:160px"><div style="font-weight:700;margin-bottom:4px">'+p.idx+'. '+p.title+'</div>' +
+                    '<div style="font-size:13px;min-width:160px"><div style="font-weight:700;margin-bottom:4px">'+p.idx+'. '+p.title+inferTag+'</div>' +
                     '<div style="color:#666;font-size:11px;margin-bottom:6px">'+timeLabel+p.en+'</div>' +
                     '<a href="https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+'" target="_blank" rel="noopener" style="font-size:11px;color:#3b82f6">Google Maps →</a></div>',
                     { closeButton: false, maxWidth: 240 }
@@ -3572,8 +3586,14 @@ function renderContent() {
                 if (todayDay) hdr.style.cssText = 'background:linear-gradient(135deg,#fef9c3,#fef3c7);border-bottom:1px solid #fde68a';
                 hdr.onclick = () => toggleDay(catKey, dk);
 
-                // 이 날 좌표 데이터가 있는 항목 수 체크
-                const hasCoordsCount = gt.filter(t => t.lat && t.lng).length;
+                // 이 날 좌표 데이터가 있는 항목 수 체크 (추론 포함)
+                const _accomLookup = ACCOM_KEY_MAP[catKey] || catKey;
+                const _accomInfo = (appState.accommodations || {})[_accomLookup];
+                const _hasAccom = !!(_accomInfo && _accomInfo.lat && _accomInfo.lng);
+                const hasCoordsCount = gt.filter(t =>
+                    (t.lat && t.lng) ||
+                    (_hasAccom && ACCOM_INFER_PATTERNS.some(p => p.test(t.title || '')))
+                ).length;
 
                 hdr.innerHTML = `
                     <div class="day-header-left">
