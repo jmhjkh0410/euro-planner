@@ -2427,10 +2427,18 @@ async function openDayMap(catKey, dk) {
     const accomResult = accomAddr ? results[results.length - 1] : null;
 
     // Leaflet 렌더링
+    const resolvedStopCount = stopResults.filter(r => r).length;
     _loadLeaflet(() => {
         const container = document.getElementById('map-container');
         if (!container) return;
         container.textContent = ''; container.style = '';
+
+        // 모달 헤더에 실제 표시 개수 반영
+        const titleEl = document.querySelector('.map-modal-title');
+        if (titleEl) {
+            const suffix = resolvedStopCount < stops.length ? ` (${stops.length}중 ${resolvedStopCount}개 표시)` : '';
+            titleEl.textContent = `🗺 ${label} 동선${suffix}`;
+        }
 
         try {
             const map = L.map(container, { zoomControl: true, attributionControl: false });
