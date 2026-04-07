@@ -1836,7 +1836,13 @@ async function fetchCityWeather(cityKey) {
     }
 }
 
+let _weatherLoading = false;
 async function loadWeather() {
+    if (_weatherLoading) return;  // 이미 로딩 중이면 중복 호출 무시
+    _weatherLoading = true;
+    try { await _loadWeatherImpl(); } finally { _weatherLoading = false; }
+}
+async function _loadWeatherImpl() {
     const pillBtn = document.getElementById('weather-pill-btn');
     const hideAll = () => {
         const w = document.getElementById('weather-widget');
@@ -2709,7 +2715,6 @@ function switchTab(tab) {
     renderContent();
     updateProgress();
     renderMobileNav();
-    loadWeather();
     window.scrollTo(0, 0);
     // 패스 탭: 편집 FAB 숨김 (읽기 전용)
     const fabEdit = document.getElementById('fab-edit');
