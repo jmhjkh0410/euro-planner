@@ -307,15 +307,6 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-close-trash{font-size:18px;color:var(--text-muted);padding:4px 6px;border-radius:6px;transition:background .15s}
 .btn-close-trash:hover{background:var(--surface-raised)}
 .trash-drawer-body{overflow-y:auto;flex:1;padding:12px 16px 24px}
-.trash-item{background:var(--surface-raised);border:1px dashed var(--border);border-radius:var(--r-md);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.trash-item-info{flex:1;min-width:0}
-.trash-item-title{font-size:12px;font-weight:600;color:var(--text-secondary);text-decoration:line-through;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trash-item-meta{font-size:10px;color:var(--text-muted);margin-top:2px}
-.trash-item-actions{display:flex;gap:6px;flex-shrink:0}
-.btn-restore{font-size:10px;font-weight:700;color:#16a34a;padding:4px 10px;border-radius:999px;background:#f0fdf4;border:1px solid #bbf7d0;transition:background .15s}
-.btn-restore:hover{background:#dcfce7}
-.btn-perm-del{font-size:10px;font-weight:700;color:#ef4444;padding:4px 8px;border-radius:999px;transition:background .15s}
-.btn-perm-del:hover{background:#fef2f2}
 .trash-empty-state{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:13px;font-weight:600}
 .trash-empty-icon{font-size:36px;margin-bottom:10px;opacity:.4}
 
@@ -1033,9 +1024,14 @@ function _startFirebaseSync() {
                 _applyContentState(parsed);
                 localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(parsed));
                 if (_initialRenderDone) {
-                    renderContent(); updateProgress(); updateTrashFab();
-                    renderMobileNav(); loadWeather();
-                    setSyncStatus('ok', '✅ 동기화 완료');
+                    // 에코백 방지: 직전 쓰기 후 2초 이내면 리렌더 스킵
+                    if (Date.now() - _lastWriteTs < ECHO_GUARD_MS) {
+                        setSyncStatus('ok', '✅ 저장 완료');
+                    } else {
+                        renderContent(); updateProgress(); updateTrashFab();
+                        renderMobileNav(); loadWeather();
+                        setSyncStatus('ok', '✅ 동기화 완료');
+                    }
                 } else {
                     _tryRender('structure');
                 }
@@ -1177,6 +1173,7 @@ function _saveContentToFirebase() {
         itinerary:    contentState.itinerary,
         packing:      contentState.packing,
     };
+    _lastWriteTs = Date.now();
     set(ref(db, FB.STRUCTURE_MASTER), masterStructure)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
         .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
@@ -1230,7 +1227,9 @@ function _savePrivateStructure() {
 
 // ── save debounce (Firebase 쓰기 빈도 제한) ──────────────
 let _saveTimer = null;
+let _lastWriteTs = 0;  // Firebase 에코백 방지용 타임스탬프
 const SAVE_DEBOUNCE_MS = 400;
+const ECHO_GUARD_MS = 2000;  // 쓰기 후 2초 이내 onValue는 에코로 간주
 
 function save() {
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
@@ -1364,21 +1363,12 @@ function shakeInput() {
 
 function hidePinOverlay() {
     document.getElementById('pin-overlay').classList.add('hidden');
-    // iOS Safari 스크롤 잠금 해제
-    const scrollY = document.body.style.top;
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
+    document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
-    if (scrollY) window.scrollTo(0, -parseInt(scrollY || '0'));
 }
 
 function _lockBodyScroll() {
-    // iOS Safari에서 body overflow:hidden이 안 먹히므로 position:fixed 사용
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
+    document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
 }
 
@@ -1933,9 +1923,9 @@ function renderWeather3Days(dayKeys) {
             html += `<div class="weather-day"><div class="weather-day-label">${labels[i]}</div><div class="weather-icon">—</div></div>`;
             continue;
         }
-        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[0]);
-        const max = Math.round(data.daily.temperature_2m_max[0]);
-        const min = Math.round(data.daily.temperature_2m_min[0]);
+        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[i]);
+        const max = Math.round(data.daily.temperature_2m_max[i]);
+        const min = Math.round(data.daily.temperature_2m_min[i]);
 
         html += `
         <div class="weather-day">
@@ -2008,18 +1998,21 @@ function showSearchHistory() {
         return;
     }
     let html = `<div class="search-history-header"><span class="search-section-label">최근 검색</span><button class="search-hist-clear-all" onclick="clearAllSearchHistory()">전체 삭제</button></div>`;
-    for (const h of hist) {
+    for (let hi = 0; hi < hist.length; hi++) {
+        const safe = _escHtml(hist[hi]);
         html += `
         <div class="search-item search-hist-item">
             <span class="search-item-icon">🕐</span>
-            <div class="search-item-body" onclick="applyHistory('${h.replace(/'/g,"\'")}')">
-                <div class="search-item-title">${h}</div>
+            <div class="search-item-body" data-hidx="${hi}" onclick="_applyHistIdx(this)">
+                <div class="search-item-title">${safe}</div>
             </div>
-            <button class="search-hist-del" onclick="deleteSearchHistory('${h.replace(/'/g,"\'")}')">✕</button>
+            <button class="search-hist-del" data-hidx="${hi}" onclick="_delHistIdx(this)">✕</button>
         </div>`;
     }
     res.innerHTML = html;
 }
+function _applyHistIdx(el) { const h = getSearchHistory()[+el.dataset.hidx]; if (h) applyHistory(h); }
+function _delHistIdx(el)   { const h = getSearchHistory()[+el.dataset.hidx]; if (h) deleteSearchHistory(h); }
 function applyHistory(q) {
     const inp = document.getElementById('search-input');
     if (inp) { inp.value = q; doSearch(q); }
@@ -3752,7 +3745,6 @@ function renderContent() {
 function toggleCity(catKey) {
     const now = !appState.itinerary.cityOpen[catKey];
     appState.itinerary.cityOpen[catKey] = now;
-    save();
     if (now) renderContent();
     else {
         document.getElementById(`city-body-${catKey}`)?.classList.remove('open');
@@ -3764,7 +3756,6 @@ function toggleCat(catKey) {
     if (!td.catOpen) td.catOpen = {};
     const now = td.catOpen[catKey] === false ? true : false;
     td.catOpen[catKey] = now;
-    save();
     if (now) renderContent();
     else {
         document.getElementById(`cat-body-${catKey}`)?.classList.remove('open');
@@ -3775,7 +3766,6 @@ function toggleDay(catKey, dk) {
     const sk = `${catKey}__${dk}`;
     const now = !appState.itinerary.dayOpen[sk];
     appState.itinerary.dayOpen[sk] = now;
-    save();
     document.getElementById(`day-body-${catKey}-${dk}`)?.classList.toggle('open', now);
     document.getElementById(`dc-${catKey}-${dk}`)?.classList.toggle('open', now);
     updateProgress();
@@ -4026,7 +4016,15 @@ function updateProgress() {
 }
 
 // ── SCROLL SPY ────────────────────────────────────────────
+let _scrollRafId = 0;
 function handleScroll() {
+    if (_scrollRafId) return;
+    _scrollRafId = requestAnimationFrame(() => {
+        _scrollRafId = 0;
+        _handleScrollImpl();
+    });
+}
+function _handleScrollImpl() {
     const filteredCats = getFilteredCategories(appState.activeTab);
     let ak = '';
     for (const k in filteredCats) {
