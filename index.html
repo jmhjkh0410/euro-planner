@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v45 🗺</title>
+<title>유럽 여행 통합 마스터 플래너 v45.2 🗺</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -701,7 +701,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v45 🗺</span>
+      <span class="nav-version">v45.2 🗺</span>
     </div>
   </div>
 </nav>
@@ -1836,37 +1836,41 @@ async function fetchCityWeather(cityKey) {
 }
 
 async function loadWeather() {
+    const pillBtn = document.getElementById('weather-pill-btn');
     const hideAll = () => {
         const w = document.getElementById('weather-widget');
-        const b = document.getElementById('weather-pill-btn');
         if (w) { w.classList.remove('open'); }
-        if (b) b.style.display = 'none';
+        if (pillBtn) pillBtn.style.display = 'none';
     };
-    // 모든 탭에서 날씨 표시
 
-    // ── 출발일 이후: GPS 위치 기반 날씨 ──────────────────
-    if (isTripStarted()) {
-        if (!_gpsAttempted) {
-            _gpsAttempted = true;
-            const pos = await getGPSLocation();
-            if (pos) _gpsCoords = pos;
-        }
-        if (_gpsCoords) {
-            const data = await fetchGPSWeather(_gpsCoords.lat, _gpsCoords.lng);
-            if (data) {
-                renderWeatherGPS(data);
-                return;
+    try {
+        // ── 출발일 이후: GPS 위치 기반 날씨 ──────────────────
+        if (isTripStarted()) {
+            if (!_gpsAttempted) {
+                _gpsAttempted = true;
+                const pos = await getGPSLocation();
+                if (pos) _gpsCoords = pos;
             }
+            if (_gpsCoords) {
+                const data = await fetchGPSWeather(_gpsCoords.lat, _gpsCoords.lng);
+                if (data) {
+                    renderWeatherGPS(data);
+                    return;
+                }
+            }
+            // GPS 실패 → 날짜 기반 fallback
         }
-        // GPS 실패 → 날짜 기반 fallback
-    }
 
-    // ── 출발 전 or GPS 실패: 날짜 기반 도시별 날씨 ───────
-    const dayKeys = [0, 1, 2].map(i => getCityKeyForDate(i));
-    if (!dayKeys[0]) { hideAll(); return; }
-    const uniqueKeys = [...new Set(dayKeys.filter(Boolean))];
-    await Promise.all(uniqueKeys.map(k => fetchCityWeather(k)));
-    renderWeather3Days(dayKeys);
+        // ── 출발 전 or GPS 실패: 날짜 기반 도시별 날씨 ───────
+        const dayKeys = [0, 1, 2].map(i => getCityKeyForDate(i));
+        if (!dayKeys[0]) { hideAll(); return; }
+        const uniqueKeys = [...new Set(dayKeys.filter(Boolean))];
+        await Promise.all(uniqueKeys.map(k => fetchCityWeather(k)));
+        renderWeather3Days(dayKeys);
+    } catch(e) {
+        console.warn('[weather] loadWeather 실패:', e);
+        hideAll();
+    }
 }
 
 
@@ -4076,7 +4080,6 @@ function scrollToSection(catKey) {
     if (tab === 'itinerary') {
         if (!appState.itinerary.cityOpen[catKey]) {
             appState.itinerary.cityOpen[catKey] = true;
-            save();
             renderContent();
             setTimeout(() => _doScrollToSection(catKey), 60);
             return;
