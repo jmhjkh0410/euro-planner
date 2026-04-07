@@ -1770,12 +1770,9 @@ async function fetchGPSWeather(lat, lng) {
     }
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 5000);
-        const res  = await fetch(url, { signal: ctrl.signal });
-        clearTimeout(timer);
+        const res  = await fetch(url);
         const data = await res.json();
-        if (data.error || !data.daily) return null;
+        if (!data.daily) { console.warn('[weather] GPS 응답에 daily 없음:', JSON.stringify(data).slice(0,200)); return null; }
         data._fetchedAt = Date.now();
         _weatherCache[cacheKey] = data;
         return data;
@@ -1827,12 +1824,9 @@ async function fetchCityWeather(cityKey) {
     if (!coords) return null;
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(url, { signal: ctrl.signal });
-        clearTimeout(timer);
+        const res = await fetch(url);
         const data = await res.json();
-        if (data.error || !data.daily) return null;
+        if (!data.daily) { console.warn('[weather] 응답에 daily 없음:', cityKey, JSON.stringify(data).slice(0,200)); return null; }
         data._fetchedAt = Date.now();
         _weatherCache[cityKey] = data;
         return data;
@@ -1888,11 +1882,12 @@ function renderWeatherGPS(data) {
     const cityEl = document.getElementById('weather-city-name');
     const updEl  = document.getElementById('weather-updated');
     if (!data?.daily) return;
-    const { weather_code, temperature_2m_max, temperature_2m_min } = data.daily;
+    const { temperature_2m_max, temperature_2m_min } = data.daily;
+    const wcode = data.daily.weather_code || data.daily.weathercode || [];
     const labels = ['오늘', '내일', '모레'];
 
     daysEl.innerHTML = labels.map((label, i) => {
-        const { icon, desc } = getWeatherEmoji(weather_code[i]);
+        const { icon, desc } = getWeatherEmoji(wcode[i]);
         const max = Math.round(temperature_2m_max[i]);
         const min = Math.round(temperature_2m_min[i]);
         return `
@@ -1934,7 +1929,8 @@ function renderWeather3Days(dayKeys) {
             html += `<div class="weather-day"><div class="weather-day-label">${labels[i]}</div><div class="weather-icon">—</div></div>`;
             continue;
         }
-        const { icon, desc } = getWeatherEmoji(data.daily.weather_code[i]);
+        const wcode = data.daily.weather_code || data.daily.weathercode || [];
+        const { icon, desc } = getWeatherEmoji(wcode[i]);
         const max = Math.round(data.daily.temperature_2m_max[i]);
         const min = Math.round(data.daily.temperature_2m_min[i]);
 
