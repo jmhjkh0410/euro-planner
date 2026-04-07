@@ -1835,7 +1835,11 @@ async function fetchCityWeather(cityKey) {
     }
 }
 
+let _weatherLoading = false;
 async function loadWeather() {
+    if (_weatherLoading) return;
+    _weatherLoading = true;
+    try {
     const hideAll = () => {
         const w = document.getElementById('weather-widget');
         const b = document.getElementById('weather-pill-btn');
@@ -1867,6 +1871,8 @@ async function loadWeather() {
     const uniqueKeys = [...new Set(dayKeys.filter(Boolean))];
     await Promise.all(uniqueKeys.map(k => fetchCityWeather(k)));
     renderWeather3Days(dayKeys);
+    } catch(e) { console.warn('[weather] loadWeather 실패:', e); }
+    finally { _weatherLoading = false; }
 }
 
 
