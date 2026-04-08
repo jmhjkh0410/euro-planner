@@ -1929,9 +1929,9 @@ function renderWeather3Days(dayKeys) {
             html += `<div class="weather-day"><div class="weather-day-label">${labels[i]}</div><div class="weather-icon">—</div></div>`;
             continue;
         }
-        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[0]);
-        const max = Math.round(data.daily.temperature_2m_max[0]);
-        const min = Math.round(data.daily.temperature_2m_min[0]);
+        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[i]);
+        const max = Math.round(data.daily.temperature_2m_max[i]);
+        const min = Math.round(data.daily.temperature_2m_min[i]);
 
         html += `
         <div class="weather-day">
