@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v45.2 🗺</title>
+<title>유럽 여행 통합 마스터 플래너 v45.7 🗺</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -201,6 +201,11 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
 .btn-ticket-del{font-size:10px;font-weight:700;color:#ef4444;cursor:pointer;pointer-events:auto}
 .btn-attach-label{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:4px 10px;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;cursor:pointer;color:var(--text-secondary);transition:background .15s;pointer-events:auto}
 .btn-attach-label:hover{background:var(--border-light)}
+/* v45.6: 부분예매 토글 버튼 (예약 탭 기차 항목) */
+.btn-partial{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:4px 10px;background:var(--surface-raised);border:1px solid var(--border);border-radius:999px;cursor:pointer;color:var(--text-secondary);transition:all .15s;pointer-events:auto;font-family:inherit}
+.btn-partial:hover{background:var(--border-light)}
+.btn-partial.active{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+.btn-partial.active:hover{background:#fde68a}
 
 /* DROP ZONE */
 .drop-zone{height:6px;border-radius:4px;transition:all .2s;margin:1px 0;border:2px dashed transparent;position:relative}
@@ -507,6 +512,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
   /* ── 첨부 영역 컴팩트 ── */
   .task-meta-row{margin-top:6px}
   .btn-attach-label{font-size:9px;padding:3px 8px}
+  .btn-partial{font-size:9px;padding:3px 8px}
 
   /* ── 편집 버튼 ── */
   .btn-edit-item{padding:4px 6px;font-size:14px}
@@ -701,7 +707,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v45.2 🗺</span>
+      <span class="nav-version">v45.7 🗺</span>
     </div>
   </div>
 </nav>
@@ -906,8 +912,12 @@ let _unsubPasses  = null;
 
 function _getChecksState() {
     // v4: checks와 tickets 분리. _saveChecksToFirebase에서 checks만, tickets은 ticketsPath에 별도 저장.
+    // v45.6: reservations.partial 추가 — 예약 탭 기차 항목의 부분예매 상태
     return {
-        reservations: { checks: appState.reservations.checks || {} },
+        reservations: {
+            checks:  appState.reservations.checks  || {},
+            partial: appState.reservations.partial || {},
+        },
         itinerary:    { checks: appState.itinerary.checks    || {} },
         packing:      { checks: appState.packing.checks      || {} },
         passes:       { checks: appState.passChecks           || {} },
@@ -929,6 +939,10 @@ function _applyChecksState(d) {
             if (hasChecks) appState[tab].checks = src;
         }
     });
+    // v45.6: reservations.partial 적용
+    if (d.reservations && d.reservations.partial !== undefined) {
+        appState.reservations.partial = d.reservations.partial || {};
+    }
     // 🎫 패스 체크
     if (d.passes) {
         const src = d.passes;
@@ -1024,8 +1038,14 @@ function _startFirebaseSync() {
                 _applyContentState(parsed);
                 localStorage.setItem(FB_LOCAL_STRUCTURE, JSON.stringify(parsed));
                 if (_initialRenderDone) {
-                    // 에코백 방지: 직전 쓰기 후 2초 이내면 리렌더 스킵
-                    if (Date.now() - _lastWriteTs < ECHO_GUARD_MS) {
+                    // v45.5: 타임스탬프 + 해시 결합 가드
+                    // 2초 이내 + 해시 일치 → 내 echo → 렌더 스킵
+                    // 2초 이내 + 해시 다름 → 다른 기기의 쓰기 → 렌더
+                    // 2초 이후 → 항상 렌더
+                    const withinWindow = Date.now() - _lastWriteTs < ECHO_GUARD_MS;
+                    const isOwnEcho = withinWindow &&
+                        _stableStringify(parsed) === _lastWrittenStructureStr;
+                    if (isOwnEcho) {
                         setSyncStatus('ok', '✅ 저장 완료');
                     } else {
                         renderContent(); updateProgress(); updateTrashFab();
@@ -1070,7 +1090,18 @@ function _startFirebaseSync() {
     });
     _unsubTrash = onValue(ref(db, FB.META_TRASH), (snap) => {
         const d = snap.val();
-        if (d) { try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); } catch(e) { console.warn("[parse]", e); } updateTrashFab(); }
+        if (d) {
+            try { appState.trash = Array.isArray(d) ? d : (typeof d === 'string' ? JSON.parse(d) : []); }
+            catch(e) { console.warn("[parse]", e); }
+            updateTrashFab();
+            // v45.7: 내 echo가 아니고 초기 렌더 완료 후라면 → 메인 리스트도 리렌더 (다른 기기 삭제/복구 반영)
+            const withinWindow = Date.now() - _lastTrashWriteTs < ECHO_GUARD_MS;
+            const isOwnEcho = withinWindow &&
+                _stableStringify(appState.trash) === _lastWrittenTrashStr;
+            if (!isOwnEcho && _initialRenderDone) {
+                renderContent(); updateProgress();
+            }
+        }
     });
     // 🎫 패스 & 입장권 리스너
     if (_unsubPasses) _unsubPasses();
@@ -1174,12 +1205,16 @@ function _saveContentToFirebase() {
         packing:      contentState.packing,
     };
     _lastWriteTs = Date.now();
+    _lastWrittenStructureStr = _stableStringify(masterStructure);
     set(ref(db, FB.STRUCTURE_MASTER), masterStructure)
         .then(() => setSyncStatus('ok', '✅ 저장 완료'))
         .catch(() => setSyncStatus('ok', '✅ 로컬 저장 완료 (클라우드 대기중)'));
 
     // trash만 앱이 씀. accommodations/cityMemos는 GAS 전용 — 앱이 쓰면 안 됨
+    // v45.7: trash에도 해시 가드 적용 — 다른 기기의 삭제/복구 onValue를 정확히 감지
     if (contentState.trash !== undefined) {
+        _lastTrashWriteTs = Date.now();
+        _lastWrittenTrashStr = _stableStringify(contentState.trash);
         set(ref(db, FB.META_TRASH), contentState.trash).catch(e => console.error('[trash save]', e));
     }
 }
@@ -1227,9 +1262,21 @@ function _savePrivateStructure() {
 
 // ── save debounce (Firebase 쓰기 빈도 제한) ──────────────
 let _saveTimer = null;
-let _lastWriteTs = 0;  // Firebase 에코백 방지용 타임스탬프
+let _lastWriteTs = 0;                  // Firebase 에코백 방지용 타임스탬프 (fast gate)
+let _lastWrittenStructureStr = '';     // v45.5: 쓴 구조의 안정 stringify — 해시 비교용
+let _lastTrashWriteTs = 0;             // v45.7: trash용 별도 에코 타임스탬프
+let _lastWrittenTrashStr = '';         // v45.7: trash 해시
 const SAVE_DEBOUNCE_MS = 400;
-const ECHO_GUARD_MS = 2000;  // 쓰기 후 2초 이내 onValue는 에코로 간주
+const ECHO_GUARD_MS = 2000;            // 쓰기 후 2초 이내 + 해시 일치하면 에코로 간주
+
+// 키 순서 무관한 stringify (다른 기기 쓰기 vs 내 echo 구분용)
+function _stableStringify(obj) {
+    if (obj === null || obj === undefined) return 'null';
+    if (typeof obj !== 'object') return JSON.stringify(obj);
+    if (Array.isArray(obj)) return '[' + obj.map(_stableStringify).join(',') + ']';
+    const keys = Object.keys(obj).sort();
+    return '{' + keys.map(k => JSON.stringify(k) + ':' + _stableStringify(obj[k])).join(',') + '}';
+}
 
 function save() {
     const uc = currentUser ? USER_CONFIG[currentUser] : null;
@@ -1363,14 +1410,29 @@ function shakeInput() {
 
 function hidePinOverlay() {
     document.getElementById('pin-overlay').classList.add('hidden');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
+    _unlockScroll();
 }
 
-function _lockBodyScroll() {
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+// ── 중첩 오버레이 안전 스크롤 잠금 (v45.3) ───────────────────
+// PIN · DayMap · Trash · Dialog 4곳에서 공통 사용.
+// 카운터 기반이라 중첩으로 열려도 마지막 하나가 닫힐 때만 overflow 복구.
+let _scrollLockCount = 0;
+function _lockScroll() {
+    if (_scrollLockCount === 0) {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+    }
+    _scrollLockCount++;
 }
+function _unlockScroll() {
+    _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+    if (_scrollLockCount === 0) {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+    }
+}
+// 하위 호환: 기존 _lockBodyScroll 호출부는 그대로 둠
+function _lockBodyScroll() { _lockScroll(); }
 
 function showPinOverlay() {
     document.getElementById('pin-overlay').classList.remove('hidden');
@@ -1724,8 +1786,10 @@ function getWeatherEmoji(code) {
 
 
 let _weatherCache = {};   // { cityKey | 'gps': data }
-let _gpsCoords    = null; // { lat, lng, name } — GPS로 얻은 현재 위치
-let _gpsAttempted = false;
+let _gpsCoords         = null; // { lat, lng, accuracy, acquiredAt } — GPS로 얻은 현재 위치
+let _gpsLastAttemptTs  = 0;    // v45.5: 마지막 GPS 시도 timestamp (쿨다운 계산용)
+const GPS_RETRY_COOLDOWN_MS = 15 * 60 * 1000;  // 15분 — 실패 후 자동 재시도 간격
+const GPS_REFRESH_INTERVAL_MS = 30 * 60 * 1000; // v45.7: 성공 후에도 30분마다 좌표 갱신 (여행 중 도시 이동 대비)
 
 // ── 출발일 판단 ──────────────────────────────────────────
 function isTripStarted() {
@@ -1748,7 +1812,7 @@ function getGPSLocation() {
                 console.log('[weather] GPS accuracy:', acc + 'm');
                 if (acc <= GPS_ACCURACY_THRESHOLD) {
                     // 신뢰할 수 있는 GPS (핸드폰)
-                    resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: acc });
+                    resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: acc, acquiredAt: Date.now() });
                 } else {
                     // IP 기반으로 부정확 → null 반환해서 날짜 기반 fallback
                     console.log('[weather] GPS 부정확 (IP 기반 추정), 날짜 기반으로 전환');
@@ -1770,7 +1834,8 @@ async function fetchGPSWeather(lat, lng) {
     }
     try {
         // timezone=auto → 현지 시간대 기준 오늘/내일/모레
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+        // v45.5: Open-Meteo 공식 snake_case(weather_code)로 마이그레이션. 구 이름도 하위호환으로 남김.
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
         const res  = await fetch(url);
         const data = await res.json();
         data._fetchedAt = Date.now();
@@ -1823,7 +1888,7 @@ async function fetchCityWeather(cityKey) {
     const coords = CITY_COORDS[cityKey];
     if (!coords) return null;
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
         const res = await fetch(url);
         const data = await res.json();
         data._fetchedAt = Date.now();
@@ -1850,10 +1915,23 @@ async function loadWeather() {
 
     // ── 출발일 이후: GPS 위치 기반 날씨 ──────────────────
     if (isTripStarted()) {
-        if (!_gpsAttempted) {
-            _gpsAttempted = true;
+        const noCoords = !_gpsCoords;
+        const coordsStale = _gpsCoords && (Date.now() - (_gpsCoords.acquiredAt || 0) > GPS_REFRESH_INTERVAL_MS);
+        const cooldownPassed = Date.now() - _gpsLastAttemptTs > GPS_RETRY_COOLDOWN_MS;
+
+        // v45.7: coords 없거나(첫 시도/실패 복구) 오래된 경우(30분, 도시 이동 대비) → 갱신
+        if ((noCoords || coordsStale) && cooldownPassed) {
+            _gpsLastAttemptTs = Date.now();
             const pos = await getGPSLocation();
-            if (pos) _gpsCoords = pos;
+            if (pos) {
+                // 좌표가 실제로 변했으면 날씨 캐시 무효화 (이전 도시 날씨 방지)
+                if (_gpsCoords && (_gpsCoords.lat !== pos.lat || _gpsCoords.lng !== pos.lng)) {
+                    delete _weatherCache['gps'];
+                    console.log('[weather] GPS 좌표 변경 감지 → 날씨 캐시 갱신');
+                }
+                _gpsCoords = pos;
+            }
+            // 실패 시: 기존 _gpsCoords 유지 (stale이어도 없는 것보다 나음)
         }
         if (_gpsCoords) {
             const data = await fetchGPSWeather(_gpsCoords.lat, _gpsCoords.lng);
@@ -1876,6 +1954,11 @@ async function loadWeather() {
 }
 
 
+// v45.5: Open-Meteo weather_code(신) + weathercode(구) 양쪽 수용 헬퍼
+function _dailyCode(daily) {
+    return daily?.weather_code || daily?.weathercode || null;
+}
+
 // GPS 기반 날씨 렌더 (3일치 한 번에)
 function renderWeatherGPS(data) {
     const widget = document.getElementById('weather-widget');
@@ -1883,13 +1966,17 @@ function renderWeatherGPS(data) {
     const cityEl = document.getElementById('weather-city-name');
     const updEl  = document.getElementById('weather-updated');
     if (!data?.daily) return;
-    const { weathercode, temperature_2m_max, temperature_2m_min } = data.daily;
+    const codeArr = _dailyCode(data.daily);
+    const { temperature_2m_max, temperature_2m_min } = data.daily;
     const labels = ['오늘', '내일', '모레'];
 
     daysEl.innerHTML = labels.map((label, i) => {
-        const { icon, desc } = getWeatherEmoji(weathercode[i]);
-        const max = Math.round(temperature_2m_max[i]);
-        const min = Math.round(temperature_2m_min[i]);
+        if (!codeArr || codeArr[i] == null) {
+            return `<div class="weather-day"><div class="weather-day-label">${label}</div><div class="weather-icon">—</div></div>`;
+        }
+        const { icon, desc } = getWeatherEmoji(codeArr[i]);
+        const max = Math.round(temperature_2m_max?.[i] ?? 0);
+        const min = Math.round(temperature_2m_min?.[i] ?? 0);
         return `
         <div class="weather-day">
             <div class="weather-day-label">${label}</div>
@@ -1925,13 +2012,14 @@ function renderWeather3Days(dayKeys) {
         const data = key && _weatherCache[key];
         const cityName = key ? (CITY_COORDS[key]?.name || '') : '';
 
-        if (!data?.daily) {
+        const codeArr = _dailyCode(data?.daily);
+        if (!codeArr || codeArr[i] == null) {
             html += `<div class="weather-day"><div class="weather-day-label">${labels[i]}</div><div class="weather-icon">—</div></div>`;
             continue;
         }
-        const { icon, desc } = getWeatherEmoji(data.daily.weathercode[i]);
-        const max = Math.round(data.daily.temperature_2m_max[i]);
-        const min = Math.round(data.daily.temperature_2m_min[i]);
+        const { icon, desc } = getWeatherEmoji(codeArr[i]);
+        const max = Math.round(data.daily.temperature_2m_max?.[i] ?? 0);
+        const min = Math.round(data.daily.temperature_2m_min?.[i] ?? 0);
 
         html += `
         <div class="weather-day">
@@ -2346,6 +2434,10 @@ function _loadLeaflet(cb) {
 let _dayMapInstance = null;
 
 async function openDayMap(catKey, dk) {
+    // 중복 오픈 방어 (지오코딩 진행 중에 재클릭 대비)
+    document.getElementById('day-map-overlay')?.remove();
+    if (_dayMapInstance) { try { _dayMapInstance.remove(); } catch(e){} _dayMapInstance = null; }
+
     const td = appState.itinerary;
     const catData = td.structure[catKey];
     let tasks, allTasks;
@@ -2409,8 +2501,7 @@ async function openDayMap(catKey, dk) {
             </div>
         </div>`;
     document.body.appendChild(overlay);
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    _lockScroll();
 
     // 지오코딩 (캐시 우선 → Nominatim)
     const queries = stops.map(s => s.query);
@@ -2502,10 +2593,12 @@ async function openDayMap(catKey, dk) {
 }
 
 function closeDayMap() {
-    if (_dayMapInstance) { _dayMapInstance.remove(); _dayMapInstance = null; }
-    document.getElementById('day-map-overlay')?.remove();
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
+    // 이미 닫힌 상태에서 중복 호출되면 카운터 누수 방지 위해 조기 반환
+    const overlay = document.getElementById('day-map-overlay');
+    if (!overlay && !_dayMapInstance) return;
+    if (_dayMapInstance) { try { _dayMapInstance.remove(); } catch(e){} _dayMapInstance = null; }
+    overlay?.remove();
+    _unlockScroll();
 }
 // ── TRIP DATES ────────────────────────────────────────────
 function getTripDates() {
@@ -2532,7 +2625,7 @@ function saveTripDates() {
 // ── APP STATE ─────────────────────────────────────────────
 let appState = {
     activeTab: 'reservations',
-    reservations: { structure: {}, checks:{}, tickets:{}, catOpen:{} },
+    reservations: { structure: {}, checks:{}, tickets:{}, catOpen:{}, partial:{} },
     itinerary:    { structure: {}, checks:{}, tickets:{}, cityOpen:{}, dayOpen:{} },
     packing:      { structure: {}, checks:{}, tickets:{}, catOpen:{} },
     passes:       {},
@@ -3267,6 +3360,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
                     ${itemBadge}
                     <span class="task-title">${_safeText(task.title)}</span>
                     ${isIt ? getTransportBadge(task) : ''}
+                    ${(appState.activeTab === 'reservations' && (task.itemType === '기차' || _TRAIN_BOOKING_IDS.has(task.id)) && appState.reservations.partial?.[task.id]) ? _renderTransportBadge('partial') : ''}
                 </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
@@ -3275,6 +3369,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
             ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
                 <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
+                ${(appState.activeTab === 'reservations' && (task.itemType === '기차' || _TRAIN_BOOKING_IDS.has(task.id))) ? `<button type="button" class="btn-partial${appState.reservations.partial?.[task.id] ? ' active' : ''}" onclick="event.stopPropagation();togglePartialBooking('${task.id}')">🧩 부분예매</button>` : ''}
                 ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${_escHtml(ticket.name)}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
             </div>`}
         </div>`;
@@ -3432,28 +3527,88 @@ function togglePassCity(cityKey) {
     renderContent();
 }
 
-// 일정 탭 기차 이동 항목에 티켓 상태 뱃지 표시
+// 일정 탭 기차 이동 항목에 티켓 상태 뱃지 표시 (v45.6: 예약 체크 기반)
+// 우선순위: 1) 일정↔예약 매핑 → 예약 체크/partial 조회 → 2) 명시적 태그 → 3) 암시 패턴
 const _TRANSPORT_KEYWORDS = /출발|탑승|RJX|EC\s|ICE|ECE|TGV|Eurostar|유로스타|기차|열차|Bayern/i;
-const _CONFIRMED_TRAINS = ['RJX 60','EC 206','EC 58','ICE 1103','ECE 194','TGV 6170','TGV Inoui','Eurostar 9015','Eurostar 9036'];
-const _PASS_TRAINS = ['Bayern', 'STP', 'Swiss Travel'];
-const _UNBOOKED_ROUTES = ['Gotthard','Milano→Nice','Milano→Ventimiglia','밀라노행','Ventimiglia'];
+
+// v45.6: 일정 탭 기차 탑승 task → 예약 탭 기차 항목 id 매핑 (source of truth)
+// 예약 탭 체크 = 확정, partial 토글 = 부분예매, 둘 다 X = 미예매
+const _SCHEDULE_TO_BOOKING = {
+    'budapest-4-3': 'r5',   // 부다페스트→빈 (RJX 60)
+    'wien-5-1':     'r6',   // 빈→크라쿠프 (ÖBB)
+    'krakow-2-2':   'r7',   // 크라쿠프→베를린 (EC 58)
+    'berlin-4-4':   'r8',   // 베를린→뮌헨 (ICE 1103)
+    'munich-4-2':   'r9',   // 뮌헨→스위스 취리히 (ECE 194)
+    'swiss-fixed-4':'r10',  // 스위스→밀라노 (R12→...→Milano, Gotthard 경유)
+    'milano-2-8':   'r11',  // 밀라노→니스 (IC/TER, Ventimiglia 환승)
+    'nice-4-1':     'r12',  // 니스→파리 (TGV Inoui 6170)
+    'paris1-5-2':   'r27e', // 파리→런던 (Eurostar 9015)
+    'london-12-2':  'r13',  // 런던→파리 (Eurostar 9036)
+};
+const _TRAIN_BOOKING_IDS = new Set(Object.values(_SCHEDULE_TO_BOOKING));
+
+// 배지 스타일 정의 (한 곳에서 관리)
+const _BADGE_STYLES = {
+    confirmed: { icon:'🎫', label:'확정',     bg:'rgba(37,99,235,0.12)', color:'#2563eb', border:'rgba(37,99,235,0.2)' },
+    partial:   { icon:'🧩', label:'부분예매', bg:'rgba(234,179,8,0.12)', color:'#ca8a04', border:'rgba(234,179,8,0.25)' },
+    pass:      { icon:'🚇', label:'패스',     bg:'rgba(22,163,74,0.12)', color:'#16a34a', border:'rgba(22,163,74,0.2)' },
+    unbooked:  { icon:'⚠️', label:'미예매',   bg:'rgba(234,88,12,0.12)', color:'#ea580c', border:'rgba(234,88,12,0.2)' },
+};
+function _renderTransportBadge(key) {
+    const s = _BADGE_STYLES[key]; if (!s) return '';
+    return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:${s.bg};color:${s.color};border:1px solid ${s.border};white-space:nowrap;margin-left:4px;flex-shrink:0">${s.icon} ${s.label}</span>`;
+}
+
+// 명시적 태그 (tips/desc에 직접 기입, 매핑 없는 항목 대상)
+const _BADGE_TAG_PATTERNS = [
+    { re: /\[확정\]|\[예매완료\]|\[booked\]/i,       key: 'confirmed' },
+    { re: /\[부분예매\]|\[partial\]/i,                 key: 'partial'   },
+    { re: /\[패스\]|\[pass\]/i,                         key: 'pass'      },
+    { re: /\[미예매\]|\[unbooked\]|\[예매필요\]/i,     key: 'unbooked'  },
+];
+
+// 암시 패턴 (매핑 없는 기차: 지하철, 버스 등 — 패스 커버만 감지)
+const _PASS_PATTERNS = [
+    /Bayern/i,
+    /\bSTP\b/,
+    /Swiss\s*Travel/i,
+    /스위스\s*패스/,
+];
 
 function getTransportBadge(task) {
+    // 1단: 일정→예약 매핑 (source of truth, 최우선)
+    const bookingId = _SCHEDULE_TO_BOOKING[task.id];
+    if (bookingId) {
+        const checks  = appState.reservations.checks  || {};
+        const partial = appState.reservations.partial || {};
+        if (partial[bookingId]) return _renderTransportBadge('partial');
+        if (checks[bookingId])  return _renderTransportBadge('confirmed');
+        return _renderTransportBadge('unbooked');
+    }
+
+    // 매핑 없는 항목: 교통 키워드 판정
     const text = (task.title || '') + ' ' + (task.desc || '') + ' ' + (task.tips || '');
     if (!_TRANSPORT_KEYWORDS.test(text)) return '';
-    // 확정 티켓 여부
-    for (const t of _CONFIRMED_TRAINS) {
-        if (text.includes(t)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(37,99,235,0.12);color:#2563eb;border:1px solid rgba(37,99,235,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">🎫 확정</span>`;
+
+    // 2단: 명시적 태그
+    for (const { re, key } of _BADGE_TAG_PATTERNS) {
+        if (re.test(text)) return _renderTransportBadge(key);
     }
-    // 패스 커버
-    for (const p of _PASS_TRAINS) {
-        if (text.includes(p)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(22,163,74,0.12);color:#16a34a;border:1px solid rgba(22,163,74,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">🚇 패스</span>`;
-    }
-    // 미예매
-    for (const u of _UNBOOKED_ROUTES) {
-        if (text.includes(u)) return `<span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:999px;background:rgba(234,88,12,0.12);color:#ea580c;border:1px solid rgba(234,88,12,0.2);white-space:nowrap;margin-left:4px;flex-shrink:0">⚠️ 미예매</span>`;
+    // 3단: 패스 암시 패턴만 유지 (미예매는 매핑이 커버, 오탐 방지)
+    for (const p of _PASS_PATTERNS) {
+        if (p.test(text)) return _renderTransportBadge('pass');
     }
     return '';
+}
+
+// v45.6: 예약 탭에서 부분예매 토글
+function togglePartialBooking(reservationId) {
+    if (!appState.reservations.partial) appState.reservations.partial = {};
+    const cur = !!appState.reservations.partial[reservationId];
+    if (cur) delete appState.reservations.partial[reservationId];
+    else     appState.reservations.partial[reservationId] = true;
+    save();
+    renderContent();
 }
 
 // 일정 탭 도시 헤더에 패스 요약 칩 (교통+뮤지엄만)
@@ -4183,14 +4338,15 @@ function openTrash() {
     renderTrashDrawer();
     document.getElementById('trash-overlay').classList.add('open');
     document.getElementById('trash-drawer').classList.add('open');
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    _lockScroll();
 }
 function closeTrash() {
+    const drawer = document.getElementById('trash-drawer');
+    // 이미 닫힌 상태에서 중복 호출되면 카운터 누수 방지 위해 조기 반환
+    if (!drawer?.classList.contains('open')) return;
     document.getElementById('trash-overlay').classList.remove('open');
-    document.getElementById('trash-drawer').classList.remove('open');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
+    drawer.classList.remove('open');
+    _unlockScroll();
     trashSelectActive = false; trashSelectedIdxs.clear();
 }
 
@@ -4336,8 +4492,18 @@ function emptyTrash() {
 }
 
 // ── DIALOG ────────────────────────────────────────────────
-function openDlg(id)  { document.getElementById(id).classList.add('open'); }
-function closeDlg(id) { document.getElementById(id).classList.remove('open'); }
+function openDlg(id) {
+    const el = document.getElementById(id);
+    if (!el || el.classList.contains('open')) return;  // 중복 오픈 방어
+    el.classList.add('open');
+    _lockScroll();
+}
+function closeDlg(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('open')) return;  // 중복 클로즈 방어
+    el.classList.remove('open');
+    _unlockScroll();
+}
 
 window.onload = init;
 </script>
