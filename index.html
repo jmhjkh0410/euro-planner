@@ -3360,7 +3360,7 @@ function renderItem(task, catKey, catInfo, td, dk) {
                     ${itemBadge}
                     <span class="task-title">${_safeText(task.title)}</span>
                     ${isIt ? getTransportBadge(task) : ''}
-                    ${(appState.activeTab === 'reservations' && (task.itemType === '기차' || _TRAIN_BOOKING_IDS.has(task.id)) && appState.reservations.partial?.[task.id]) ? _renderTransportBadge('partial') : ''}
+                    ${(appState.activeTab === 'reservations' && task.itemType === '기차' && appState.reservations.partial?.[task.id]) ? _renderTransportBadge('partial') : ''}
                 </div>
                 <button type="button" class="btn-edit-item" onclick="event.stopPropagation();enterEdit('${task.id}','${catKey}')">✏️</button>
             </div>
@@ -3368,9 +3368,9 @@ function renderItem(task, catKey, catInfo, td, dk) {
             ${tipsHtml}
             ${isMemoTask ? '' : `<div class="task-meta-row">
                 <label for="up-${task.id}" class="btn-attach-label" onclick="event.stopPropagation()">📎 첨부</label>
-                <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" onchange="handleUpload(this,'${task.id}')">
-                ${(appState.activeTab === 'reservations' && (task.itemType === '기차' || _TRAIN_BOOKING_IDS.has(task.id))) ? `<button type="button" class="btn-partial${appState.reservations.partial?.[task.id] ? ' active' : ''}" onclick="event.stopPropagation();togglePartialBooking('${task.id}')">🧩 부분예매</button>` : ''}
-                ${ticket ? `<div class="ticket-badge"><span class="ticket-name">📄 ${_escHtml(ticket.name)}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}')">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}')">✕</button></div>` : ''}
+                <input type="file" id="up-${task.id}" style="display:none" accept="image/*,application/pdf,.pdf" multiple onchange="handleUpload(this,'${task.id}')">
+                ${(appState.activeTab === 'reservations' && task.itemType === '기차') ? `<button type="button" class="btn-partial${appState.reservations.partial?.[task.id] ? ' active' : ''}" onclick="event.stopPropagation();togglePartialBooking('${task.id}')">🧩 부분예매</button>` : ''}
+                ${(()=>{const ts=Array.isArray(ticket)?ticket:(ticket?[ticket]:[]);return ts.map((t,i)=>`<div class="ticket-badge"><span class="ticket-name">📄 ${_escHtml(t.name)}</span><button type="button" class="btn-ticket-view" onclick="event.stopPropagation();viewTicket('${task.id}',${i})">보기</button><button type="button" class="btn-ticket-del" onclick="event.stopPropagation();delTicket('${task.id}',${i})">✕</button></div>`).join('');})()}
             </div>`}
         </div>`;
 
@@ -3545,7 +3545,6 @@ const _SCHEDULE_TO_BOOKING = {
     'paris1-5-2':   'r27e', // 파리→런던 (Eurostar 9015)
     'london-12-2':  'r13',  // 런던→파리 (Eurostar 9036)
 };
-const _TRAIN_BOOKING_IDS = new Set(Object.values(_SCHEDULE_TO_BOOKING));
 
 // 배지 스타일 정의 (한 곳에서 관리)
 const _BADGE_STYLES = {
@@ -4257,36 +4256,50 @@ window.addEventListener('resize', () => {
     renderMobileNav();
 });
 
-// ── FILE / TICKET (Base64 방식 — Firebase Storage 불필요) ──
+// ── FILE / TICKET (Base64 방식, 다중 파일 지원) ──
+function _getTicketArr(taskId) {
+    const tab = appState.activeTab;
+    const raw = appState[tab].tickets[taskId];
+    if (!raw) return [];
+    return Array.isArray(raw) ? raw : [raw]; // 구버전 단일 객체 호환
+}
+
 function handleUpload(input, taskId) {
-    const f = input.files[0]; if (!f) return;
+    const files = Array.from(input.files);
+    if (!files.length) return;
     const maxMB = 5;
-    if (f.size > maxMB * 1024 * 1024) {
-        alert(`파일이 너무 커요! ${maxMB}MB 이하 파일만 첨부 가능합니다.\n(바우처·티켓 사진은 보통 1~3MB 이하예요)`);
+    const oversized = files.filter(f => f.size > maxMB * 1024 * 1024);
+    if (oversized.length) {
+        alert(`파일이 너무 커요! ${maxMB}MB 이하 파일만 첨부 가능합니다.\n초과: ${oversized.map(f=>f.name).join(', ')}`);
         return;
     }
-    // 업로드 진행 표시
+    let done = 0;
     _showUploadProgress(taskId, 0);
-    const r = new FileReader();
-    r.onprogress = (e) => {
-        if (e.lengthComputable) {
-            _showUploadProgress(taskId, Math.round(e.loaded / e.total * 90));
-        }
-    };
-    r.onload = (e) => {
-        appState[appState.activeTab].tickets[taskId] = {
-            name: f.name,
-            data: e.target.result,
-            type: f.type
+    files.forEach((f, idx) => {
+        const r = new FileReader();
+        r.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const overall = Math.round(((idx + e.loaded / e.total) / files.length) * 90);
+                _showUploadProgress(taskId, overall);
+            }
         };
-        _hideUploadProgress(taskId);
-        saveAndRender();
-    };
-    r.onerror = () => {
-        _hideUploadProgress(taskId);
-        alert('파일 읽기 실패. 다시 시도해주세요.');
-    };
-    r.readAsDataURL(f);
+        r.onload = (e) => {
+            const tab = appState.activeTab;
+            const arr = _getTicketArr(taskId);
+            arr.push({ name: f.name, data: e.target.result, type: f.type });
+            appState[tab].tickets[taskId] = arr;
+            done++;
+            if (done === files.length) {
+                _hideUploadProgress(taskId);
+                saveAndRender();
+            }
+        };
+        r.onerror = () => {
+            _hideUploadProgress(taskId);
+            alert(`파일 읽기 실패: ${f.name}`);
+        };
+        r.readAsDataURL(f);
+    });
 }
 
 function _showUploadProgress(taskId, pct) {
@@ -4303,10 +4316,10 @@ function _hideUploadProgress(taskId) {
     document.getElementById(`upload-prog-${taskId}`)?.remove();
 }
 
-function viewTicket(id) {
-    const t = appState[appState.activeTab].tickets[id];
+function viewTicket(id, idx) {
+    const arr = _getTicketArr(id);
+    const t = arr[idx ?? 0];
     if (!t) return;
-    // PDF는 새 탭에서 열기
     if (t.type && t.type.includes('pdf')) {
         const w = window.open();
         w.document.write(`<iframe src="${t.data}" style="width:100%;height:100vh;border:none"></iframe>`);
@@ -4316,8 +4329,15 @@ function viewTicket(id) {
     document.getElementById('modal').style.display = 'flex';
 }
 
-function delTicket(id) {
-    delete appState[appState.activeTab].tickets[id];
+function delTicket(id, idx) {
+    const tab = appState.activeTab;
+    const arr = _getTicketArr(id);
+    arr.splice(idx ?? 0, 1);
+    if (arr.length === 0) {
+        delete appState[tab].tickets[id];
+    } else {
+        appState[tab].tickets[id] = arr;
+    }
     saveAndRender();
 }
 
