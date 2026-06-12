@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>유럽 여행 통합 마스터 플래너 v45.7 🗺</title>
+<title>유럽 여행 통합 마스터 플래너 v45.9 🗺</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -707,7 +707,7 @@ body.edit-mode .task-item:not(.selected){opacity:.7}
         <span class="user-badge-icon" id="user-badge-icon"></span>
         <span class="user-badge-name" id="user-badge-name">-</span>
       </div>
-      <span class="nav-version">v45.7 🗺</span>
+      <span class="nav-version">v45.9 🗺</span>
     </div>
   </div>
 </nav>
@@ -3014,18 +3014,25 @@ function openTodayItinerary() {
     // 여행 중이 아니면 아무것도 안 함
     if (today < start || today > end) return;
 
-    // 오늘의 dk = 여행 시작일부터 몇 번째 날인지
-    const todayDK = String(Math.floor((today - start) / 86400000) + 1);
-
+    // v45.9: 오늘 날짜에 해당하는 도시+일차 찾기 (dk 인덱스 비교 버그 수정)
     const td = appState.itinerary;
     const filteredCats = getFilteredCategories('itinerary');
-    let targetCat = null;
+    let targetCat = null, todayDK = null;
 
-    // 오늘 DK를 가진 도시 찾기
     for (const catKey of Object.keys(filteredCats)) {
         const tasks = getStructureArr(td.structure, catKey);
-        const hasTodayDK = tasks.some(t => getDK(t) === todayDK);
-        if (hasTodayDK) { targetCat = catKey; break; }
+        let minDate = null;
+        for (const t of tasks) {
+            if (t._date) {
+                const d = new Date(t._date);
+                if (!isNaN(d.getTime())) { d.setHours(0,0,0,0); if (!minDate || d < minDate) minDate = d; }
+            }
+        }
+        if (!minDate) continue;
+        const dkNum = Math.floor((today - minDate) / 86400000) + 1;
+        if (dkNum < 1) continue;
+        const dkStr = String(dkNum);
+        if (tasks.some(t => getDK(t) === dkStr)) { targetCat = catKey; todayDK = dkStr; break; }
     }
     if (!targetCat) return;
 
@@ -3306,8 +3313,13 @@ function renderItem(task, catKey, catInfo, td, dk) {
         const startC = new Date(start); startC.setHours(0,0,0,0);
         const endC   = new Date(end);   endC.setHours(0,0,0,0);
         if (today >= startC && today <= endC) {
-            const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
-            if (String(dk) === todayDK) {
+            // v45.9: dk 인덱스 비교 버그 수정 → 항목의 실제 날짜(_date)로 비교
+            let isTodayTask = false;
+            if (task._date) {
+                const d = new Date(task._date);
+                if (!isNaN(d.getTime())) { d.setHours(0,0,0,0); isTodayTask = (d.getTime() === today.getTime()); }
+            }
+            if (isTodayTask) {
                 const now = new Date();
                 const [h, m] = task._time.split(':').map(Number);
                 const taskMin = h * 60 + m;
@@ -3767,10 +3779,25 @@ function renderContent() {
             const today = new Date(); today.setHours(0,0,0,0);
             const startC = new Date(start); startC.setHours(0,0,0,0);
             const endC   = new Date(end);   endC.setHours(0,0,0,0);
+            // v45.9: dk(도시별 일차)와 여행 전체 일차 비교 버그 수정 → 실제 날짜로 비교
+            // (getDKLabel과 동일하게 도시 최소 _date + (dk-1)일 = 그 일차의 실제 날짜)
+            const _cityMinDate = (() => {
+                let minDate = null;
+                for (const t of tasks) {
+                    if (t._date) {
+                        const d = new Date(t._date);
+                        if (!isNaN(d.getTime())) { d.setHours(0,0,0,0); if (!minDate || d < minDate) minDate = d; }
+                    }
+                }
+                return minDate;
+            })();
             const isToday = (dk) => {
                 if (today < startC || today > endC) return false;
-                const todayDK = String(Math.floor((today - startC) / 86400000) + 1);
-                return String(dk) === todayDK;
+                const dkNum = parseInt(dk, 10);
+                if (isNaN(dkNum) || !_cityMinDate) return false;
+                const actual = new Date(_cityMinDate);
+                actual.setDate(actual.getDate() + dkNum - 1);
+                return actual.getTime() === today.getTime();
             };
 
             const groups = {}, order = [];
